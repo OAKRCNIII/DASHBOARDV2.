@@ -1,0 +1,3007 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🚢 Logistics Dashboard — นำเข้า-ส่งออก</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* === RESET & BASE === */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;color:#1a202c;font-size:13px;overscroll-behavior:none;-webkit-font-smoothing:antialiased;}
+
+/* ===== SETUP ===== */
+#setupScreen{display:flex;align-items:center;justify-content:center;min-height:100dvh;background:linear-gradient(135deg,#0a1628 0%,#0e2d5a 40%,#0a1628 100%);padding:20px;position:relative;overflow:hidden;}
+.setup-card{background:rgba(255,255,255,.97);border-radius:20px;padding:32px 26px;width:100%;max-width:460px;box-shadow:0 24px 64px rgba(0,0,0,.4),0 0 0 1px rgba(255,255,255,.08);max-height:96dvh;overflow-y:auto;}
+.setup-logo{font-size:44px;text-align:center;margin-bottom:6px;filter:drop-shadow(0 4px 10px rgba(0,0,0,.25));}
+.setup-title{font-size:20px;font-weight:900;color:#0a1628;text-align:center;margin-bottom:4px;letter-spacing:-.3px;}
+.setup-sub{font-size:11px;color:#0369a1;text-align:center;margin-bottom:26px;background:#f0f9ff;border-radius:8px;padding:5px 14px;border:1px solid #bae6fd;font-weight:600;}
+.folder-box{border-radius:12px;padding:14px 16px;margin-bottom:12px;border:2px dashed #cbd5e0;transition:all .2s;cursor:pointer;}
+.folder-box:hover{border-color:#38bdf8;background:#f0f9ff;transform:translateY(-1px);}
+.folder-box.has-folder{border-style:solid;border-color:#34d399;background:linear-gradient(135deg,#f0fdf4,#dcfce7);cursor:default;}
+.folder-box .fi-icon{font-size:28px;margin-bottom:6px;}
+.folder-box .fi-name{font-weight:800;color:#166534;font-size:13px;}
+.folder-box .fi-sub{font-size:10px;color:#34d399;margin-top:3px;}
+.folder-box .fi-empty{font-size:12px;color:#475569;font-weight:700;}
+.folder-box .fi-hint{font-size:10px;color:#94a3b8;margin-top:3px;}
+.pick-btn{width:100%;background:linear-gradient(135deg,#1a3a6b,#0ea5e9);color:white;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:16px;transition:all .2s;box-shadow:0 4px 14px rgba(14,165,233,.35);}
+.pick-btn:hover{background:linear-gradient(135deg,#0a1628,#0284c7);transform:translateY(-1px);box-shadow:0 6px 18px rgba(14,165,233,.45);}
+.divider{display:flex;align-items:center;gap:8px;margin:16px 0;}
+.divider hr{flex:1;border:none;border-top:1px solid #e2e8f0;}
+.divider span{font-size:10px;color:#94a3b8;font-weight:700;white-space:nowrap;text-transform:uppercase;letter-spacing:.5px;}
+.lbl{font-size:10px;font-weight:800;color:#374151;text-transform:uppercase;letter-spacing:.6px;margin-bottom:5px;}
+.inp{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:12px;color:#1a202c;outline:none;transition:all .2s;background:#fafafa;}
+.inp:focus{border-color:#0ea5e9;box-shadow:0 0 0 3px rgba(14,165,233,.12);background:white;}
+.fgrp{margin-bottom:12px;}
+.hint{font-size:10px;color:#94a3b8;margin-top:4px;padding-left:2px;}
+.save-btn{width:100%;background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;margin-top:8px;transition:all .2s;box-shadow:0 4px 14px rgba(16,185,129,.35);}
+.save-btn:hover{background:linear-gradient(135deg,#047857,#059669);transform:translateY(-1px);box-shadow:0 6px 18px rgba(16,185,129,.45);}
+.err-box{font-size:11px;color:#dc2626;text-align:center;margin-top:10px;padding:9px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;display:none;}
+
+/* ===== LOAD SCREEN ===== */
+#loadScreen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100dvh;background:linear-gradient(135deg,#0a1628,#0e2d5a);gap:16px;}
+.spinner{width:48px;height:48px;border:4px solid rgba(255,255,255,.15);border-top-color:#0ea5e9;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.load-txt{font-size:15px;color:rgba(255,255,255,.9);font-weight:700;}
+.load-sub{font-size:11px;color:rgba(255,255,255,.45);}
+#permBox{display:none;flex-direction:column;align-items:center;gap:14px;background:rgba(255,255,255,.08);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.18);border-radius:16px;padding:28px 32px;max-width:320px;text-align:center;}
+.perm-icon{font-size:48px;}
+.perm-title{font-size:15px;font-weight:800;color:white;}
+.perm-hint{font-size:11px;color:rgba(255,255,255,.6);}
+.perm-btn{background:linear-gradient(135deg,#059669,#10b981);color:white;border:none;border-radius:10px;padding:12px 32px;font-size:14px;font-weight:800;cursor:pointer;width:100%;transition:all .2s;box-shadow:0 4px 14px rgba(16,185,129,.35);}
+.perm-btn:hover{background:linear-gradient(135deg,#047857,#059669);transform:translateY(-1px);}
+#errBox{display:none;background:rgba(254,226,226,.95);color:#991b1b;border-radius:12px;padding:16px 20px;font-size:12px;text-align:center;max-width:340px;border:1px solid #fca5a5;}
+.retry-btn{background:linear-gradient(135deg,#1a3a6b,#0ea5e9);color:white;border:none;border-radius:8px;padding:9px 20px;font-size:12px;font-weight:700;cursor:pointer;margin-top:10px;}
+.reset-btn{background:#64748b;color:white;border:none;border-radius:8px;padding:9px 20px;font-size:12px;font-weight:700;cursor:pointer;margin-top:10px;margin-left:8px;}
+
+/* ===== APP SHELL ===== */
+#app{display:none;flex-direction:column;height:100dvh;}
+#mainDash{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.header{background:linear-gradient(100deg,#0a1628 0%,#12284d 50%,#0e3460 100%);color:white;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;border-bottom:1px solid rgba(14,165,233,.25);box-shadow:0 2px 20px rgba(0,0,0,.35);}
+.hdr-left h1{font-size:15px;font-weight:800;letter-spacing:-.2px;}
+.hdr-left .sub{font-size:10px;opacity:.55;margin-top:2px;letter-spacing:.2px;}
+.hdr-right{display:flex;align-items:center;gap:6px;}
+.hdr-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:white;border-radius:8px;padding:5px 11px;font-size:11px;cursor:pointer;font-weight:700;transition:all .15s;}
+.hdr-btn:hover{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.38);}
+
+/* ===== TABS ===== */
+.htabs{display:flex;gap:4px;padding:7px 12px;background:white;border-bottom:2px solid #e8edf5;flex-shrink:0;}
+.htab{background:#f1f5f9;border:none;color:#64748b;border-radius:8px;padding:5px 13px;cursor:pointer;font-size:11px;font-weight:700;transition:all .15s;white-space:nowrap;}
+.htab:hover{background:#e2e8f0;color:#1a202c;}
+.htab.active{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;box-shadow:0 2px 8px rgba(10,22,40,.22);}
+.htab-badge{background:rgba(255,255,255,.25);border-radius:10px;padding:1px 6px;font-size:9px;margin-left:3px;}
+.htab:not(.active) .htab-badge{background:#ef4444;color:white;}
+
+/* ===== STATS BAR (main) ===== */
+.stats-bar{display:flex;gap:8px;padding:8px 14px;background:white;border-bottom:1px solid #e8edf5;flex-wrap:wrap;flex-shrink:0;overflow-x:auto;}
+.sc{background:#f8fafc;border:1px solid #e8edf5;border-radius:10px;padding:7px 13px;min-width:105px;flex-shrink:0;border-left:3px solid #0ea5e9;}
+.sc .lbl2{font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+.sc .val{font-size:17px;font-weight:800;line-height:1.2;color:#0a1628;}
+.sc .sub2{font-size:9px;color:#b0bec5;}
+.sc-click{cursor:pointer;transition:all .15s;}
+.sc-click:hover{border-color:#0ea5e9;box-shadow:0 3px 12px rgba(14,165,233,.18);transform:translateY(-1px);}
+
+/* ===== VIEWS ===== */
+.views{flex:1;overflow:hidden;position:relative;}
+.view{display:none;position:absolute;inset:0;overflow:hidden;}
+.view.active{display:flex;}
+
+/* ===== MAIN VIEW ===== */
+.main-view{flex-direction:row;}
+.month-tabs{width:116px;background:linear-gradient(180deg,#0a1628,#0d2347);display:flex;flex-direction:column;padding:6px 0;gap:1px;flex-shrink:0;overflow-y:auto;}
+.mtab{padding:9px 8px;color:rgba(255,255,255,.4);cursor:pointer;font-size:10px;font-weight:700;transition:all .15s;border-left:3px solid transparent;text-align:center;letter-spacing:.2px;}
+.mtab:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.07);}
+.mtab.active{color:white;background:rgba(14,165,233,.18);border-left-color:#0ea5e9;}
+.mid-panel{width:200px;background:white;border-right:1px solid #e8edf5;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.mid-hdr{padding:8px 12px;background:#f0f9ff;border-bottom:1px solid #bae6fd;font-size:10px;font-weight:800;color:#0369a1;flex-shrink:0;text-transform:uppercase;letter-spacing:.4px;}
+.mid-body{flex:1;overflow-y:auto;}
+.pfx-row,.ir{padding:8px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .1s;}
+.pfx-row:hover,.ir:hover{background:#f0f9ff;}
+.pfx-name{font-size:11px;font-weight:700;}
+.pfx-cnt{font-size:10px;color:#64748b;}
+.ir{display:flex;align-items:center;gap:8px;}
+.ir-inv{font-size:11px;font-weight:600;color:#1a202c;flex:1;}
+.ir-badge{font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700;}
+.dp{flex:1;overflow-y:auto;padding:14px 16px;}
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#b0bec5;gap:10px;}
+.placeholder .ico{font-size:42px;opacity:.6;}
+.placeholder p{font-size:12px;text-align:center;}
+.bc{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.bc-item{font-size:10px;color:#64748b;cursor:pointer;}
+.bc-item:hover{color:#0ea5e9;text-decoration:underline;}
+.bc-sep{font-size:10px;color:#cbd5e0;}
+.bc-cur{font-size:10px;font-weight:800;color:#0a1628;}
+.det-title{font-size:14px;font-weight:800;color:#0a1628;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #e0f2fe;letter-spacing:-.2px;}
+.det-tbl{width:100%;border-collapse:collapse;font-size:11px;border-radius:8px;overflow:hidden;}
+.det-tbl th{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;padding:7px 10px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.3px;}
+.det-tbl td{padding:7px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.det-tbl tr:hover td{background:#f0f9ff;}
+.det-tbl tr:last-child td{border-bottom:none;}
+
+/* ===== PENDING VIEW ===== */
+.pending-view{flex-direction:row;}
+.pv-wrap{display:flex;flex:1;overflow:hidden;}
+.pv-list{width:280px;overflow-y:auto;background:white;border-right:1px solid #e8edf5;flex-shrink:0;}
+.pv-list-hdr{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;font-size:10px;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:.4px;}
+.pv-card{padding:10px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:all .12s;border-left:3px solid transparent;}
+.pv-card:hover{background:#f8fafc;}
+.pv-card.active{background:#eff6ff;border-left-color:#0ea5e9;}
+.pv-inv{font-size:12px;font-weight:800;color:#0a1628;}
+.pv-cust{font-size:10px;color:#64748b;margin-top:1px;}
+.pv-meta{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-top:6px;}
+.pv-badge{font-size:9px;padding:2px 7px;border-radius:10px;font-weight:700;}
+.pv-detail{flex:1;overflow-y:auto;padding:16px;}
+.prog-bg{width:100%;height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;}
+.prog-bar{height:100%;border-radius:3px;transition:width .4s;}
+.prog-labels{display:flex;justify-content:space-between;margin-top:3px;}
+.prog-done{font-size:9px;color:#10b981;font-weight:700;}
+.prog-left{font-size:9px;color:#f97316;font-weight:700;}
+
+/* ===== STOCK VIEW ===== */
+.stock-view{flex-direction:column;}
+.stock-body{display:flex;flex:1;overflow:hidden;}
+.stock-left{width:100%;background:#f8fafc;display:flex;flex-direction:column;overflow:hidden;}
+.stock-lhdr{padding:9px 14px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;font-size:10px;font-weight:800;color:#166534;text-transform:uppercase;letter-spacing:.4px;}
+.stock-lbody{flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));align-content:start;gap:1px;background:#e8edf5;}
+.bkg-group{padding:13px 15px;background:white;cursor:pointer;transition:background .15s;}
+.bkg-group:hover{background:#f0f9ff;}
+.bkg-no{font-size:13px;font-weight:800;color:#0a1628;letter-spacing:.2px;}
+.bkg-liner{font-size:10px;color:#64748b;}
+.bkg-avail{font-size:24px;font-weight:900;color:#10b981;line-height:1;}
+.bkg-avail-lbl{font-size:10px;color:#94a3b8;margin-top:2px;text-transform:uppercase;font-weight:600;letter-spacing:.3px;}
+.lock-mmf{background:#dbeafe;color:#1e40af;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:800;}
+.lock-pip{background:#dcfce7;color:#166534;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:800;}
+.lock-oth{background:#f1f5f9;color:#475569;border-radius:5px;padding:1px 7px;font-size:10px;font-weight:700;}
+
+/* ===== PENDING CONTAINERS PANEL ===== */
+.pend-panel{background:#fffbeb;border-bottom:2px solid #f59e0b;flex-shrink:0;max-height:240px;display:flex;flex-direction:column;}
+.pend-panel-hdr{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#fef3c7;border-bottom:1px solid #fcd34d;font-size:11px;font-weight:800;color:#92400e;flex-shrink:0;text-transform:uppercase;letter-spacing:.3px;}
+.pend-panel-hdr .pc{background:#f59e0b;color:white;border-radius:10px;padding:1px 8px;font-size:10px;font-weight:800;}
+.pend-scroll{display:flex;gap:8px;padding:8px 12px;overflow-x:auto;flex:1;align-items:flex-start;}
+.pend-card{background:white;border:1.5px solid #fcd34d;border-radius:10px;padding:9px 11px;min-width:160px;max-width:190px;flex-shrink:0;position:relative;box-shadow:0 2px 8px rgba(245,158,11,.1);}
+.pend-card.zone-pink{border-color:#f9a8d4;background:#fff0f6;}
+.pend-ctr{font-size:12px;font-weight:900;color:#0f172a;letter-spacing:.5px;margin-bottom:5px;font-family:'Courier New',monospace;}
+.pend-meta{font-size:10px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.pend-badge{display:inline-block;margin-top:5px;background:#f59e0b;color:white;border-radius:6px;padding:2px 8px;font-size:9px;font-weight:800;letter-spacing:.3px;}
+.pend-zone{font-size:9px;font-weight:800;position:absolute;top:6px;right:7px;padding:1px 6px;border-radius:4px;}
+.pend-zone.today{background:#dcfce7;color:#166534;}
+.pend-zone.pink{background:#fce7f3;color:#9d174d;}
+
+/* ===== MODALS ===== */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(10,22,40,.6);backdrop-filter:blur(4px);z-index:1000;align-items:center;justify-content:center;padding:16px;}
+.modal-bg.open{display:flex;}
+.modal{background:white;border-radius:16px;width:100%;max-width:400px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.modal-head{padding:14px 18px;border-bottom:1px solid #e8edf5;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#f8fafc;border-radius:16px 16px 0 0;}
+.modal-title{font-size:13px;font-weight:800;color:#0a1628;}
+.modal-close{background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;transition:color .15s;}
+.modal-close:hover{color:#ef4444;}
+.modal-body{overflow-y:auto;padding:10px 0;}
+.ctr-row{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;border-bottom:1px solid #f1f5f9;}
+.ctr-num{font-family:'Courier New',monospace;font-size:12px;font-weight:700;color:#1a202c;}
+.ctr-ok{background:#dcfce7;color:#166534;border-radius:5px;padding:2px 9px;font-size:10px;font-weight:800;}
+.ctr-used{background:#fee2e2;color:#991b1b;border-radius:5px;padding:2px 9px;font-size:10px;font-weight:800;}
+.smodal-bg{display:none;position:fixed;inset:0;background:rgba(10,22,40,.6);backdrop-filter:blur(4px);z-index:999;align-items:center;justify-content:center;padding:16px;}
+.smodal-bg.open{display:flex;}
+.smodal{background:white;border-radius:16px;width:100%;max-width:460px;max-height:75vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.smodal-head{padding:14px 18px;border-bottom:1px solid #e8edf5;display:flex;align-items:center;justify-content:space-between;border-radius:16px 16px 0 0;background:#f8fafc;}
+.smodal-title{font-size:13px;font-weight:800;color:#0a1628;}
+.smodal-close{background:none;border:none;font-size:18px;cursor:pointer;color:#94a3b8;}
+.smodal-body{overflow-y:auto;padding:6px 0;}
+.sm-row{padding:9px 16px;display:flex;align-items:center;gap:9px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s;}
+.sm-row:hover{background:#f0f9ff;}
+.sm-inv{font-size:12px;font-weight:800;color:#0a1628;flex:1;}
+.sm-pfx{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px;}
+.sm-ctr{font-size:10px;color:#64748b;min-width:52px;text-align:right;}
+.sm-ctr.done{color:#10b981;font-weight:800;}
+.sm-ctr.inc{color:#f59e0b;font-weight:800;}
+
+/* ===== VESSEL VIEW ===== */
+.vessel-view{flex-direction:column;overflow-y:auto;background:#eef2f7;}
+.vessel-wrap{max-width:900px;margin:0 auto;padding:14px 16px;}
+.vessel-card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);margin-bottom:14px;overflow:hidden;}
+.vessel-head{background:linear-gradient(100deg,#0a1628 0%,#12284d 55%,#0e3460 100%);color:white;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;}
+.vessel-name{font-size:13px;font-weight:800;letter-spacing:.4px;}
+.vessel-badge{font-size:11px;background:rgba(14,165,233,.25);border:1px solid rgba(14,165,233,.35);border-radius:8px;padding:3px 12px;white-space:nowrap;}
+.vtbl{width:100%;border-collapse:collapse;font-size:12px;}
+.vtbl th{background:#f0f9ff;color:#0369a1;padding:7px 12px;font-size:10px;font-weight:800;text-align:left;border-bottom:2px solid #bae6fd;text-transform:uppercase;letter-spacing:.5px;}
+.vtbl td{padding:7px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.vtbl tbody tr:last-child td{border-bottom:none;}
+.vtbl tbody tr:hover td{background:#f0f9ff;}
+
+/* ===== FACTORY VIEW ===== */
+.factory-view{flex-direction:column;overflow-y:auto;background:#eef2f7;}
+.factory-wrap{max-width:820px;margin:0 auto;padding:14px 16px;}
+.factory-topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;}
+.fdate-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.fdate-bar label{font-size:10px;color:#64748b;font-weight:700;white-space:nowrap;}
+.fdate-bar input[type=date]{border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 9px;font-size:12px;color:#1a202c;background:white;outline:none;transition:border-color .15s;}
+.fdate-bar input[type=date]:focus{border-color:#0ea5e9;}
+.fdate-sep{color:#cbd5e0;}
+.fdate-clr{background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:5px 10px;font-size:10px;color:#64748b;cursor:pointer;font-weight:700;transition:all .15s;}
+.fdate-clr:hover{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+.fqbtn{background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:4px 10px;font-size:10px;font-weight:800;cursor:pointer;color:#475569;transition:all .15s;}
+.fqbtn:hover{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;border-color:transparent;}
+.ftbl-wrap{background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.ftbl{width:100%;border-collapse:collapse;}
+.ftbl th{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;padding:9px 14px;font-size:10px;text-align:left;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+.ftbl th:first-child{width:55%;}
+.ftbl td{padding:7px 14px;border-bottom:1px solid #f1f5f9;font-size:12px;vertical-align:middle;}
+.ftbl tbody tr:last-child td{border-bottom:none;}
+.ftbl .fdate-hd td{background:#dbeafe;color:#1e40af;font-weight:800;font-size:11px;padding:6px 14px;border-bottom:2px solid #93c5fd;}
+.ftbl .finv-cell{font-weight:700;color:#1a202c;border-right:1px solid #e2e8f0;border-left:3px solid transparent;}
+.ftbl .ftrk-cell{color:#374151;font-family:'Courier New',monospace;font-size:12px;font-weight:600;}
+.ftbl tbody tr:hover td{background:#f0f9ff;}
+.finv-badge{display:inline-block;font-size:9px;font-weight:800;padding:1px 6px;border-radius:5px;margin-right:6px;}
+
+/* ===== MOBILE BOTTOM TABS ===== */
+.mob-tabs{display:none;position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #e2e8f0;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px);box-shadow:0 -4px 20px rgba(0,0,0,.08);}
+.mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 6px;cursor:pointer;color:#94a3b8;font-size:9px;font-weight:700;gap:2px;transition:all .15s;}
+.mob-tab.active{color:#0ea5e9;}
+.mob-tab-icon{font-size:20px;line-height:1;}
+.mob-badge{background:#ef4444;color:white;border-radius:8px;padding:0 4px;font-size:9px;font-weight:800;min-width:14px;text-align:center;margin-left:2px;}
+
+/* ===== TRANSPORT DASHBOARD ===== */
+#trDash{display:none;flex-direction:column;flex:1;overflow:hidden;background:#f8fafb;}
+#trDash .stats-bar{display:flex;gap:8px;padding:10px 16px;background:white;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;}
+#trDash .sc{background:#f0fdf4;border:1px solid #d1fae5;border-radius:10px;padding:7px 14px;min-width:105px;border-left:3px solid #059669;}
+#trDash .sc .lbl{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+#trDash .sc .val{font-size:18px;font-weight:900;line-height:1.2;color:#064e3b;}
+#trDash .sc .sub2{font-size:9px;color:#a0aec0;}
+/* Filter bar */
+#trDash .filter-bar{display:flex;gap:6px;padding:8px 16px;background:white;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;align-items:center;}
+#trDash .ftab{padding:5px 13px;border-radius:20px;border:1.5px solid #e2e8f0;font-size:11px;font-weight:700;cursor:pointer;background:white;color:#64748b;transition:all .15s;white-space:nowrap;}
+#trDash .ftab.active{border-color:currentColor;}
+#trDash .ftab.f-all.active{background:#f0fdf4;color:#059669;border-color:#34d399;}
+#trDash .ftab.f-full.active{background:#dcfce7;color:#166534;border-color:#86efac;}
+#trDash .ftab.f-partial.active{background:#fef3c7;color:#92400e;border-color:#fcd34d;}
+#trDash .ftab.f-none.active{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
+#trDash .ftab.f-nodata.active{background:#f1f5f9;color:#475569;border-color:#94a3b8;}
+#trDash .search-wrap{margin-left:auto;}
+#trDash .search-inp{border:1.5px solid #e2e8f0;border-radius:20px;padding:5px 14px;font-size:12px;color:#1a202c;outline:none;width:180px;transition:all .15s;background:#f8fafc;}
+#trDash .search-inp:focus{border-color:#059669;background:white;box-shadow:0 0 0 3px rgba(5,150,105,.1);}
+/* Table */
+#trDash .tbl-wrap{flex:1;overflow:auto;padding:12px 16px;}
+#trDash .inv-tbl{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+#trDash .inv-tbl th{background:linear-gradient(135deg,#064e3b,#065f46);color:white;padding:9px 12px;font-size:10px;font-weight:800;text-align:left;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;}
+#trDash .inv-tbl td{padding:8px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-size:12px;}
+#trDash .inv-tbl tbody tr:last-child td{border-bottom:none;}
+#trDash .inv-row{cursor:pointer;transition:background .1s;}
+#trDash .inv-row:hover td{background:#f0fdf4;}
+#trDash .inv-row.open td{background:#ecfdf5;}
+#trDash .detail-row{display:none;}
+#trDash .detail-row.open{display:table-row;}
+#trDash .detail-cell{padding:0!important;background:#f8fafc!important;}
+#trDash .det-inner{padding:10px 16px 16px 32px;border-top:2px solid #a7f3d0;}
+/* Badges */
+#trDash .pfx-badge{display:inline-block;font-size:9px;font-weight:800;padding:2px 7px;border-radius:5px;margin-right:5px;}
+#trDash .status-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;white-space:nowrap;}
+#trDash .s-full{background:#dcfce7;color:#166534;}
+#trDash .s-partial{background:#fef3c7;color:#92400e;}
+#trDash .s-none{background:#fee2e2;color:#991b1b;}
+#trDash .s-nodata{background:#f1f5f9;color:#64748b;}
+/* Detail table */
+#trDash .det-tbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:6px;}
+#trDash .det-tbl th{background:#e2f5ea;color:#166534;padding:5px 10px;font-size:9px;font-weight:800;text-align:left;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #bbf7d0;}
+#trDash .det-tbl td{padding:6px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+#trDash .det-tbl tbody tr:last-child td{border-bottom:none;}
+#trDash .det-tbl tbody tr:hover td{background:#f0fdf4;}
+#trDash .paid-mark{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;white-space:nowrap;}
+#trDash .paid-yes{background:#dcfce7;color:#166534;}
+#trDash .paid-no{background:#fee2e2;color:#991b1b;}
+#trDash .det-sum{font-size:11px;margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;padding:7px 12px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;}
+#trDash .det-sum span{font-weight:800;color:#166534;}
+/* Prefix bar */
+#trDash .prefix-bar{display:flex;gap:6px;padding:6px 16px 8px;background:white;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;align-items:center;}
+#trDash .prefix-bar:empty{display:none;}
+#trDash .pfx-tab{padding:4px 11px;border-radius:14px;border:1.5px solid;font-size:11px;font-weight:800;cursor:pointer;transition:all .15s;opacity:.55;}
+#trDash .pfx-tab:hover{opacity:.85;}
+#trDash .pfx-tab.active{opacity:1;box-shadow:0 2px 8px rgba(0,0,0,.15);}
+#trDash .pfx-tab-all{background:#f1f5f9;color:#475569;border-color:#cbd5e0;}
+#trDash .pfx-tab-all.active{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;border-color:transparent;opacity:1;}
+#trDash .no-inv{text-align:center;padding:40px;color:#94a3b8;font-size:13px;}
+/* Duplicate alert */
+.dupe-bar{display:flex;align-items:center;gap:10px;padding:7px 16px;background:#fef2f2;border-bottom:2px solid #fca5a5;font-size:11px;color:#991b1b;cursor:pointer;transition:background .15s;}
+.dupe-bar:hover{background:#fee2e2;}
+.dupe-badge{background:#dc2626;color:white;border-radius:10px;padding:2px 9px;font-weight:800;font-size:11px;box-shadow:0 2px 6px rgba(220,38,38,.25);}
+.dupe-dismiss{margin-left:auto;font-size:10px;color:#b91c1c;text-decoration:underline;}
+.dupe-modal-bg{position:fixed;inset:0;background:rgba(10,22,40,.6);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;}
+.dupe-modal-bg.open{display:flex;}
+.dupe-modal{background:white;border-radius:16px;width:min(640px,96vw);max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.dupe-modal-hdr{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #fee2e2;background:#fef2f2;border-radius:16px 16px 0 0;}
+.dupe-modal-title{font-size:14px;font-weight:900;color:#991b1b;flex:1;}
+.dupe-modal-close{font-size:20px;cursor:pointer;color:#94a3b8;line-height:1;transition:color .15s;}
+.dupe-modal-close:hover{color:#dc2626;}
+/* ── Transport AL Summary modal ── */
+.month-card{cursor:pointer;}
+.month-card:hover{box-shadow:0 4px 20px rgba(5,150,105,.2);transform:translateY(-2px);}
+.month-card::after{content:'🔍 ดูสรุปขนส่ง';display:block;font-size:10px;color:#059669;font-weight:600;margin-top:8px;opacity:.7;}
+.tr-al-bg{position:fixed;inset:0;background:rgba(10,22,40,.55);backdrop-filter:blur(3px);z-index:2500;display:none;align-items:center;justify-content:center;padding:16px;}
+.tr-al-bg.open{display:flex;}
+.tr-al-modal{background:white;border-radius:14px;width:min(660px,98vw);max-height:88vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.tr-al-hdr{display:flex;align-items:center;gap:10px;padding:13px 18px;background:linear-gradient(100deg,#064e3b,#065f46);border-radius:14px 14px 0 0;flex-shrink:0;}
+.tr-al-title{font-size:13px;font-weight:800;color:white;flex:1;}
+.tr-al-print{padding:6px 14px;border:1.5px solid rgba(255,255,255,.4);border-radius:8px;background:rgba(255,255,255,.12);color:white;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s;}
+.tr-al-print:hover{background:rgba(255,255,255,.22);}
+.tr-al-close{font-size:20px;cursor:pointer;color:rgba(255,255,255,.6);line-height:1;}.tr-al-close:hover{color:white;}
+.tr-al-info{display:flex;gap:10px;flex-wrap:wrap;padding:10px 16px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;font-size:11px;font-weight:700;color:#166534;flex-shrink:0;}
+.tr-al-info .ia{background:white;border:1px solid #bbf7d0;border-radius:7px;padding:4px 12px;}
+.tr-al-info .ia-amt{color:#059669;font-size:13px;}
+.tr-al-body{flex:1;overflow-y:auto;}
+.tral-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.tral-tbl thead tr{background:linear-gradient(90deg,#064e3b,#065f46);}
+.tral-tbl th{color:white;font-weight:700;padding:8px 12px;text-align:left;font-size:11px;}
+.tral-tbl th.r{text-align:right;}
+.tral-tbl tbody tr{border-bottom:1px solid #f1f5f9;}
+.tral-tbl tbody tr:nth-child(even){background:#f8fafc;}
+.tral-tbl tbody tr:hover{background:#f0fdf4;}
+.tral-tbl td{padding:8px 12px;vertical-align:middle;}
+.tral-tbl td.r{text-align:right;font-weight:600;}
+.tral-tbl td.no{width:24px;text-align:center;color:#94a3b8;font-size:11px;}
+.tral-badge{display:inline-block;background:#064e3b;color:white;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:800;letter-spacing:.5px;}
+.tral-amt{color:#059669;font-weight:800;font-size:13px;}
+.tral-sum{background:#f0fdf4 !important;border-top:2.5px solid #bbf7d0 !important;}
+.tral-sum td{font-weight:800;color:#065f46;padding:9px 12px;}
+
+.vpdf-bg{position:fixed;inset:0;background:rgba(10,22,40,.6);backdrop-filter:blur(4px);z-index:2100;display:none;align-items:center;justify-content:center;padding:16px;}.vpdf-bg.open{display:flex;}
+.vpdf-modal{background:white;border-radius:16px;width:min(500px,96vw);max-height:84vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.vpdf-hdr{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #e2e8f0;background:linear-gradient(100deg,#0a1628,#1a3a6b);border-radius:16px 16px 0 0;}
+.vpdf-hdr-title{font-size:13px;font-weight:800;color:white;flex:1;}
+.vpdf-hdr-close{font-size:20px;cursor:pointer;color:rgba(255,255,255,.55);line-height:1;transition:color .15s;}.vpdf-hdr-close:hover{color:white;}
+.vpdf-body{flex:1;overflow-y:auto;padding:12px 14px;}
+.vpdf-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:7px;cursor:pointer;transition:all .15s;user-select:none;}
+.vpdf-item:hover{border-color:#0ea5e9;background:#f0f9ff;}.vpdf-item.sel{border-color:#0ea5e9;background:#eff6ff;}
+.vpdf-item.disabled{opacity:.4;pointer-events:none;}
+.vpdf-item input[type=checkbox]{width:16px;height:16px;accent-color:#0ea5e9;flex-shrink:0;cursor:pointer;}
+.vpdf-footer{padding:11px 14px;border-top:1px solid #e8edf5;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-shrink:0;}
+.vpdf-count{font-size:12px;color:#64748b;font-weight:600;}
+.vpdf-print-btn{padding:8px 20px;border:none;border-radius:9px;background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:opacity .15s;}
+.vpdf-print-btn:disabled{opacity:.4;cursor:not-allowed;}
+.vpdf-cancel-btn{padding:8px 16px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;font-size:12px;cursor:pointer;color:#475569;}
+.dupe-modal-body{flex:1;overflow-y:auto;padding:12px 0;}
+.dupe-row-hdr{padding:7px 18px;background:#fef2f2;font-size:9px;font-weight:800;color:#dc2626;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #fee2e2;border-top:1px solid #fee2e2;display:flex;gap:8px;align-items:center;}
+.dupe-row-hdr .dupe-inv{flex:1;}
+.dupe-entry{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:6px;padding:7px 18px;border-bottom:1px solid #f1f5f9;font-size:11px;align-items:center;}
+.dupe-entry:hover{background:#fef9f9;}
+.dupe-entry .de-ctr{font-weight:700;color:#0f172a;font-family:monospace;}
+.dupe-entry .de-trk{color:#475569;}
+.dupe-entry .de-price{text-align:right;color:#059669;font-weight:800;}
+.dupe-entry .de-bill{color:#94a3b8;font-size:10px;}
+.dupe-source{display:inline-block;font-size:9px;padding:2px 6px;border-radius:4px;font-weight:800;}
+.dupe-source.ogm{background:#fef3c7;color:#92400e;}
+.dupe-source.all{background:#e0f2fe;color:#0369a1;}
+/* Bill info bar */
+.bill-info-bar{display:flex;gap:12px;padding:7px 16px;background:#f0fdf4;border-bottom:1px solid #d1fae5;font-size:11px;color:#64748b;flex-wrap:wrap;align-items:center;}
+.bill-chip{background:white;border:1px solid #d1fae5;border-radius:8px;padding:4px 12px;display:inline-flex;gap:6px;align-items:center;box-shadow:0 1px 4px rgba(0,0,0,.06);}
+.bill-chip .lbl{color:#6b7280;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+.bill-chip .val{font-weight:800;color:#059669;}
+/* View toggle */
+#trDash .view-toggle{display:flex;gap:4px;margin-left:auto;}
+#trDash .vtab{padding:5px 13px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:11px;font-weight:700;cursor:pointer;background:#f8fafc;color:#64748b;transition:all .15s;}
+#trDash .vtab.active{background:linear-gradient(135deg,#064e3b,#065f46);color:white;border-color:transparent;box-shadow:0 2px 8px rgba(6,78,59,.25);}
+/* Monthly summary */
+#trDash .month-wrap{flex:1;overflow:auto;padding:12px 16px;display:none;}
+#trDash .month-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.month-card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:14px 16px;border-left:4px solid #059669;transition:all .15s;}
+.month-card:hover{box-shadow:0 4px 20px rgba(0,0,0,.12);transform:translateY(-1px);}
+.month-card .mc-hdr{font-weight:800;font-size:15px;color:#0f172a;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.month-card .mc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mc-stat{display:flex;flex-direction:column;gap:2px;}
+.mc-stat .mv{font-weight:800;font-size:16px;color:#0f172a;}
+.mc-stat .ml{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;}
+.mc-amt{font-weight:900;font-size:18px;color:#059669;}
+.mc-badge{font-size:11px;padding:2px 9px;border-radius:10px;font-weight:700;}
+.mc-full{background:#dcfce7;color:#166534;}
+.mc-partial{background:#fef3c7;color:#92400e;}
+.mc-none{background:#fee2e2;color:#991b1b;}
+#trDash .amt-paid{font-weight:800;color:#10b981;}
+#trDash .amt-zero{color:#94a3b8;}
+.mini-prog{height:4px;background:#e2e8f0;border-radius:2px;overflow:hidden;width:60px;display:inline-block;vertical-align:middle;margin-left:5px;}
+.mini-bar{height:100%;border-radius:2px;}
+/* Dashboard toggle button */
+.dash-toggle-btn{background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.3);color:white;border-radius:8px;padding:5px 13px;font-size:11px;cursor:pointer;font-weight:800;transition:all .15s;white-space:nowrap;letter-spacing:.1px;}
+.dash-toggle-btn:hover{background:rgba(255,255,255,.22);}
+.dash-toggle-btn.tr-active{background:linear-gradient(135deg,#059669,#10b981);border-color:#059669;color:white;box-shadow:0 2px 10px rgba(5,150,105,.4);}
+
+/* ===== TRANSPORT COMPANY CARDS ===== */
+.co-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-bottom:16px;}
+.co-card{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.08);padding:14px 16px;border-left:4px solid #7c3aed;cursor:pointer;transition:all .15s;}
+.co-card:hover{box-shadow:0 4px 20px rgba(124,58,237,.18);transform:translateY(-2px);}
+.co-card .cc-name{font-weight:900;font-size:15px;color:#3b0764;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.co-card .cc-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.cc-stat{display:flex;flex-direction:column;gap:1px;}
+.cc-stat .sv{font-weight:800;font-size:15px;color:#0f172a;}
+.cc-stat .sl{font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.3px;}
+.cc-amt{font-weight:900;font-size:17px;color:#7c3aed;}
+.co-detail-panel{background:white;border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1);padding:16px;margin-bottom:12px;display:none;}
+.co-detail-panel.open{display:block;}
+.co-detail-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #ede9fe;}
+.co-detail-hdr h3{font-size:14px;font-weight:900;color:#3b0764;margin:0;}
+.co-detail-close{background:none;border:none;font-size:18px;cursor:pointer;color:#7c3aed;padding:0 4px;line-height:1;}
+.co-bill-section{margin-bottom:10px;}
+.co-bill-section h4{font-size:11px;font-weight:800;color:#6d28d9;text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px 0;padding:4px 8px;background:#f5f3ff;border-radius:6px;}
+.co-bill-tbl{width:100%;border-collapse:collapse;font-size:12px;}
+.co-bill-tbl th{text-align:left;padding:4px 8px;font-size:10px;color:#64748b;font-weight:700;border-bottom:1px solid #e2e8f0;}
+.co-bill-tbl th.r,.co-bill-tbl td.r{text-align:right;}
+.co-bill-tbl td{padding:4px 8px;border-bottom:1px solid #f1f5f9;color:#1e293b;}
+.co-bill-tbl tr:hover td{background:#faf5ff;}
+.co-mo-badge{font-size:10px;padding:1px 7px;border-radius:8px;background:#ede9fe;color:#5b21b6;font-weight:700;display:inline-block;}
+/* ===== RESPONSIVE ===== */
+@media(max-width:600px){
+  .htabs{display:none;}
+  .mob-tabs{display:flex;}
+  #app{padding-bottom:calc(56px + env(safe-area-inset-bottom,0px));}
+  .stats-bar{gap:6px;padding:6px 10px;}
+  .sc{padding:5px 10px;min-width:85px;}
+  .sc .val{font-size:15px;}
+  .main-view{flex-direction:column;}
+  .month-tabs{width:100%;flex-direction:row;height:44px;padding:0;overflow-x:auto;overflow-y:hidden;}
+  .mtab{padding:0 12px;white-space:nowrap;border-left:none;border-bottom:3px solid transparent;height:44px;display:flex;align-items:center;}
+  .mtab.active{border-bottom-color:#0ea5e9;border-left:none;}
+  .mid-panel{width:100%;height:0;overflow:hidden;transition:height .2s;}
+  .mid-panel.open{height:180px;}
+  .dp{display:none;}
+  .dp.open{display:block;}
+  .pv-list{width:100%;max-width:100%;}
+  .pv-wrap{flex-direction:column;}
+  .pv-detail{display:none;}
+  .pv-wrap.detail-open .pv-list{display:none;}
+  .pv-wrap.detail-open .pv-detail{display:block;}
+  .stock-lbody{grid-template-columns:1fr;}
+  .factory-topbar{flex-direction:column;}
+  .fdate-bar{width:100%;}
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div id="setupScreen">
+  <div class="setup-card">
+    <div class="setup-logo">🚢</div>
+    <div class="setup-title">Logistics Dashboard</div>
+    <div class="setup-sub">📦 นำเข้า-ส่งออก · ดึงข้อมูลจาก Dropbox</div>
+    <div class="fgrp">
+      <div class="lbl">🔑 Dropbox Access Token <span style="color:#dc2626;">*</span></div>
+      <input class="inp" id="fToken" type="password" placeholder="sl.xxxxxxxxxxxxxxxxxxxxx">
+      <div class="hint">สร้างได้ที่ Dropbox App Console → Generate Access Token</div>
+    </div>
+    <div class="divider"><hr><span>พาธไฟล์ใน Dropbox (ขึ้นต้นด้วย /)</span><hr></div>
+    <div class="fgrp">
+      <div class="lbl">ไฟล์ ใบยกตู้ (.xlsm) <span style="color:#dc2626;">*</span></div>
+      <input class="inp" id="fInv" placeholder="/LOGISTICS/ใบยกตู้V4TEST.xlsm">
+      <div class="hint">พาธเต็มใน Dropbox เช่น /FOLDER/ใบยกตู้V4TEST.xlsm</div>
+    </div>
+    <div class="fgrp">
+      <div class="lbl">ไฟล์ BKG (.xlsx) <span style="color:#dc2626;">*</span></div>
+      <input class="inp" id="fBkg" placeholder="/LOGISTICS/BKG.xlsx">
+    </div>
+    <div class="fgrp">
+      <div class="lbl">ไฟล์ VESSEL MANAGE (.xlsm)</div>
+      <input class="inp" id="fVsl" placeholder="/LOGISTICS/VESSEL_MANAGE.xlsm">
+    </div>
+    <div class="fgrp">
+      <div class="lbl">ไฟล์ STATEMENT (.xlsm)</div>
+      <input class="inp" id="fStm" placeholder="/LOGISTICS/SU_STATEMENT.xlsm">
+    </div>
+    <div class="fgrp">
+      <div class="lbl">ไฟล์ค่าขนส่ง OGM (.xlsm)</div>
+      <input class="inp" id="fOgm" placeholder="/LOGISTICS/DATA ใบวางบิล.xlsm">
+    </div>
+    <div class="fgrp">
+      <div class="lbl">ไฟล์ค่าขนส่ง โรงงานอื่น (.xlsm)</div>
+      <input class="inp" id="fOth" placeholder="/LOGISTICS/DATA ค่าขนส่ง.xlsm">
+    </div>
+    <div class="fgrp">
+      <div class="lbl">ราคา OGM (A) ต่อโรงงาน (.xlsx)</div>
+      <input class="inp" id="fOgmPrice" placeholder="/LOGISTICS/OGM (A).xlsx">
+      <div class="hint">ไฟล์ราคาค่าขนส่ง OGM(A) แยกโรงงาน ใช้แสดง วางบิลโรงงาน ในดีเทลอินวอยซ์</div>
+    </div>
+    <button class="save-btn" id="saveBtn">✅ บันทึกและโหลดข้อมูล</button>
+    <div class="err-box" id="setupErr"></div>
+  </div>
+</div>
+
+<!-- LOAD -->
+<div id="loadScreen">
+  <div class="spinner" id="spinner"></div>
+  <div class="load-txt" id="loadTxt">กำลังโหลดข้อมูล...</div>
+  <div class="load-sub" id="loadSub"></div>
+  <div id="permBox">
+    <div class="perm-icon">🔓</div>
+    <div class="perm-title" id="permTitle">ต้องการอนุญาตเข้าถึงโฟลเดอร์</div>
+    <div class="perm-hint" id="permHint">กดปุ่มด้านล่างเพื่อให้ Dashboard เข้าถึงไฟล์ที่เลือกไว้</div>
+    <button class="perm-btn" id="permBtn">🔓 อนุญาตเข้าถึงโฟลเดอร์</button>
+  </div>
+  <div id="errBox">
+    <div id="errMsg"></div>
+    <button class="retry-btn" id="retryBtn">🔄 ลองใหม่</button>
+    <button class="reset-btn" id="resetBtn">⚙️ ตั้งค่าใหม่</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="header">
+    <div class="hdr-left">
+      <h1>Logistics Dashboard</h1>
+      <div class="sub" id="lastUpd">—</div>
+    </div>
+    <div class="hdr-right">
+      <button class="dash-toggle-btn" id="dashToggleBtn" onclick="toggleDashboard()">🚛 ค่าขนส่ง</button>
+      <button class="hdr-btn" id="refreshBtn">🔄 รีเฟรช</button>
+      <button class="hdr-btn" id="settingsBtn">⚙️</button>
+    </div>
+  </div>
+  <!-- ===== MAIN DASHBOARD ===== -->
+  <div id="mainDash" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+  <div class="htabs">
+    <button class="htab active" id="htab-main" onclick="switchTab('main')">📊 รายเดือน</button>
+    <button class="htab" id="htab-pending" onclick="switchTab('pending')">⏳ คงค้าง <span class="htab-badge" id="pBadge"></span></button>
+    <button class="htab" id="htab-stock" onclick="switchTab('stock')">📦 STOCK ตู้</button>
+    <button class="htab" id="htab-factory" onclick="switchTab('factory')">🏭 เข้าโรงงาน</button>
+    <button class="htab" id="htab-vessel" onclick="switchTab('vessel')">🚢 เรือ</button>
+  </div>
+  <div class="stats-bar" id="sBar"></div>
+  <!-- BKG modal -->
+  <div class="modal-bg" id="bkgModal">
+    <div class="modal">
+      <div class="modal-head"><span class="modal-title" id="bkgModalTitle"></span><button class="modal-close" id="bkgModalClose">✕</button></div>
+      <div class="modal-body" id="bkgModalBody"></div>
+    </div>
+  </div>
+  <!-- Stat modal -->
+  <div class="smodal-bg" id="sModal">
+    <div class="smodal">
+      <div class="smodal-head"><span class="smodal-title" id="sModalTitle"></span><button class="smodal-close" id="sModalClose">✕</button></div>
+      <div class="smodal-body" id="sModalBody"></div>
+    </div>
+  </div>
+  <div class="views">
+    <!-- MAIN -->
+    <div class="view main-view active" id="mainView">
+      <div class="month-tabs" id="mTabs"></div>
+      <div class="mid-panel" id="midPanel">
+        <div class="mid-hdr" id="mHead"><span class="bc-cur">เลือกเดือน</span></div>
+        <div class="mid-body" id="mBody"></div>
+      </div>
+      <div class="dp" id="dPanel"><div class="placeholder"><div class="ico">📦</div><p>เลือกเดือน → Prefix → อินวอยซ์</p></div></div>
+    </div>
+    <!-- PENDING -->
+    <div class="view pending-view" id="pendingView">
+      <div class="pv-wrap" id="pvWrap">
+        <div class="pv-list" id="pvList"></div>
+        <div class="pv-detail" id="pvDetail"><div class="placeholder"><div class="ico">⏳</div><p>คลิกอินวอยซ์เพื่อดูรายละเอียด</p></div></div>
+      </div>
+    </div>
+    <!-- STOCK -->
+    <div class="view stock-view" id="stockView">
+      <div class="pend-panel" id="pendPanel" style="display:none">
+        <div class="pend-panel-hdr">🚛 กำลังใช้งาน (ตู้ใน INPUT ยังไม่ถึง DATABASE)<span class="pc" id="pendCount">0</span><span style="margin-left:auto;font-size:10px;font-weight:400;color:#b45309;">← เลื่อนดูทั้งหมด</span></div>
+        <div class="pend-scroll" id="pendScroll"></div>
+      </div>
+      <div class="stock-body">
+        <div class="stock-left">
+          <div class="stock-lhdr" id="stockHdr">📋 BKG ทั้งหมด</div>
+          <div class="stock-lbody" id="stockBody"></div>
+        </div>
+      </div>
+    </div>
+    <!-- VESSEL -->
+    <div class="view vessel-view" id="vesselView">
+      <div class="vessel-wrap" id="vesselWrap"><div class="placeholder"><div class="ico">🚢</div><p>กำลังโหลด...</p></div></div>
+    </div>
+    <!-- FACTORY -->
+    <div class="view factory-view" id="factoryView">
+      <div class="factory-wrap">
+        <div class="factory-topbar">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#0f2a52;" id="factoryTitle">🏭 สรุปตู้เข้าโรงงาน</div>
+            <div style="font-size:10px;color:#64748b;margin-top:2px;" id="factorySub"></div>
+          </div>
+          <div class="fdate-bar" id="fDateBar">
+            <label>จาก</label><input type="date" id="fDateFrom">
+            <span class="fdate-sep">—</span>
+            <label>ถึง</label><input type="date" id="fDateTo">
+            <button class="fdate-clr" id="fDateClr">✕</button>
+            <button class="fqbtn" data-fq="month">เดือนนี้</button>
+            <button class="fqbtn" data-fq="7d">7 วัน</button>
+          </div>
+        </div>
+        <div class="ftbl-wrap"><div id="factoryTable"></div></div>
+      </div>
+    </div>
+  </div>
+  <!-- Mobile tabs -->
+  <div class="mob-tabs">
+    <div class="mob-tab active" id="mtab-main" onclick="switchTab('main')"><div class="mob-tab-icon">📊</div>รายเดือน</div>
+    <div class="mob-tab" id="mtab-pending" onclick="switchTab('pending')"><div class="mob-tab-icon">⏳<span class="mob-badge" id="mBadge" style="display:none;"></span></div>คงค้าง</div>
+    <div class="mob-tab" id="mtab-stock" onclick="switchTab('stock')"><div class="mob-tab-icon">📦</div>STOCK</div>
+    <div class="mob-tab" id="mtab-factory" onclick="switchTab('factory')"><div class="mob-tab-icon">🏭</div>โรงงาน</div>
+    <div class="mob-tab" id="mtab-vessel" onclick="switchTab('vessel')"><div class="mob-tab-icon">🚢</div>เรือ</div>
+  </div>
+  </div><!-- end #mainDash -->
+
+  <!-- ===== TRANSPORT DASHBOARD ===== -->
+  <div id="trDash">
+    <!-- Bill info: latest bill numbers -->
+    <div class="bill-info-bar" id="trBillInfoBar" style="display:none;">
+      <span style="font-size:10px;font-weight:700;color:#64748b;letter-spacing:.4px;">อัปเดตล่าสุดถึงหมายเลข</span>
+      <span class="bill-chip" id="trBillOgm"><span class="lbl">OGM</span><span class="val" id="trBillOgmVal">—</span></span>
+      <span class="bill-chip" id="trBillAll"><span class="lbl">ALL</span><span class="val" id="trBillAllVal">—</span></span>
+    </div>
+    <!-- Duplicate payment alert bar -->
+    <div class="dupe-bar" id="trDupeBar" style="display:none" onclick="openTrDupeModal()">
+      <span>⚠️</span>
+      <span>พบรายการ <strong>จ่ายซ้ำ</strong> ที่อาจเกิดขึ้น —</span>
+      <span class="dupe-badge" id="trDupeBadge">0</span>
+      <span>รายการ</span>
+      <span class="dupe-dismiss">คลิกเพื่อดูรายละเอียด →</span>
+    </div>
+    <!-- Duplicate modal -->
+    <div class="dupe-modal-bg" id="trDupeModalBg" onclick="if(event.target===this)closeTrDupeModal()">
+      <div class="dupe-modal">
+        <div class="dupe-modal-hdr">
+          <span class="dupe-modal-title">⚠️ รายการที่อาจจ่ายซ้ำ</span>
+          <span class="dupe-modal-close" onclick="closeTrDupeModal()">✕</span>
+        </div>
+        <div class="dupe-modal-body" id="trDupeModalBody"></div>
+      </div>
+    </div>
+    <!-- Vessel PDF modal -->
+    <div class="vpdf-bg" id="vPdfBg" onclick="if(event.target===this)closeVPdfModal()">
+      <div class="vpdf-modal">
+        <div class="vpdf-hdr">
+          <span class="vpdf-hdr-title">🖨️ เลือกเรือสำหรับ PDF (สูงสุด 5 ลำ)</span>
+          <span class="vpdf-hdr-close" onclick="closeVPdfModal()">✕</span>
+        </div>
+        <div class="vpdf-body" id="vPdfBody"></div>
+        <div class="vpdf-footer">
+          <span class="vpdf-count" id="vPdfCount">เลือก 0 / 5 ลำ</span>
+          <div style="display:flex;gap:8px;">
+            <button class="vpdf-cancel-btn" onclick="closeVPdfModal()">ยกเลิก</button>
+            <button class="vpdf-print-btn" id="vPdfPrintBtn" onclick="printVesselPdf()" disabled>🖨️ Print PDF</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- AL Summary modal -->
+    <div class="tr-al-bg" id="trAlBg" onclick="if(event.target===this)trCloseAlModal()">
+      <div class="tr-al-modal">
+        <div class="tr-al-hdr">
+          <span class="tr-al-title" id="trAlTitle">🚛 สรุปค่าขนส่งตามบริษัทขนส่ง</span>
+          <button class="tr-al-print" onclick="trPrintAlReport()">🖨️ ออกรีพอร์ต</button>
+          <button class="tr-al-print" onclick="trPrintBillListReport()" style="background:rgba(255,255,255,.08);">📋 รายการวางบิล</button>
+          <span class="tr-al-close" onclick="trCloseAlModal()">✕</span>
+        </div>
+        <div class="tr-al-info" id="trAlInfo"></div>
+        <div style="display:flex;gap:8px;padding:8px 16px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;flex-wrap:wrap;align-items:center;">
+          <label style="font-size:10px;font-weight:700;color:#065f46;">📅 เดือนที่พิมพ์:</label>
+          <select id="trPrintMonthSel" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid #86efac;background:#fff;color:#065f46;font-weight:700;cursor:pointer;"></select>
+          <button class="tr-al-print" onclick="trPrintByFactoryReport()" style="background:#065f46;border-color:rgba(255,255,255,.3);font-size:10px;padding:4px 12px;">🏭 รีพอร์ตตามโรงงาน</button>
+          <button class="tr-al-print" onclick="trPrintAlMonthXref()" style="background:#6b21a8;border-color:rgba(255,255,255,.3);font-size:10px;padding:4px 12px;">🗓️ บริษัทขนส่งตามเดือน</button>
+        </div>
+        <div class="tr-al-body" id="trAlBody"></div>
+      </div>
+    </div>
+    <!-- Stats bar -->
+    <div class="stats-bar" id="trSBar"></div>
+    <!-- Status filter + search + view toggle -->
+    <div class="filter-bar" id="trFilterBar">
+      <button class="ftab f-all active" data-f="all">ทั้งหมด <span id="tr-cnt-all"></span></button>
+      <button class="ftab f-full" data-f="full">✅ ครบทุกตู้ <span id="tr-cnt-full"></span></button>
+      <button class="ftab f-partial" data-f="partial">⚠️ บางส่วน <span id="tr-cnt-partial"></span></button>
+      <button class="ftab f-none" data-f="none">❌ ยังไม่จ่าย <span id="tr-cnt-none"></span></button>
+      <button class="ftab f-nodata" data-f="nodata">— ไม่มีข้อมูลตู้ <span id="tr-cnt-nodata"></span></button>
+      <div class="search-wrap">
+        <input class="search-inp" id="trSearchInp" type="text" placeholder="🔍 ค้นหาอินวอยซ์...">
+      </div>
+      <div class="view-toggle">
+        <button class="vtab active" data-v="invoice">📋 รายอินวอยซ์</button>
+        <button class="vtab" data-v="month">📅 รายเดือน</button>
+        <button class="vtab" data-v="transport">🚛 ข้อมูลรายขนส่ง</button>
+      </div>
+    </div>
+    <!-- Prefix (factory) filter bar — populated dynamically -->
+    <div class="prefix-bar" id="trPrefixBar"></div>
+    <!-- Monthly summary view -->
+    <div class="month-wrap" id="trMonthWrap">
+      <div class="month-grid" id="trMonthGrid"></div>
+    </div>
+    <!-- Invoice table view -->
+    <div class="tbl-wrap" id="trTblWrap">
+      <table class="inv-tbl" id="trInvTbl">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>อินวอยซ์</th>
+            <th>เดือน</th>
+            <th>ลูกค้า</th>
+            <th style="text-align:center;">ตู้จ่ายแล้ว</th>
+            <th style="text-align:right;">ยอดรวม (บาท)</th>
+            <th style="text-align:center;">สถานะ</th>
+          </tr>
+        </thead>
+        <tbody id="trInvBody"></tbody>
+      </table>
+      <div class="no-inv" id="trNoInv" style="display:none;">ไม่พบข้อมูล</div>
+    </div>
+    <!-- Transport company view -->
+    <div id="trCoWrap" style="display:none;flex:1;overflow:auto;padding:12px 16px;"></div>
+  </div><!-- end #trDash -->
+
+</div><!-- end #app -->
+<script>
+/* =====================================================
+   UTILS
+===================================================== */
+const ls=(k,v)=>v===undefined?localStorage.getItem(k):localStorage.setItem(k,v);
+const h=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const pad=n=>String(n).padStart(2,'0');
+
+/* =====================================================
+   IndexedDB — FileSystem Handle storage
+===================================================== */
+let _hdb=null;
+const openHDB=()=>{
+  if(_hdb)return Promise.resolve(_hdb);
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('fs_handles_v1',1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore('h',{keyPath:'k'});
+    r.onsuccess=e=>{_hdb=e.target.result;res(_hdb);};
+    r.onerror=e=>rej(e);
+  });
+};
+const saveHandle=async(k,v)=>{
+  const db=await openHDB();
+  return new Promise((res,rej)=>{const tx=db.transaction('h','readwrite');tx.objectStore('h').put({k,v});tx.oncomplete=res;tx.onerror=rej;});
+};
+const getHandle=async k=>{
+  const db=await openHDB();
+  return new Promise(res=>db.transaction('h','readonly').objectStore('h').get(k).onsuccess=e=>res(e.target.result?.v??null));
+};
+const delHandle=async k=>{
+  try{const db=await openHDB();return new Promise(res=>{const tx=db.transaction('h','readwrite');tx.objectStore('h').delete(k);tx.oncomplete=res;});}catch{}
+};
+
+/* =====================================================
+   IndexedDB — File cache (keyed by path + lastModified)
+===================================================== */
+let _fdb=null;
+const openFDB=()=>{
+  if(_fdb)return Promise.resolve(_fdb);
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open('file_cache_v1',1);
+    r.onupgradeneeded=e=>e.target.result.createObjectStore('f',{keyPath:'k'});
+    r.onsuccess=e=>{_fdb=e.target.result;res(_fdb);};
+    r.onerror=rej;
+  });
+};
+const cacheGet=async k=>{
+  const db=await openFDB();
+  return new Promise(res=>db.transaction('f','readonly').objectStore('f').get(k).onsuccess=e=>res(e.target.result?.buf??null));
+};
+const cachePut=async(k,buf)=>{
+  const db=await openFDB();
+  return new Promise(res=>{const tx=db.transaction('f','readwrite');tx.objectStore('f').put({k,buf});tx.oncomplete=res;});
+};
+
+/* =====================================================
+   DROPBOX FILE READER
+===================================================== */
+let _forceReload=false;
+async function readDropboxFile(dropboxPath){
+  const token=ls('dropbox_token');
+  if(!token)throw new Error('ไม่พบ Access Token กรุณาตั้งค่าใหม่');
+  const path=dropboxPath.startsWith('/')?dropboxPath:'/'+dropboxPath;
+  const fileName=path.split('/').pop();
+  const revKey='dbx_rev:'+path;
+  const dataKey='dbx_data:'+path;
+
+  if(!_forceReload){
+    /* เช็ค revision จาก Dropbox ก่อน — เร็วมาก (ส่งแค่ metadata) */
+    try{
+      setLoad('🔍 เช็คอัพเดต: '+fileName);
+      const metaRes=await fetch('https://api.dropboxapi.com/2/files/get_metadata',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({path})
+      });
+      if(metaRes.ok){
+        const meta=await metaRes.json();
+        const rev=meta.rev||meta.server_modified||'';
+        const cachedRev=ls(revKey);
+        if(rev&&rev===cachedRev){
+          const cached=await cacheGet(dataKey);
+          if(cached){setLoad('✅ ใช้แคช (ไม่มีการเปลี่ยนแปลง): '+fileName);return cached;}
+        }
+        /* revision เปลี่ยน หรือไม่มีแคช — download ใหม่ */
+        setLoad('☁️ มีการอัพเดต ดาวน์โหลด: '+fileName);
+        const dlRes=await fetch('https://content.dropboxapi.com/2/files/download',{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':JSON.stringify({path})}
+        });
+        if(!dlRes.ok){
+          if(dlRes.status===401)throw new Error('Access Token ไม่ถูกต้องหรือหมดอายุ');
+          if(dlRes.status===409)throw new Error('ไม่พบไฟล์: "'+path+'"');
+          throw new Error('Dropbox error '+dlRes.status+': '+fileName);
+        }
+        const buf=await dlRes.arrayBuffer();
+        if(rev)ls(revKey,rev);
+        cachePut(dataKey,buf.slice(0)).catch(()=>{});
+        return buf;
+      }
+    }catch(e){
+      if(e.message.includes('Token')||e.message.includes('ไม่พบ'))throw e;
+      /* ถ้า metadata fail (network ฯลฯ) ลองใช้แคชเดิมก่อน */
+      const cached=await cacheGet(dataKey);
+      if(cached){setLoad('⚠️ ออฟไลน์ ใช้แคชเดิม: '+fileName);return cached;}
+      throw e;
+    }
+  }
+
+  /* _forceReload: download ใหม่เสมอ */
+  setLoad('☁️ ดาวน์โหลด: '+fileName);
+  const res=await fetch('https://content.dropboxapi.com/2/files/download',{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':JSON.stringify({path})}
+  });
+  if(!res.ok){
+    if(res.status===401)throw new Error('Access Token ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่');
+    if(res.status===409)throw new Error('ไม่พบไฟล์: "'+path+'" — ตรวจสอบพาธ Dropbox');
+    throw new Error('Dropbox error '+res.status+': '+fileName);
+  }
+  const buf=await res.arrayBuffer();
+  try{const m=await fetch('https://api.dropboxapi.com/2/files/get_metadata',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({path})});if(m.ok){const md=await m.json();if(md.rev||md.server_modified)ls(revKey,md.rev||md.server_modified);}}catch{}
+  cachePut(dataKey,buf.slice(0)).catch(()=>{});
+  return buf;
+}
+
+/* =====================================================
+   EXCEL PARSING
+===================================================== */
+const fmtDate=v=>{
+  if(!v&&v!==0)return'-';
+  if(v instanceof Date){const d=v;return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear();}
+  const s=String(v).trim();
+  if(!s||s==='nan'||s==='NaT'||s==='-')return'-';
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s))return s;
+  if(!isNaN(parseFloat(s))&&isFinite(s)){try{const d=XLSX.SSF.parse_date_code(Math.round(parseFloat(s)));if(d&&d.y>1900)return pad(d.d)+'/'+pad(d.m)+'/'+d.y;}catch{}}
+  return s;
+};
+const findHdr=(rows,kws)=>{for(let i=0;i<Math.min(rows.length,15);i++)if(rows[i].some(c=>kws.some(k=>String(c||'').includes(k))))return i;return 0;};
+const colOf=(h2s,kws)=>h2s.findIndex(h3=>kws.some(k=>h3.includes(k)));
+const normInv=s=>String(s||'').replace(/\s+/g,'').replace(/[\u200B-\u200D\uFEFF]/g,'').toUpperCase();
+
+function parseAllInv(sheet){
+  if(!sheet)return[];
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
+  const hi=findHdr(rows,['อินวอยซ์']);const hdr=rows[hi].map(c=>String(c||'').trim());
+  const iI=colOf(hdr,['อินวอยซ์']),iC=colOf(hdr,['จำนวนตู้']),iD=colOf(hdr,['ปล่อยเอกสาร']);
+  const iM=colOf(hdr,['เดือน']),iCu=colOf(hdr,['ลูกค้า']),iDe=colOf(hdr,['ปลายทาง']);
+  const out=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];const inv=String(r[iI]||'').trim();
+    if(!inv||inv.toLowerCase()==='nan'||inv==='อินวอยซ์')continue;
+    out.push({inv,prefix:inv.substring(0,3),total_expected:parseInt(r[iC])||0,
+      doc_status:String(r[iD]||'').trim()||'-',month:String(r[iM]||'').trim()||'-',
+      customer:String(r[iCu]||'').trim()||'-',destination:String(r[iDe]||'').trim()||'-'});
+  }
+  return out;
+}
+function parseDatabase(sheet){
+  if(!sheet)return{};
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false,cellDates:true});
+  const hi=findHdr(rows,['ทะเบียนรถ','โรงงาน(inv']);const hdr=rows[hi].map(c=>String(c||'').trim());
+  const iT=colOf(hdr,['ทะเบียน']),iI=colOf(hdr,['โรงงาน(inv']),iFD=colOf(hdr,['เข้าโรงงาน']);
+  const iCN=colOf(hdr,['เบอร์ตู้']),iCA=colOf(hdr,['CADO']),iPK=colOf(hdr,['DATE PICK','PICKUP']);
+  let iF=-1;hdr.forEach((h2,i)=>{if(h2.trim()==='โรงงาน')iF=i;});
+  const map={};
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];const inv=String(r[iI]||'').trim();
+    if(!inv||inv==='-'||inv.toLowerCase()==='nan')continue;
+    if(!map[inv])map[inv]=[];
+    map[inv].push({ทะเบียนรถ:String(r[iT]||'').trim(),เบอร์ตู้:String(r[iCN]||'').trim(),
+      โรงงาน:iF>=0?String(r[iF]||'').trim():'-',เข้าโรงงาน:fmtDate(r[iFD]),
+      CADO:String(r[iCA]||'').trim(),DATE_PICKUP:fmtDate(r[iPK])});
+  }
+  return map;
+}
+function parseInputSheet(wb){
+  const sh=wb.Sheets['INPUT'];if(!sh)return[];
+  const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false});
+  const res=[];
+  for(let i=5;i<=59;i++){
+    const r=rows[i]||[];const ctr=String(r[8]||'').trim();if(!ctr)continue;
+    res.push({ctr,truck:String(r[2]||'').trim(),inv:String(r[4]||'').trim(),
+      date:String(r[5]||'').trim(),zone:i<=29?'pink':'today'});
+  }
+  return res;
+}
+function parseVesselDb(sheet){
+  if(!sheet)return[];
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true,cellDates:true});
+  const hi=findHdr(rows,['INV NUM','VESSEL']);const hdr=rows[hi].map(c=>String(c||'').trim().toUpperCase());
+  const iI=hdr.findIndex(x=>x.includes('INV NUM'));const iD=hdr.findIndex(x=>x==='DES.'||x.includes('DES'));
+  const iB=hdr.findIndex(x=>x.includes('BKG'));const iV=hdr.findIndex(x=>x==='VOL');
+  const iVS=hdr.findIndex(x=>x==='VESSEL');const iDT=hdr.findIndex(x=>x==='DATE');
+  const out=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];const inv=String(r[iI]||'').trim(),vessel=String(r[iVS]||'').trim();
+    if(!inv||!vessel)continue;
+    out.push({inv,des:String(r[iD]||'').trim()||'-',bkg:String(r[iB]||'').trim()||'-',vol:parseInt(r[iV])||0,vessel,date:fmtDate(r[iDT])});
+  }
+  return out;
+}
+function parseStatement(sheet){
+  if(!sheet)return{map:{},latestNo:'',latestBalance:0,latestDate:''};
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true,cellDates:true});
+  const hi=findHdr(rows,['TYPE','DESCRIPTION','OUT']);const hdr=rows[hi].map(c=>String(c||'').trim().toUpperCase());
+  const iNo=hdr.findIndex(x=>x==='NO.'),iDate=hdr.findIndex(x=>x==='DATE'),iType=hdr.findIndex(x=>x==='TYPE');
+  const iDesc=hdr.findIndex(x=>x.includes('DESCRIPTION')),iOut=hdr.findIndex(x=>x.startsWith('OUT')),iBal=hdr.findIndex(x=>x==='BALANCE');
+  const map={};let latestNo='',latestBalance=0,latestDate='',latestN=0;
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];const type=String(r[iType]||'').trim().toUpperCase(),desc=String(r[iDesc]||'').trim();
+    const out=parseFloat(String(r[iOut]||'').replace(/,/g,''))||0,no=String(r[iNo]||'').trim();
+    const n=parseFloat(no)||0,dt=fmtDate(r[iDate]),bal=parseFloat(String(r[iBal]||'').replace(/,/g,''))||0;
+    if(n>0&&n>=latestN){latestN=n;latestNo=no;if(bal>0)latestBalance=bal;if(dt&&dt!=='-')latestDate=dt;}
+    if(type==='OCF'&&desc&&desc!=='BALANCE'){
+      const k=normInv(desc);
+      if(!map[k])map[k]={ocf:0,ocfNo:'',ocfDate:'',ocfEntries:[],tlx:0,tlxNo:'',tlxDate:'',tlxEntries:[]};
+      map[k].ocfEntries.push({no:no&&no!=='0'?no:'',dt,amt:out});
+      map[k].ocf+=out;
+      /* ocfNo = เลข statement ล่าสุด (ไม่ใช่ลบ), ocfDate = วันล่าสุด */
+      if(out>0){map[k].ocfNo=no&&no!=='0'?no:'';map[k].ocfDate=dt;}
+    }
+    else if(type==='TLX'&&desc.toUpperCase().startsWith('TLX-')){
+      const k=normInv(desc.substring(4));
+      if(!map[k])map[k]={ocf:0,ocfNo:'',ocfDate:'',ocfEntries:[],tlx:0,tlxNo:'',tlxDate:'',tlxEntries:[]};
+      map[k].tlxEntries.push({no:no&&no!=='0'?no:'',dt,amt:out});
+      map[k].tlx+=out;
+      if(out>0){map[k].tlxNo=no&&no!=='0'?no:'';map[k].tlxDate=dt;}
+    }
+  }
+  return{map,latestNo,latestBalance,latestDate};
+}
+function parseTransportBill(sheet){
+  /* Dynamic column discovery — คืน map { normInv: [{truck,container,price,date,factory,billNo,al}] } */
+  if(!sheet)return{};
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true,cellDates:true});
+  const hi=findHdr(rows,['INV','PRICE','วันที่']);
+  const hdr=(rows[hi]||[]).map(c=>String(c||'').trim().toUpperCase());
+  function col(kws,fb){const i=hdr.findIndex(hh=>kws.some(k=>hh===k||hh.includes(k)));return i>=0?i:fb;}
+  const iDate=col(['วันที่'],0),iTruck=col(['ทะเบียนรถ','ทะเบียน','TRUCK'],1),iInv=col(['INV','โรงงาน(INV','INVOICE'],2);
+  const iFactory=col(['โรงงาน','FACTORY'],5),iCtr=col(['เบอร์ตู้','CTR','CONTAINER','เบอร์'],6);
+  const iPrice=col(['PRICE','ราคา'],7),iBill=col(['เลขที่วางบิล','OGM','BILL NO','BILL#','BILL'],8),iSeq=col(['AL#','AL'],9),iCo=col(['COLUMN','CO','NAME','บริษัท'],10);
+  const map={};
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];const inv=String(r[iInv]||'').trim();if(!inv)continue;
+    const price=parseFloat(String(r[iPrice]||'').replace(/,/g,''))||0;
+    const k=normInv(inv);
+    if(!map[k])map[k]=[];
+    const seq=String(r[iSeq]||'').trim();   /* AL#001, AL#002 ... */
+    const co=String(r[iCo]||'').trim();     /* PIYA, VARA, PCHAI ... */
+    map[k].push({truck:String(r[iTruck]||'').trim(),container:String(r[iCtr]||'').trim(),
+      price,date:fmtDate(r[iDate]),factory:String(r[iFactory]||'').trim(),
+      billNo:String(r[iBill]||'').trim(),al:seq,co:co||seq});
+  }
+  return map;
+}
+function parseOgmPriceSheet(sheet){
+  /* คืน map { normInv: { กนกทอง: price, นาเมืองเพชร: price, นาวาพารา: price } } */
+  if(!sheet)return{};
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
+  const hi=findHdr(rows,['INVOICE NUMBER','INVOICE','อินวอยซ์','NO.']);
+  const hdr=rows[hi].map(c=>String(c||'').trim());
+  const hdrU=hdr.map(h2=>h2.toUpperCase());
+  const iInv=hdrU.findIndex(h2=>h2.includes('INVOICE NUMBER')||h2.includes('INVOICE')||(h2.includes('อินวอยซ์')));
+  const iNawa=hdr.findIndex(h2=>h2.includes('นาวา'));
+  const iNamuang=hdr.findIndex(h2=>h2.includes('นาเมือง'));
+  const iKanok=hdr.findIndex(h2=>h2.includes('กนก'));
+  const map={};
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];
+    const inv=String(r[iInv>=0?iInv:1]||'').trim();
+    if(!inv||inv.toLowerCase()==='nan'||inv==='INVOICE NUMBER')continue;
+    const nk=normInv(inv);
+    map[nk]={
+      กนกทอง:parseFloat(String(r[iKanok>=0?iKanok:6]||'').replace(/,/g,''))||0,
+      นาเมืองเพชร:parseFloat(String(r[iNamuang>=0?iNamuang:5]||'').replace(/,/g,''))||0,
+      นาวาพารา:parseFloat(String(r[iNawa>=0?iNawa:4]||'').replace(/,/g,''))||0,
+    };
+  }
+  return map;
+}
+function extractLatestBill(sheet){
+  if(!sheet)return'-';
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true});
+  const hi=findHdr(rows,['INV','PRICE','วันที่']);
+  const hdr=rows[hi]||[];
+  const iAL=hdr.findIndex(c=>String(c||'').trim().toUpperCase()==='AL');
+  if(iAL<0)return'-';
+  let last='-';
+  for(let i=hi+1;i<rows.length;i++){const v=String(rows[i]&&rows[i][iAL]||'').trim();if(v&&v!=='-')last=v;}
+  return last;
+}
+function parseBkg(wb){
+  function parseSheet(name,status){
+    const sheet=wb.Sheets[name];if(!sheet)return[];
+    const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
+    const hi=findHdr(rows,['CTR NUMBER','E#BKG','NO.']);const hdr=rows[hi].map(c=>String(c||'').trim());
+    const iNo=colOf(hdr,['NO.','NO']),iBk=colOf(hdr,['E#BKG','BKG']),iCt=colOf(hdr,['CTR NUMBER']);
+    const iLi=colOf(hdr,['LINER']),iLo=colOf(hdr,['LOCK FOR','LOCK']);
+    const out=[];
+    for(let i=hi+1;i<rows.length;i++){const r=rows[i];const ctr=String(r[iCt]||'').trim();if(!ctr)continue;out.push({no:String(r[iNo]||'').trim(),bkg:String(r[iBk]||'').trim(),ctrNum:ctr,liner:String(r[iLi]||'').trim(),lockFor:String(r[iLo]||'').trim(),status});}
+    return out;
+  }
+  const avaName=wb.SheetNames.find(n=>n.toUpperCase().includes('AVA ALL'));
+  const usedName=wb.SheetNames.find(n=>n.toUpperCase().includes('USED ALL'));
+  const ava=avaName?parseSheet(avaName,'AVAILABLE'):[];
+  const used=usedName?parseSheet(usedName,'USED'):[];
+  const containers=[...ava,...used];
+  if(!containers.length)return{containers:[],groups:[],stats:{total:0,used:0,available:0,mmf:0,pip:0}};
+  const gmap={};
+  containers.forEach(c=>{const k=c.no||c.bkg;if(!k)return;if(!gmap[k])gmap[k]={no:k,bkg:c.bkg,lockFor:c.lockFor,liner:c.liner,containers:[],used:0,available:0,total:0};gmap[k].containers.push(c);gmap[k].total++;if(c.status==='USED')gmap[k].used++;else gmap[k].available++;});
+  const groups=Object.values(gmap);
+  return{containers,groups,stats:{total:containers.length,used:used.length,available:ava.length,mmf:ava.filter(c=>c.lockFor.toUpperCase().includes('MMF')).length,pip:ava.filter(c=>c.lockFor.toUpperCase().includes('PIP')).length}};
+}
+function buildFlat(allInv,dbMap){
+  const nd={};Object.keys(dbMap).forEach(k=>{nd[normInv(k)]=dbMap[k];});
+  const byMonth={};const flat=[];
+  allInv.forEach((inv,idx)=>{
+    const nk=normInv(inv.inv);
+    /* ลำดับ: 1) lookupDb รองรับ alias เช่น TWI02(TWI63)  2) includes fallback */
+    let details=lookupDb(nd,nk);
+    /* fallback: อนุญาตเฉพาะกรณีที่ nk ยาวกว่า/เฉพาะกว่า k เช่น TWI63/060/11/25 → TWI63
+       ห้าม k.includes(nk) เพราะทำให้ SHL-250904 ไป match SHL-250904-1 (คนละ invoice) */
+    if(!details.length){const fk=Object.keys(nd).find(k=>nk.length>k.length&&nk.startsWith(k));if(fk)details=nd[fk]||[];}
+    const obj={...inv,total_actual:details.length,details:[...details],id:idx};
+    flat.push(obj);
+    const m=inv.month||'-';if(!byMonth[m])byMonth[m]=[];byMonth[m].push(obj);
+  });
+  return{byMonth,flat};
+}
+
+/* =====================================================
+   LOAD ALL DATA
+===================================================== */
+async function loadData(){
+  const p=k=>ls(k)||'';
+  const invPath=p('f_inv'),bkgPath=p('f_bkg');
+  if(!invPath||!bkgPath)throw new Error('ไม่พบพาธไฟล์ กรุณาตั้งค่าใหม่');
+  const paths=[invPath,bkgPath];
+  const vslPath=p('f_vsl'),stmPath=p('f_stm'),ogmPath=p('f_ogm'),othPath=p('f_oth');
+  if(vslPath)paths.push(vslPath);if(stmPath)paths.push(stmPath);if(ogmPath)paths.push(ogmPath);if(othPath)paths.push(othPath);
+  const bufs=await Promise.all(paths.map(readDropboxFile));
+  setLoad('ประมวลผลข้อมูล...');
+  const invWb=XLSX.read(bufs[0],{type:'array',cellDates:true});
+  const invSh=invWb.SheetNames.find(n=>n.includes('ALL_INV')||n.includes('INV'))||invWb.SheetNames[0];
+  const dbSh=invWb.SheetNames.find(n=>n.toUpperCase().includes('DATABASE'))||invWb.SheetNames[1];
+  const allInv=parseAllInv(invWb.Sheets[invSh]);
+  const dbMap=parseDatabase(invWb.Sheets[dbSh]);
+  const {byMonth,flat}=buildFlat(allInv,dbMap);
+  const pendCtrs=parseInputSheet(invWb);
+  const bkgWb=XLSX.read(bufs[1],{type:'array'});
+  const stock=parseBkg(bkgWb);
+  let vessel=[],fees={},stmtInfo={latestNo:'',latestBalance:0,latestDate:''};
+  let bi=2;
+  if(vslPath&&bufs[bi]){const vw=XLSX.read(bufs[bi],{type:'array',cellDates:true});const vs=vw.Sheets['DATABASE_VESSEL']||vw.Sheets[vw.SheetNames.find(n=>n.toUpperCase().includes('DATABASE_VESSEL'))];if(vs)vessel=parseVesselDb(vs);bi++;}
+  if(stmPath&&bufs[bi]){const sw=XLSX.read(bufs[bi],{type:'array',cellDates:true});const ss=sw.Sheets['STATEMENT']||sw.Sheets[sw.SheetNames.find(n=>n.toUpperCase().includes('STATEMENT'))];if(ss){const p2=parseStatement(ss);fees=p2.map;stmtInfo={latestNo:p2.latestNo,latestBalance:p2.latestBalance,latestDate:p2.latestDate};}bi++;}
+  const trMap={};const billInfoTr={ogm:'-',all:'-'};
+  const mergeTransportLocal=wb2=>{
+    const sh=wb2.Sheets['DATA_BASE_BILL']||wb2.Sheets['DATA_BASE_BILL_ALL']||wb2.Sheets[wb2.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_BILL'))];
+    if(!sh)return null;
+    const m=parseTransportBill(sh);Object.keys(m).forEach(k=>{if(!trMap[k])trMap[k]=[];trMap[k]=trMap[k].concat(m[k]);});
+    return sh;
+  };
+  if(ogmPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const sh=mergeTransportLocal(wb);if(sh)billInfoTr.ogm=extractLatestBill(sh);bi++;}
+  if(othPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const sh=mergeTransportLocal(wb);if(sh)billInfoTr.all=extractLatestBill(sh);bi++;}
+  const dupesTr=detectDuplicatesTr(trMap);
+  const trMatched=matchContainersTr(allInv,dbMap,trMap);
+  /* optional: OGM price file */
+  let ogmPriceMap={};
+  const ogmPricePath=p('f_ogm_price');
+  if(ogmPricePath){
+    try{
+      const priceBuf=await readDropboxFile(ogmPricePath);
+      const priceWb=XLSX.read(priceBuf,{type:'array'});
+      const priceSh=priceWb.Sheets['OGM_PRICE(NEW)']||priceWb.Sheets[priceWb.SheetNames.find(n=>n.includes('OGM_PRICE')||n.toUpperCase().includes('PRICE'))];
+      if(priceSh)ogmPriceMap=parseOgmPriceSheet(priceSh);
+    }catch(e){console.warn('OGM price file error:',e.message);}
+  }
+  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap};
+}
+/* =====================================================
+   DASHBOARD STATE
+===================================================== */
+let FLAT=[],BY_MONTH={},STOCK={groups:[],stats:{}},VESSEL=[],FEES={},STMT={latestNo:'',latestBalance:0,latestDate:''},TRANSPORT={},PEND_CTRS=[];
+let DB_MAP={}; /* raw database map — ใช้สำหรับ transport matching */
+let OGM_PRICE_MAP={}; /* normInv → { กนกทอง, นาเมืองเพชร, นาวาพารา } prices */
+let curTab='main',SM=null,SP=null,SI=null,activePV=null,midMode='group',mainMode='month',SF=null;
+const MF={'1':'ม.ค.','2':'ก.พ.','3':'มี.ค.','4':'เม.ย.','5':'พ.ค.','6':'มิ.ย.','7':'ก.ค.','8':'ส.ค.','9':'ก.ย.','10':'ต.ค.','11':'พ.ย.','12':'ธ.ค.','-':'ไม่ระบุ'};
+const PFXC={BSW:{bg:'#dbeafe',tx:'#1e40af',bd:'#bfdbfe'},OGM:{bg:'#dcfce7',tx:'#166534',bd:'#bbf7d0'},TWI:{bg:'#fef3c7',tx:'#92400e',bd:'#fde68a'},INV:{bg:'#f3e8ff',tx:'#6b21a8',bd:'#e9d5ff'},DEF:{bg:'#f1f5f9',tx:'#475569',bd:'#e2e8f0'}};
+const pst=pfx=>PFXC[pfx]||PFXC.DEF;
+const PRE_PAID=['MONICA 019N','OOCL ZHOUSHAN 291N'];
+const PRE_INV=new Set(['INV001/015/2025(B)','BSW-J-01/2026','BSW-T-01/2026','OGM(A)001/2026','BSW-L-01/2026','INV002/001/2026(A)','TWI60/060/10/25','OGM(A)002/2026','BSW-L-02/2026','SHL-250904-1','INV002/001/2026(B)','OGM(A)003/2026','ANTS-JM001/2026','ANTS-JM002/2026','TWI57/059/23/25','BSW-T-02/2026','OGM(A)004/2026','BSW-L-03/2026','INV001/001/2026','TWI01/049/01/26','OGM(A)005/2026','BSW-L-04/2026','TWI63/060/11/25','OGM(A)006/2026','SHL-251203','ANTS-JM003/2026','TWI61/025/01/26','BSW-J-02/2026','SJ-SN6901002-2026','OGM(A)007/2026','OGM(A)008/2026'].map(normInv));
+const isLoaded=inv=>{
+  /* PTN auto-mark — ทุกอินวอยซ์ที่ขึ้นต้น PTN ถือว่าจัดลงเรือแล้ว */
+  if(String(inv).trim().toUpperCase().startsWith('PTN'))return true;
+  const k=normInv(inv);if(PRE_INV.has(k))return true;return VESSEL.some(r=>normInv(r.inv)===k);
+};
+
+function switchTab(tab){
+  curTab=tab;
+  ['main','pending','stock','factory','vessel'].forEach(t=>{
+    document.getElementById(t+'View').classList.toggle('active',t===tab);
+    const h2=document.getElementById('htab-'+t);if(h2)h2.classList.toggle('active',t===tab);
+    const m2=document.getElementById('mtab-'+t);if(m2)m2.classList.toggle('active',t===tab);
+  });
+  if(tab==='pending'){renderPendingList();renderStatsMain();}
+  if(tab==='stock'){renderStock();renderStatsStock();renderPendCtrs();}
+  if(tab==='main'){renderTabs();renderStatsMain();}
+  if(tab==='factory'){renderFactory();renderStatsMain();}
+  if(tab==='vessel'){renderVessel();renderStatsVessel();}
+}
+const kc=(l,v,s,c,f)=>`<div class="sc${f?' sc-click':''}"${f?` data-filter="${f}"`:''}><div class="lbl2">${l}</div><div class="val" style="color:${c}">${v}</div><div class="sub2">${s}${f?' · คลิกดูรายการ':''}</div></div>`;
+function renderStatsMain(){
+  let ti=0,rel=0,relC=0;FLAT.forEach(d=>{ti++;if(d.doc_status==='ปล่อยเอกสารแล้ว'){rel++;relC+=d.total_expected||0;}});
+  const pCnt=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&d.total_expected>0&&d.total_actual<d.total_expected&&d.month!=='1').length;
+  const cDone=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&(d.total_expected===0||d.total_actual>=d.total_expected)).length;
+  const nLoaded=FLAT.filter(d=>!isLoaded(d.inv)).length;
+  document.getElementById('sBar').innerHTML=kc('อินวอยซ์ทั้งหมด',ti,'รายการ','#1a56a0',null)+kc('ปล่อยเอกสารแล้ว',rel,relC+' ตู้','#16a34a',null)+kc('คงค้าง',pCnt,'ตู้ยังไม่ครบ','#d97706','pending')+kc('ตู้ครบ รอปล่อย',cDone,'อินวอยซ์','#7c3aed','ctr-done')+kc('ยังไม่จัดลงเรือ',nLoaded,'รายการ','#dc2626','not-loaded');
+  const pb=document.getElementById('pBadge');if(pb)pb.textContent=(pCnt+cDone)||'';
+  const mb=document.getElementById('mBadge');if(mb){const t=pCnt+cDone;mb.textContent=t||'';mb.style.display=t?'inline':'none';}
+}
+function renderStatsStock(){
+  const s=STOCK.stats;
+  document.getElementById('sBar').innerHTML=kc('ตู้คงเหลือรวม',s.available||0,'จาก '+(s.total||0)+' ตู้','#16a34a',null)+kc('ลานตู้ MMF',s.mmf||0,'ตู้ว่าง','#1e3a8a',null)+kc('ลานตู้ PIP',s.pip||0,'ตู้ว่าง','#14532d',null);
+}
+function renderStatsVessel(){
+  const vn=[...new Set(VESSEL.map(r=>r.vessel))];const tv=VESSEL.reduce((a,r)=>a+r.vol,0);
+  let tocf=0,ttlx=0;VESSEL.forEach(r=>{const f=FEES[normInv(r.inv)];if(f){tocf+=f.ocf||0;ttlx+=f.tlx||0;}});
+  const tot=tocf+ttlx;const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  let bar=kc('เรือทั้งหมด',vn.length,'รอบการส่ง','#1a56a0',null)+kc('อินวอยซ์',VESSEL.length,'จัดขึ้นเรือแล้ว','#16a34a',null)+kc('ตู้รวม',tv,'ตู้','#7c3aed',null);
+  if(tot>0)bar+=kc('OCF',fm(tocf)+' RM','ค่าระวาง','#16a34a',null)+kc('TLX',fm(ttlx)+' RM','ค่า Telex','#2563eb',null)+kc('รวม',fm(tot)+' RM','OCF+TLX','#dc2626',null);
+  if(STMT.latestNo)bar+=kc('ลำดับล่าสุด','#'+STMT.latestNo,STMT.latestDate,'#475569',null)+kc('ยอดคงเหลือ',fm(STMT.latestBalance)+' RM','ณ #'+STMT.latestNo,'#dc2626',null);
+  document.getElementById('sBar').innerHTML=bar;
+}
+
+/* =====================================================
+   MAIN VIEW
+===================================================== */
+function renderTabs(){
+  const tog='<div style="padding:6px 4px;display:flex;gap:3px;justify-content:center;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:4px;flex-shrink:0;"><button onclick="setMainMode(\'month\')" style="flex:1;padding:5px 2px;border-radius:5px;border:none;font-size:9px;font-weight:700;cursor:pointer;'+(mainMode==='month'?'background:#63b3ed;color:#0f2a52;':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);')+'">📅<br>เดือน</button><button onclick="setMainMode(\'factory\')" style="flex:1;padding:5px 2px;border-radius:5px;border:none;font-size:9px;font-weight:700;cursor:pointer;'+(mainMode==='factory'?'background:#63b3ed;color:#0f2a52;':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);')+'">🏭<br>โรงงาน</button></div>';
+  if(mainMode==='month'){
+    const months=Object.keys(BY_MONTH).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99));
+    let out=tog;months.forEach(m=>{
+      const cnt=BY_MONTH[m].reduce((a,d)=>a+d.total_actual,0);
+      const tot=BY_MONTH[m].reduce((a,d)=>a+d.total_expected,0);
+      const pct=tot>0?Math.round(cnt/tot*100):null;
+      const clr=pct===null?'rgba(255,255,255,.5)':pct>=100?'#34d399':pct>=50?'#fbbf24':'#f87171';
+      const sub=tot>0?`${cnt}/${tot}`:`${cnt}`;
+      out+=`<div class="mtab${SM===m?' active':''}" data-m="${m}">${MF[m]}<br><span style="font-size:10px;font-weight:700;color:${clr};">${sub} ตู้</span></div>`;
+    });
+    document.getElementById('mTabs').innerHTML=out;
+    if(!SM&&months.length)selMonth(months[0]);
+  }else{
+    const pm={};FLAT.forEach(d=>{if(!pm[d.prefix])pm[d.prefix]={cnt:0};pm[d.prefix].cnt++;});
+    const pfxs=Object.keys(pm).sort();let out=tog;
+    pfxs.forEach(pfx=>{const s=pst(pfx);out+=`<div class="mtab${SF===pfx?' active':''}" data-fac="${h(pfx)}" style="border-left-color:${SF===pfx?'#63b3ed':'transparent'}"><span style="background:${s.bg};color:${s.tx};border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;">${h(pfx)}</span><br><span style="font-size:10px;opacity:.7;">${pm[pfx].cnt} INV</span></div>`;});
+    document.getElementById('mTabs').innerHTML=out;
+    if(!SF&&pfxs.length)selFactory(pfxs[0]);
+  }
+}
+const midToggle=()=>{const b=(m,l)=>`<button onclick="setMidMode('${m}')" style="padding:2px 7px;border-radius:4px;border:none;font-size:9px;font-weight:700;cursor:pointer;${midMode===m?'background:#1e40af;color:#fff;':'background:#e2e8f0;color:#475569;'}">${l}</button>`;return `<div style="margin-left:auto;display:flex;gap:2px;">${b('group','🏭 กลุ่ม')}${b('list','📋 ลิสต์')}</div>`;};
+function setMidMode(m){midMode=m;if(SM)selMonth(SM);}
+function setMainMode(m){mainMode=m;SM=null;SP=null;SF=null;SI=null;document.getElementById('mHead').innerHTML=`<span class="bc-cur">${m==='month'?'เลือกเดือน':'เลือก Prefix'}</span>`;document.getElementById('mBody').innerHTML='';document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">📦</div><p>เลือกเดือน → Prefix → อินวอยซ์</p></div>';renderTabs();}
+function selMonth(m){
+  SM=m;SP=null;SI=null;
+  document.querySelectorAll('#mTabs .mtab').forEach(el=>el.classList.toggle('active',el.dataset.m===m));
+  document.getElementById('mHead').innerHTML=`<div style="display:flex;align-items:center;width:100%;gap:4px;"><span class="bc-cur">${MF[m]}</span>${midToggle()}</div>`;
+  const invs=BY_MONTH[m]||[];let out='';
+  if(midMode==='group'){
+    const pm={};invs.forEach(d=>{if(!pm[d.prefix])pm[d.prefix]={cnt:0,ctr:0};pm[d.prefix].cnt++;pm[d.prefix].ctr+=d.total_actual;});
+    Object.keys(pm).sort().forEach(pfx=>{const s=pst(pfx);out+=`<div class="pfx-row" data-pfx="${pfx}"><span class="pfx-name" style="color:${s.tx}">${h(pfx)}</span> <span class="pfx-cnt">${pm[pfx].cnt} INV · ${pm[pfx].ctr} ตู้</span></div>`;});
+  }else{
+    invs.slice().sort((a,b)=>a.inv.localeCompare(b.inv)).forEach(d=>{
+      const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
+      const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
+      const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓</span>';
+      const s=pst(d.prefix);
+      out+=`<div class="ir" data-id="${d.id}"><span style="background:${s.bg};color:${s.tx};border-radius:3px;padding:0 5px;font-size:9px;font-weight:800;margin-right:3px;">${h(d.prefix)}</span><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}</div>`;
+    });
+  }
+  document.getElementById('mBody').innerHTML=out||'<div style="padding:12px;color:#94a3b8;font-size:12px;">ไม่มีข้อมูล</div>';
+  document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">👈</div><p>เลือก Prefix / อินวอยซ์</p></div>';
+  document.getElementById('midPanel').classList.add('open');
+}
+function selPrefix(m,pfx){
+  SM=m;SP=pfx;SI=null;
+  document.getElementById('mHead').innerHTML=`<div class="bc"><span class="bc-item" data-back-m="${m}">${MF[m]}</span><span class="bc-sep">›</span><span class="bc-cur">${h(pfx)}</span></div>`;
+  const invs=(BY_MONTH[m]||[]).filter(d=>d.prefix===pfx);let out='';
+  invs.forEach(d=>{
+    const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
+    const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
+    const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢 จัดแล้ว</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓ ยังไม่จัด</span>';
+    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}</div>`;
+  });
+  document.getElementById('mBody').innerHTML=out;document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">👈</div><p>เลือกอินวอยซ์</p></div>';
+}
+function selFactory(pfx){
+  SF=pfx;SI=null;
+  document.querySelectorAll('#mTabs .mtab').forEach(el=>el.classList.toggle('active',el.dataset.fac===pfx));
+  const s=pst(pfx);
+  document.getElementById('mHead').innerHTML=`<span class="bc-cur"><span style="background:${s.bg};color:${s.tx};border-radius:4px;padding:1px 8px;font-weight:800;">${h(pfx)}</span></span>`;
+  const invs=FLAT.filter(d=>d.prefix===pfx).sort((a,b)=>a.inv.localeCompare(b.inv));let out='';
+  invs.forEach(d=>{
+    const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
+    const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
+    const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢 จัดแล้ว</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓ ยังไม่จัด</span>';
+    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}<span style="font-size:9px;color:#94a3b8;margin-left:4px;">${MF[d.month]}</span></div>`;
+  });
+  document.getElementById('mBody').innerHTML=out||'<div style="padding:12px;color:#94a3b8;font-size:12px;">ไม่พบข้อมูล</div>';
+  document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">👈</div><p>เลือกอินวอยซ์</p></div>';
+  document.getElementById('midPanel').classList.add('open');
+}
+function selInv(id){
+  SI=id;
+  document.querySelectorAll('#mBody .ir').forEach(el=>el.classList.toggle('active',parseInt(el.dataset.id)===id));
+  showInvDetail(id,'dPanel');document.getElementById('dPanel').classList.add('open');
+}
+
+/* =====================================================
+   INV DETAIL
+===================================================== */
+function showInvDetail(id,panelId){
+  const d=FLAT[id];if(!d)return;
+  const s=pst(d.prefix);const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  let out=`<div class="det-title">${h(d.inv)}</div><div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span>`;
+  out+=d.doc_status==='ปล่อยเอกสารแล้ว'?'<span class="pv-badge" style="background:#dcfce7;color:#166534">✔ ปล่อยเอกสารแล้ว</span>':'<span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span>';
+  out+=`<span class="pv-badge" style="background:#f1f5f9;color:#475569">${d.total_actual}/${d.total_expected} ตู้</span></div>`;
+  if(VESSEL.length){const vr=VESSEL.find(r=>normInv(r.inv)===normInv(d.inv));if(vr)out+=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:20px;">🚢</span><div><div style="font-size:12px;font-weight:700;color:#1e40af;">${h(vr.vessel)}</div><div style="font-size:10px;color:#64748b;margin-top:2px;">ETD: <b>${h(vr.date)}</b> · BKG: <b>${h(vr.bkg)}</b> · <b>${h(vr.des)}</b></div></div></div>`;}
+  const tr=TRANSPORT[normInv(d.inv)];
+  if(Object.keys(TRANSPORT).length>0){if(tr&&tr.total>0){out+=`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:10px;"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;"><span style="font-size:12px;font-weight:700;color:#166534;">🚛 ค่าขนส่ง — จ่ายแล้ว</span><span style="font-size:13px;font-weight:800;color:#16a34a;">${fm(tr.total)} บาท</span></div><div style="font-size:10px;color:#4ade80;margin-top:2px;">${tr.count} ตู้ · ${[...new Set(tr.records.map(r=>r.billNo).filter(Boolean))].join(', ')}</div><details style="margin-top:6px;"><summary style="font-size:10px;color:#16a34a;cursor:pointer;">ดูรายละเอียด (${tr.count})</summary><table class="det-tbl" style="margin-top:4px;"><thead><tr><th>วันที่</th><th>โรงงาน</th><th>เบอร์ตู้</th><th>ราคา</th><th>AL</th></tr></thead><tbody>`;tr.records.forEach(r=>{out+=`<tr><td>${h(r.date)}</td><td>${h(r.factory)}</td><td style="font-family:monospace;font-size:10px;">${h(r.container)}</td><td style="text-align:right;font-weight:600;">${fm(r.price)}</td><td style="color:#94a3b8;font-size:10px;">${h(r.al)}</td></tr>`;});out+='</tbody></table></details></div>';}else{out+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🚛</span><span style="font-size:12px;font-weight:700;color:#dc2626;">ค่าขนส่ง — ยังไม่มีข้อมูล</span></div>';}}
+  /* === วางบิลโรงงาน (เฉพาะ OGM(A)) === */
+  const isOgmA=d.prefix==='OGM'&&normInv(d.inv).includes('(A)');
+  if(isOgmA){
+    const priceKey=normInv(d.inv);
+    const prices=OGM_PRICE_MAP[priceKey]||{};
+    const hasPrice=Object.values(prices).some(v=>v>0);
+    const factCounts={};
+    if(d.details&&d.details.length)d.details.forEach(r=>{const f=r.โรงงาน||'-';factCounts[f]=(factCounts[f]||0)+1;});
+    const fm2=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+    const FACTORIES=['กนกทอง','นาเมืองเพชร','นาวาพารา'];
+    let totalBill=0;let billRows='';
+    FACTORIES.forEach(f=>{
+      const cnt=factCounts[f]||0;const price=prices[f]||0;const subtotal=cnt*price;totalBill+=subtotal;
+      if(cnt>0||price>0)billRows+=`<tr><td>${h(f)}</td><td style="text-align:center;">${cnt}</td><td style="text-align:right;">${price>0?fm2(price):'-'}</td><td style="text-align:right;font-weight:700;color:#16a34a;">${subtotal>0?fm2(subtotal):'-'}</td></tr>`;
+    });
+    Object.keys(factCounts).filter(f=>!FACTORIES.includes(f)&&f!=='-').forEach(f=>{const cnt=factCounts[f];billRows+=`<tr><td>${h(f)}</td><td style="text-align:center;">${cnt}</td><td style="text-align:right;color:#94a3b8;">?</td><td style="text-align:right;color:#94a3b8;">?</td></tr>`;});
+    out+=`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:10px;">`;
+    out+=`<div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:6px;">💰 วางบิลโรงงาน</div>`;
+    out+=`<table class="det-tbl"><thead><tr><th>โรงงาน</th><th style="text-align:center;">ตู้</th><th style="text-align:right;">ราคา/ตู้ (฿)</th><th style="text-align:right;">รวม (฿)</th></tr></thead><tbody>${billRows}</tbody>`;
+    if(totalBill>0)out+=`<tfoot><tr style="font-weight:700;background:#dcfce7;"><td colspan="3" style="text-align:right;padding:5px 8px;">ยอดรวม</td><td style="text-align:right;padding:5px 8px;color:#15803d;">${fm2(totalBill)}</td></tr></tfoot>`;
+    out+=`</table>`;
+    if(!hasPrice)out+=`<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ ไม่พบข้อมูลราคาสำหรับอินวอยซ์นี้ — กรุณาตั้งค่าไฟล์ราคา OGM (A)</div>`;
+    out+=`</div>`;
+  }
+  if(d.details&&d.details.length){out+='<table class="det-tbl"><thead><tr><th>ทะเบียนรถ</th><th>เบอร์ตู้</th><th>โรงงาน</th><th>เข้าโรงงาน</th><th>DATE PICKUP</th><th>CADO</th></tr></thead><tbody>';d.details.forEach(r=>{out+=`<tr><td>${h(r.ทะเบียนรถ)}</td><td style="font-family:monospace">${h(r.เบอร์ตู้)}</td><td>${h(r.โรงงาน)}</td><td>${h(r.เข้าโรงงาน)}</td><td>${h(r.DATE_PICKUP)}</td><td>${h(r.CADO)}</td></tr>`;});out+='</tbody></table>';}
+  else{out+='<div style="color:#94a3b8;font-size:12px;">ยังไม่มีข้อมูลตู้</div>';}
+  document.getElementById(panelId).innerHTML=out;
+}
+
+/* =====================================================
+   PENDING LIST
+===================================================== */
+function renderPendingList(){
+  const pend=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว').sort((a,b)=>(parseInt(a.month)||99)-(parseInt(b.month)||99));
+  const miss=pend.filter(d=>d.total_expected>0&&d.total_actual<d.total_expected).reduce((a,d)=>a+(d.total_expected-d.total_actual),0);
+  const done=pend.filter(d=>d.total_expected===0||d.total_actual>=d.total_expected).length;
+  let out=`<div class="pv-list-hdr">⏳ คงค้าง ${pend.length} · ตู้ครบ ${done} · ขาดตู้ ${miss}</div>`;
+  const byM={};pend.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});
+  Object.keys(byM).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99)).forEach(m=>{
+    out+=`<div style="padding:5px 14px;background:#f0f4f8;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">${MF[m]} (${byM[m].length})</div>`;
+    byM[m].forEach(d=>{
+      const dn=d.total_actual,tot=d.total_expected;const s=pst(d.prefix);const act=d.id===activePV?' active':'';
+      let ctr='';
+      if(tot===0)ctr='<div style="margin:4px 0;font-size:10px;color:#64748b;">ไม่ระบุจำนวนตู้</div>';
+      else if(dn>=tot)ctr=`<div style="margin:4px 0 5px;display:flex;align-items:center;gap:5px;"><span style="background:#dcfce7;color:#166534;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;">✔ ตู้ครบ ${dn}/${tot}</span><span style="font-size:10px;color:#7c3aed;font-weight:600;">รอปล่อยเอกสาร</span></div>`;
+      else{const left=tot-dn,pct=Math.round(dn/tot*100),bc=dn===0?'#ef4444':(pct<50?'#f97316':pct<80?'#eab308':'#22c55e');ctr=`<div style="margin:4px 0 2px"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:11px;font-weight:800;color:${s.tx}">${dn}/${tot}</span><span style="font-size:10px;color:#a0aec0">${pct}%</span></div><div class="prog-bg"><div class="prog-bar" style="width:${pct}%;background:${bc}"></div></div><div class="prog-labels"><span class="prog-done">✔ ${dn}</span><span class="prog-left">ขาด ${left}</span></div></div>`;}
+      out+=`<div class="pv-card${act}" data-id="${d.id}"><div class="pv-inv">${h(d.inv)}</div>${d.customer!=='-'?`<div class="pv-cust">🏭 ${h(d.customer)}</div>`:''}${ctr}<div class="pv-meta"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span></div></div>`;
+    });
+  });
+  document.getElementById('pvList').innerHTML=out;
+}
+function selPending(id){
+  activePV=id;renderPendingList();showInvDetail(id,'pvDetail');
+  if(window.innerWidth<=600)document.getElementById('pvWrap').classList.add('detail-open');
+  setTimeout(()=>{const el=document.querySelector('#pvList .pv-card.active');if(el)el.scrollIntoView({block:'nearest'});},50);
+}
+
+/* =====================================================
+   STOCK VIEW
+===================================================== */
+const lockBadge=lf=>{if(lf.toUpperCase().includes('MMF'))return`<span class="lock-mmf">${h(lf)}</span>`;if(lf.toUpperCase().includes('PIP'))return`<span class="lock-pip">${h(lf)}</span>`;return`<span class="lock-oth">${h(lf)}</span>`;};
+function renderStock(){
+  const avail=STOCK.groups.filter(b=>b.available>0);
+  const mmf=avail.filter(b=>b.lockFor.toUpperCase().includes('MMF'));
+  const pip=avail.filter(b=>b.lockFor.toUpperCase().includes('PIP'));
+  const oth=avail.filter(b=>!b.lockFor.toUpperCase().includes('MMF')&&!b.lockFor.toUpperCase().includes('PIP'));
+  let out='';
+  const rg=(label,list)=>{
+    if(!list.length)return;
+    const tA=list.reduce((a,b)=>a+b.available,0),tAll=list.reduce((a,b)=>a+b.total,0);
+    out+=`<div style="grid-column:1/-1;padding:5px 12px;background:#f8fafc;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;border-top:1px solid #e2e8f0;">${label} · ว่าง ${tA} ตู้ (จาก ${tAll})</div>`;
+    list.forEach(b=>{const pct=b.total>0?Math.round(b.used/b.total*100):0;const bc=pct>80?'#f97316':'#22c55e';out+=`<div class="bkg-group" data-no="${h(b.no)}"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><div class="bkg-no">${h(b.no)}</div><div class="bkg-liner" style="margin-top:3px;">${lockBadge(b.lockFor)} <span style="font-size:10px;color:#64748b;">${h(b.liner)}</span></div></div><div style="text-align:right;"><div class="bkg-avail">${b.available}</div><div class="bkg-avail-lbl">ตู้คงเหลือ</div></div></div><div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:#64748b;">ใช้แล้ว ${b.used}/${b.total}</span><span style="color:#64748b;">${pct}%</span></div><div style="height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${bc};border-radius:3px;"></div></div></div><div style="margin-top:6px;font-size:10px;color:#1a56a0;font-weight:600;">แตะเพื่อดูรายละเอียด →</div></div>`;});
+  };
+  rg('MMF',mmf);rg('PIP',pip);rg('อื่นๆ',oth);
+  const hidden=STOCK.groups.length-avail.length;
+  document.getElementById('stockHdr').textContent=`📋 BKG ที่มีตู้เหลือ (${avail.length} BKG)${hidden>0?' · ซ่อน '+hidden+' BKG ที่หมดแล้ว':''}`;
+  document.getElementById('stockBody').innerHTML=out||'<div style="padding:20px;text-align:center;color:#94a3b8;font-size:12px;grid-column:1/-1;">ไม่มี BKG ที่เหลืออยู่</div>';
+}
+function renderPendCtrs(){
+  const panel=document.getElementById('pendPanel');const scroll=document.getElementById('pendScroll');
+  if(!PEND_CTRS.length){panel.style.display='none';return;}
+  panel.style.display='flex';document.getElementById('pendCount').textContent=PEND_CTRS.length+' ตู้';
+  const pink=PEND_CTRS.filter(c=>c.zone==='pink'),today=PEND_CTRS.filter(c=>c.zone==='today');
+  let html='';
+  const cards=list=>list.forEach(c=>{const zl=c.zone==='pink'?'ค้างหาง':'วันนี้';const zc=c.zone==='pink'?'pink':'today';html+=`<div class="pend-card${c.zone==='pink'?' zone-pink':''}"><span class="pend-zone ${zc}">${zl}</span><div class="pend-ctr">${h(c.ctr)}</div>${c.truck?`<div class="pend-meta">🚛 ${h(c.truck)}</div>`:''}${c.inv?`<div class="pend-meta">📋 ${h(c.inv)}</div>`:'<div class="pend-meta" style="color:#f59e0b;">📋 ยังไม่มีอินวอยซ์</div>'}${c.date?`<div class="pend-meta">📅 ${h(c.date)}</div>`:''}<span class="pend-badge">PENDING</span></div>`;});
+  if(today.length){html+=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:70px;flex-shrink:0;"><div style="font-size:9px;font-weight:700;color:#166534;background:#dcfce7;border-radius:6px;padding:3px 8px;white-space:nowrap;">วันนี้<br>${today.length} ตู้</div></div>`;cards(today);}
+  if(pink.length){html+=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:70px;flex-shrink:0;border-left:2px dashed #f9a8d4;padding-left:8px;"><div style="font-size:9px;font-weight:700;color:#9d174d;background:#fce7f3;border-radius:6px;padding:3px 8px;white-space:nowrap;">ค้างหาง<br>${pink.length} ตู้</div></div>`;cards(pink);}
+  scroll.innerHTML=html||'<div style="font-size:12px;color:#94a3b8;padding:8px;">ไม่มีตู้ PENDING</div>';
+}
+function selBkg(no){
+  const b=STOCK.groups.find(g=>g.no===no);if(!b)return;
+  document.getElementById('bkgModalTitle').innerHTML=`BKG: ${h(no)} ${lockBadge(b.lockFor)} <span style="font-size:11px;font-weight:400;color:#64748b;">${h(b.liner)}</span>`;
+  const bkgSet=new Set(b.containers.map(c=>c.ctrNum.trim().toUpperCase()));
+  const pend=PEND_CTRS.filter(p=>bkgSet.has(p.ctr.trim().toUpperCase()));
+  const pendSet=new Set(pend.map(p=>p.ctr.trim().toUpperCase()));
+  const ava=b.containers.filter(c=>c.status!=='USED'&&!pendSet.has(c.ctrNum.trim().toUpperCase()));
+  const used=b.containers.filter(c=>c.status==='USED');
+  let out='';
+  if(pend.length){out+=`<div style="padding:6px 16px 4px;font-size:9px;font-weight:700;color:#92400e;text-transform:uppercase;">🚛 PENDING (${pend.length} ตู้)</div>`;pend.forEach(p=>{out+=`<div class="ctr-row" style="background:#fffbeb;"><span class="ctr-num">${h(p.ctr)}</span><span style="font-size:9px;color:#92400e;background:#fef3c7;border-radius:4px;padding:1px 6px;font-weight:700;">PENDING</span><span style="font-size:9px;color:#64748b;margin-left:6px;">${(p.truck||'')}${p.inv?' · '+p.inv:''}</span></div>`;});}
+  if(ava.length){out+=`<div style="padding:6px 16px 4px;font-size:9px;font-weight:700;color:#166534;text-transform:uppercase;">✅ ว่างอยู่ (${ava.length} ตู้)</div>`;ava.forEach(c=>{out+=`<div class="ctr-row"><span class="ctr-num">${h(c.ctrNum)}</span><span class="ctr-ok">ว่างอยู่</span></div>`;});}
+  if(used.length){out+=`<div style="padding:6px 16px 4px;font-size:9px;font-weight:700;color:#991b1b;text-transform:uppercase;margin-top:4px;">🔴 ใช้แล้ว (${used.length} ตู้)</div>`;used.forEach(c=>{out+=`<div class="ctr-row"><span class="ctr-num">${h(c.ctrNum)}</span><span class="ctr-used">ใช้แล้ว</span></div>`;});}
+  document.getElementById('bkgModalBody').innerHTML=out;
+  document.getElementById('bkgModal').classList.add('open');
+}
+
+/* =====================================================
+   VESSEL VIEW
+===================================================== */
+let _vslFilter='';let _VSL_GROUPS=[];
+function renderVessel(){
+  if(!VESSEL.length){document.getElementById('vesselWrap').innerHTML='<div class="placeholder"><div class="ico">🚢</div><p>ยังไม่มีข้อมูลเรือ — ใส่พาธ VESSEL_MANAGE.xlsm ในหน้าตั้งค่า</p></div>';return;}
+  const groups={};VESSEL.forEach(r=>{const k=r.vessel+'|||'+r.date;if(!groups[k])groups[k]={vessel:r.vessel,date:r.date,rows:[],vol:0};groups[k].rows.push(r);groups[k].vol+=r.vol;});
+  const all=[...new Set(VESSEL.map(r=>r.vessel))].sort();
+  let sorted=Object.values(groups).sort((a,b)=>pDate(b.date)-pDate(a.date));
+  _VSL_GROUPS=[...sorted]; /* store all groups for PDF picker */
+  if(_vslFilter)sorted=sorted.filter(g=>g.vessel===_vslFilter);
+  const hasFees=Object.keys(FEES).length>0;const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  let opts=`<option value="">🚢 เรือทั้งหมด (${all.length} ลำ)</option>`;all.forEach(v=>{opts+=`<option value="${h(v)}"${v===_vslFilter?' selected':''}>${h(v)}</option>`;});
+  let out=`<div style="padding:4px 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><label style="font-size:12px;color:#475569;font-weight:600;">กรองเรือ:</label><select id="vslSel" onchange="_vslFilter=this.value;renderVessel();" style="padding:6px 12px;border:1.5px solid #bfdbfe;border-radius:8px;font-size:13px;background:#fff;color:#1e40af;cursor:pointer;min-width:220px;">${opts}</select><button onclick="showVesselPdfModal()" style="padding:6px 14px;border:1.5px solid #0ea5e9;border-radius:8px;background:#eff6ff;color:#0369a1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">🖨️ PDF</button></div>`;
+  sorted.forEach(g=>{
+    let oc=0,tl=0;g.rows.forEach(r=>{const f=FEES[normInv(r.inv)];if(f){oc+=f.ocf||0;tl+=f.tlx||0;}});const tot=oc+tl;
+    out+=`<div class="vessel-card"><div class="vessel-head"><span class="vessel-name">🚢 ${h(g.vessel)}</span><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><span class="vessel-badge">📅 ${h(g.date)}</span><span class="vessel-badge">${g.rows.length} INV · ${g.vol} ตู้</span>${hasFees&&tot>0?`<span class="vessel-badge">💰 ${fm(tot)} RM</span>`:''}</div></div>`;
+    const fh=hasFees?'<th style="text-align:right;">OCF (RM)</th><th style="text-align:right;">TLX (RM)</th>':'';
+    out+=`<table class="vtbl"><thead><tr><th>#</th><th>อินวอยซ์</th><th>ปลายทาง</th><th>BKG</th><th style="text-align:center;">ตู้</th>${fh}</tr></thead><tbody>`;
+    g.rows.forEach((r,i)=>{const s=pst(r.inv.substring(0,3));out+=`<tr><td style="color:#94a3b8;font-size:11px;">${i+1}</td><td><span class="finv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(r.inv.substring(0,3))}</span>${h(r.inv)}</td><td style="color:#64748b;font-size:11px;">${h(r.des)}</td><td style="font-family:monospace;font-weight:600;color:#475569;">${h(r.bkg)}</td><td style="font-weight:700;color:#16a34a;text-align:center;">${r.vol}</td>`;
+      if(hasFees){
+        const f=FEES[normInv(r.inv)]||{};const oa=f.ocf||0,ta=f.tlx||0;
+        const iP=PRE_PAID.some(v=>g.vessel.trim().toUpperCase()===v.toUpperCase());
+        const fmAdj=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+        const mkBd=entries=>{
+          if(!entries||entries.length<2)return '';
+          const rows=entries.map(e=>{
+            const cls=e.amt<0?'adj-neg':'adj-pos';
+            return `<span class="${cls}">${e.amt>=0?'+':''}${fmAdj(e.amt)}</span> <span class="adj-no">#${h(e.no||'-')}</span>`;
+          }).join('<br>');
+          return `<span class="adj-wrap">${rows}</span>`;
+        };
+        const ocfBd=mkBd(f.ocfEntries);
+        const tlxBd=mkBd(f.tlxEntries);
+        const ocfCell=oa>0
+          ?`<span style="color:#16a34a;font-weight:700;">${fm(oa)}</span>${!ocfBd&&f.ocfNo?`<br><span style="font-size:9px;color:#94a3b8;">#${h(f.ocfNo)}</span>`:''}${ocfBd}`
+          :iP?'<span style="color:#7c3aed;font-size:10px;">✓ จ่ายแล้ว</span>':'<span style="color:#dc2626;font-size:10px;">ยังไม่จ่าย</span>';
+        const tlxCell=ta>0
+          ?`<span style="color:#2563eb;font-weight:700;">${fm(ta)}</span>${!tlxBd&&f.tlxNo?`<br><span style="font-size:9px;color:#94a3b8;">#${h(f.tlxNo)}</span>`:''}${tlxBd}`
+          :iP?'<span style="color:#7c3aed;font-size:10px;">✓</span>':'<span style="color:#94a3b8;font-size:10px;">-</span>';
+        out+=`<td style="text-align:right;">${ocfCell}</td><td style="text-align:right;">${tlxCell}</td>`;
+      }
+      out+='</tr>';
+    });
+    if(hasFees){out+=`<tr style="background:#f0f9ff;border-top:2px solid #bfdbfe;"><td colspan="5" style="text-align:right;font-weight:700;font-size:11px;color:#1e40af;padding:8px 12px;">รวมเรือลำนี้</td><td style="text-align:right;padding:8px 12px;"><span style="font-weight:800;color:#16a34a;">${fm(oc)}</span></td><td style="text-align:right;padding:8px 12px;"><span style="font-weight:800;color:#2563eb;">${fm(tl)}</span></td></tr><tr style="background:#dbeafe;"><td colspan="5" style="text-align:right;font-weight:700;font-size:11px;color:#1e40af;padding:6px 12px;">รวม OCF+TLX</td><td colspan="2" style="text-align:right;padding:6px 12px;font-weight:800;font-size:13px;color:#1e3a8a;">${fm(tot)} RM</td></tr>`;}
+    out+='</tbody></table></div>';
+  });
+  document.getElementById('vesselWrap').innerHTML=out;
+}
+
+/* =====================================================
+   VESSEL PDF
+===================================================== */
+function closeVPdfModal(){document.getElementById('vPdfBg').classList.remove('open');}
+function showVesselPdfModal(){
+  const hasFees=Object.keys(FEES).length>0;
+  const fm=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let html='';
+  _VSL_GROUPS.forEach((g,i)=>{
+    let oc=0,tl=0;g.rows.forEach(r=>{const f=FEES[normInv(r.inv)];if(f){oc+=f.ocf||0;tl+=f.tlx||0;}});
+    const tot=oc+tl;
+    html+=`<label class="vpdf-item" id="vpi-${i}" for="vpc-${i}">
+      <input type="checkbox" id="vpc-${i}" onchange="onVPdfChk()">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#0a1628;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🚢 ${h(g.vessel)}</div>
+        <div style="font-size:10.5px;color:#64748b;margin-top:2px;">📅 ${h(g.date)} · ${g.rows.length} INV · ${g.vol} ตู้${hasFees&&tot>0?` · 💰 ${fm(tot)} RM`:''}</div>
+      </div></label>`;
+  });
+  document.getElementById('vPdfBody').innerHTML=html||'<p style="text-align:center;color:#94a3b8;padding:20px 0;">ไม่มีข้อมูลเรือ</p>';
+  onVPdfChk();
+  document.getElementById('vPdfBg').classList.add('open');
+}
+function onVPdfChk(){
+  const cbs=[...document.querySelectorAll('#vPdfBody input[type=checkbox]')];
+  const cnt=cbs.filter(c=>c.checked).length;
+  const el=document.getElementById('vPdfCount');if(el)el.textContent=`เลือก ${cnt} / 5 ลำ`;
+  const btn=document.getElementById('vPdfPrintBtn');if(btn)btn.disabled=cnt===0;
+  cbs.forEach((cb,i)=>{
+    const item=document.getElementById('vpi-'+i);if(!item)return;
+    const over=!cb.checked&&cnt>=5;
+    item.classList.toggle('disabled',over);cb.disabled=over;
+  });
+}
+function printVesselPdf(){
+  const cbs=[...document.querySelectorAll('#vPdfBody input[type=checkbox]')];
+  const idxs=cbs.map((c,i)=>c.checked?i:-1).filter(i=>i>=0);
+  if(!idxs.length)return;
+  const sel=idxs.map(i=>_VSL_GROUPS[i]);
+  const hasFees=Object.keys(FEES).length>0;
+  const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const he=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const nowDate=()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();};
+  const PC={BSW:{bg:'#dbeafe',tx:'#1e40af',bd:'#bfdbfe'},OGM:{bg:'#dcfce7',tx:'#166534',bd:'#bbf7d0'},TWI:{bg:'#fef3c7',tx:'#92400e',bd:'#fde68a'},INV:{bg:'#f3e8ff',tx:'#6b21a8',bd:'#e9d5ff'},DEF:{bg:'#f1f5f9',tx:'#475569',bd:'#e2e8f0'}};
+  const bStyle=p=>{const c=PC[p]||PC.DEF;return `background:${c.bg};color:${c.tx};border:1px solid ${c.bd}`;};
+  const colCount=hasFees?7:5;
+  let pages='';
+  sel.forEach((g,pi)=>{
+    let oc=0,tl=0;g.rows.forEach(r=>{const f=FEES[normInv(r.inv)];if(f){oc+=f.ocf||0;tl+=f.tlx||0;}});
+    const tot=oc+tl;
+    const fh=hasFees?'<th class="r">OCF (RM)</th><th class="r">TLX (RM)</th>':'';
+    let trows='';
+    g.rows.forEach((r,ri)=>{
+      const pfx=r.inv.substring(0,3);
+      const f=hasFees?(FEES[normInv(r.inv)]||{}):{};
+      const oa=f.ocf||0,ta=f.tlx||0;
+      const iP=PRE_PAID.some(v=>g.vessel.trim().toUpperCase()===v.toUpperCase());
+      let ocfTd='',tlxTd='';
+      const fmAdj=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+      const mkBreakdown=entries=>{
+        if(entries.length<2)return '';
+        const rows=entries.map(e=>{
+          const cls=e.amt<0?'adj-neg':'adj-pos';
+          const sign=e.amt>=0?'+':'';
+          return `<span class="${cls}">${sign}${fmAdj(e.amt)}</span> <span class="adj-no">#${he(e.no||'-')}</span>`;
+        }).join('<br>');
+        return `<span class="adj-wrap">${rows}</span>`;
+      };
+      if(hasFees){
+        if(oa>0){
+          const entries=f.ocfEntries||[];
+          const bd=mkBreakdown(entries);
+          ocfTd=`<span class="amt g">${fm(oa)}</span>${!bd&&f.ocfNo?`<span class="rno">#${he(f.ocfNo)}</span>`:''}${bd}`;
+        } else ocfTd=iP?`<span class="tag pur">✓ จ่ายแล้ว</span>`:`<span class="tag rd">ยังไม่จ่าย</span>`;
+        if(ta>0){
+          const entries=f.tlxEntries||[];
+          const bd=mkBreakdown(entries);
+          tlxTd=`<span class="amt b">${fm(ta)}</span>${!bd&&f.tlxNo?`<span class="rno">#${he(f.tlxNo)}</span>`:''}${bd}`;
+        } else tlxTd=iP?`<span class="tag pur">✓</span>`:`<span class="tag gr">—</span>`;
+      }
+      trows+=`<tr class="${ri%2===1?'alt':''}">
+        <td class="no">${ri+1}</td>
+        <td><span class="pbadge" style="${bStyle(pfx)}">${he(pfx)}</span><span class="inv-rest">${he(r.inv.substring(3))}</span></td>
+        <td class="des">${he(r.des)}</td>
+        <td class="mono">${he(r.bkg)}</td>
+        <td class="r"><span class="amt g">${r.vol}</span></td>
+        ${hasFees?`<td class="r">${ocfTd}</td><td class="r">${tlxTd}</td>`:''}
+      </tr>`;
+    });
+    let foot='';
+    if(hasFees){
+      foot=`<tr class="sr">
+        <td colspan="${colCount-2}" class="rl">รวมเรือลำนี้</td>
+        <td class="r"><span class="amt g">${oc>0?fm(oc):'-'}</span></td>
+        <td class="r"><span class="amt b">${tl>0?fm(tl):'-'}</span></td>
+      </tr><tr class="tr2">
+        <td colspan="${colCount-2}" class="rl">รวม OCF + TLX</td>
+        <td colspan="2" class="r"><span class="amt nv">${fm(tot)} RM</span></td>
+      </tr>`;
+    }
+    /* each page = flex column, table grows to fill remaining space */
+    pages+=`<div class="pg${pi<sel.length-1?' pb':''}">
+      <div class="vhdr">
+        <span class="vname">🚢 ${he(g.vessel)}</span>
+        <div class="vbadges">
+          <span class="vb">📅 ${he(g.date)}</span>
+          <span class="vb">${g.rows.length} INV · ${g.vol} ตู้</span>
+          ${hasFees&&tot>0?`<span class="vb gold">💰 ${fm(tot)} RM</span>`:''}
+          <span class="vb dim">พิมพ์: ${nowDate()}</span>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th class="no">#</th><th>อินวอยซ์</th><th>ปลายทาง</th><th>BKG</th><th class="r">ตู้</th>${fh}</tr></thead>
+          <tbody>${trows}${foot}</tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+  const printHtml=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+<title>Vessel PDF — ${nowDate()}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+@page{size:A4 landscape;margin:8mm 10mm;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;}
+body{font-family:'Inter',sans-serif;color:#1e293b;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+/* ── page container — fills exactly one A4 landscape sheet ── */
+.pg{width:277mm;height:184mm;display:flex;flex-direction:column;overflow:hidden;}
+.pb{page-break-after:always;}
+/* ── vessel header ── */
+.vhdr{flex-shrink:0;background:linear-gradient(100deg,#0a1628 0%,#12284d 55%,#0e3460 100%);color:white;padding:10px 16px;border-radius:10px 10px 0 0;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.vname{font-size:17px;font-weight:900;letter-spacing:.4px;white-space:nowrap;}
+.vbadges{display:flex;gap:7px;flex-wrap:wrap;align-items:center;}
+.vb{font-size:10px;font-weight:700;background:rgba(14,165,233,.22);border:1px solid rgba(14,165,233,.32);border-radius:7px;padding:3px 11px;white-space:nowrap;color:white;}
+.vb.gold{background:rgba(245,158,11,.22);border-color:rgba(245,158,11,.38);color:#fef3c7;}
+.vb.dim{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.45);font-weight:400;}
+/* ── table wrapper — grows to fill remaining height ── */
+.tbl-wrap{flex:1;overflow:hidden;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;display:flex;flex-direction:column;}
+table{width:100%;border-collapse:collapse;flex:1;}
+thead{flex-shrink:0;}
+thead tr{background:linear-gradient(90deg,#0a1628 0%,#1a3a6b 100%);}
+th{color:#fff;font-weight:700;padding:7px 9px;text-align:left;font-size:9.5px;letter-spacing:.3px;white-space:nowrap;}
+th.r{text-align:right;}
+tbody tr{border-bottom:1px solid #f1f5f9;}
+.alt{background:#f8fafc;}
+td{padding:6px 9px;vertical-align:middle;font-size:10px;}
+.no{width:24px;text-align:center;color:#94a3b8;font-size:9px;}
+.pbadge{display:inline-block;border-radius:4px;padding:2px 6px;font-size:8px;font-weight:800;margin-right:5px;vertical-align:middle;}
+.inv-rest{font-size:10px;font-weight:600;vertical-align:middle;}
+.des{color:#64748b;font-size:9.5px;}
+.mono{font-family:'Courier New',monospace;font-size:9px;color:#334155;font-weight:600;}
+.r{text-align:right;white-space:nowrap;}
+.amt{font-weight:700;}
+.amt.g{color:#16a34a;font-size:10.5px;}
+.amt.b{color:#2563eb;font-size:10.5px;}
+.amt.nv{color:#1e3a8a;font-size:12.5px;font-weight:900;}
+.rno{display:block;font-size:10px;color:#334155;font-weight:700;}
+.adj-wrap{display:block;margin-top:1px;font-size:9px;color:#94a3b8;font-weight:400;line-height:1.6;}
+.adj-pos{color:#94a3b8;}
+.adj-neg{color:#94a3b8;}
+.adj-no{color:#94a3b8;}
+.tag.rd{color:#dc2626;font-size:9px;}
+.tag.pur{color:#7c3aed;font-size:9px;}
+.tag.gr{color:#94a3b8;font-size:9px;}
+.sr{background:#eff6ff !important;border-top:2.5px solid #bfdbfe;}
+.sr td{padding:7px 9px;}
+.rl{text-align:right;font-weight:700;font-size:9px;color:#1e40af;padding-right:14px;}
+.tr2{background:#dbeafe !important;}
+.tr2 td{padding:6px 9px;}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body>${pages}</body></html>`;
+  closeVPdfModal();
+  /* open window, write HTML, then trigger print from parent — more reliable than onload script */
+  const win=window.open('','_blank','width=1200,height=820,toolbar=0,scrollbars=1');
+  if(!win){alert('⚠️ กรุณาอนุญาต Pop-up สำหรับหน้านี้ก่อน แล้วลองใหม่ครับ');return;}
+  win.document.open();
+  win.document.write(printHtml);
+  win.document.close();
+  win.focus();
+  /* wait for fonts + render, then print */
+  setTimeout(()=>{try{win.print();}catch(e){}},600);
+}
+/* =====================================================
+   FACTORY VIEW
+===================================================== */
+const pDate=s=>{if(!s||s==='-')return 0;const p=s.split('/');return p.length===3?parseInt(p[2])*10000+parseInt(p[1])*100+parseInt(p[0]):0;};
+const isoInt=s=>{if(!s)return 0;const p=s.split('-');return p.length===3?parseInt(p[0])*10000+parseInt(p[1])*100+parseInt(p[2]):0;};
+const todayIso=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+const dAgoIso=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
+const mStartIso=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01';};
+function renderFactory(){
+  const fr=isoInt(document.getElementById('fDateFrom').value),to=isoInt(document.getElementById('fDateTo').value);
+  const dm={};FLAT.forEach(d=>{(d.details||[]).forEach(row=>{const dt=(row.DATE_PICKUP&&row.DATE_PICKUP!=='-')?row.DATE_PICKUP:'-';if(!dm[dt])dm[dt]={};if(!dm[dt][d.inv])dm[dt][d.inv]=[];dm[dt][d.inv].push(row['ทะเบียนรถ']||'-');});});
+  let dates=Object.keys(dm).sort((a,b)=>pDate(b)-pDate(a));
+  if(fr||to)dates=dates.filter(dt=>{const v=pDate(dt);if(!v)return false;if(fr&&v<fr)return false;if(to&&v>to)return false;return true;});
+  let ttl=0,tinv=0,rows='';
+  dates.forEach(dt=>{
+    const im=dm[dt];const ins=Object.keys(im);const dtc=ins.reduce((a,k)=>a+im[k].length,0);
+    ttl+=dtc;tinv+=ins.length;
+    rows+=`<tr class="fdate-hd"><td colspan="2"><span style="font-size:12px;">📅 ${h(dt)}</span><span style="float:right;font-size:9px;color:#1e40af;background:#bfdbfe;border-radius:4px;padding:1px 6px;">${dtc} ตู้ · ${ins.length} INV</span></td></tr>`;
+    ins.forEach((inv,ii)=>{const trucks=im[inv];const pfx=inv.substring(0,3);const s=pst(pfx);const bg=ii%2===0?'':'background:#fafafa;';trucks.forEach((trk,ti)=>{if(ti===0){rows+=`<tr style="${bg}"><td class="finv-cell" rowspan="${trucks.length}" style="border-left:3px solid ${s.tx};${bg}"><span class="finv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(pfx)}</span>${h(inv)}</td><td class="ftrk-cell">${h(trk)}</td></tr>`;}else{rows+=`<tr style="${bg}"><td class="ftrk-cell" style="border-left:1px dashed #e2e8f0;padding-left:18px;">${h(trk)}</td></tr>`;}});});
+  });
+  document.getElementById('factoryTable').innerHTML=dates.length?`<table class="ftbl"><thead><tr><th>อินวอยซ์</th><th>ทะเบียนรถ</th></tr></thead><tbody>${rows}</tbody></table>`:'<div style="padding:40px;text-align:center;color:#64748b;font-size:12px;">ไม่พบข้อมูลในช่วงวันที่เลือก</div>';
+  const fromV=document.getElementById('fDateFrom').value,toV=document.getElementById('fDateTo').value;
+  let rl='';if(fromV&&toV)rl=' · '+fromV.split('-').reverse().join('/')+'–'+toV.split('-').reverse().join('/');else if(fromV)rl=' · จาก '+fromV.split('-').reverse().join('/');else if(toV)rl=' · ถึง '+toV.split('-').reverse().join('/');
+  document.getElementById('factoryTitle').textContent='🏭 สรุปตู้เข้าโรงงาน'+rl;
+  document.getElementById('factorySub').textContent=`${ttl} ตู้ · ${tinv} อินวอยซ์ · ${dates.length} วันรับตู้`;
+}
+
+/* =====================================================
+   STAT MODAL
+===================================================== */
+function showStatModal(filter){
+  let list,title,color;
+  if(filter==='pending'){list=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&d.total_expected>0&&d.total_actual<d.total_expected&&d.month!=='1');title='⏳ คงค้าง — ตู้ยังไม่ครบ';color='#d97706';}
+  else if(filter==='not-loaded'){list=FLAT.filter(d=>!isLoaded(d.inv)).sort((a,b)=>(parseInt(a.month)||99)-(parseInt(b.month)||99));title='⚓ ยังไม่จัดลงเรือ';color='#dc2626';}
+  else{list=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&(d.total_expected===0||d.total_actual>=d.total_expected));title='🟣 ตู้ครบแล้ว — รอปล่อยเอกสาร';color='#7c3aed';}
+  let rows='';
+  if(filter==='not-loaded'){const byM={};list.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});Object.keys(byM).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99)).forEach(m=>{rows+=`<div style="padding:5px 14px;background:#fef2f2;font-size:9px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca;border-top:1px solid #fecaca;margin-top:4px;">${MF[m]} (${byM[m].length} รายการ)</div>`;byM[m].forEach(d=>{const s=pst(d.prefix);rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr">${d.total_expected>0?d.total_actual+'/'+d.total_expected+' ตู้':'ไม่ระบุ'}</span></div>`;});});}
+  else{list.forEach(d=>{const s=pst(d.prefix);let ctr,cls;if(d.total_expected===0){ctr='ไม่ระบุ';cls='';}else if(d.total_actual>=d.total_expected){ctr='✔ '+d.total_actual+'/'+d.total_expected;cls='done';}else{ctr=d.total_actual+'/'+d.total_expected;cls='inc';}rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr ${cls}">${ctr}</span></div>`;});}
+  document.getElementById('sModalTitle').textContent=title;document.getElementById('sModalTitle').style.color=color;
+  document.getElementById('sModalBody').innerHTML=rows||'<div style="padding:20px;text-align:center;color:#64748b;">ไม่มีข้อมูล</div>';
+  document.getElementById('sModal').classList.add('open');
+}
+
+/* =====================================================
+   TRANSPORT DASHBOARD
+===================================================== */
+let TR_DATA=[];
+let TR_FILTER='all',TR_PREFIX='all',TR_SEARCH='',TR_OPEN=new Set(),TR_VIEW='invoice';
+let BILL_INFO_TR={ogm:'-',all:'-'};
+let TR_DUPES=[];
+let _showTransport=false;
+
+/* PRE_PAID_INV_TR — 23 อินวอยซ์ ม.ค. 2026 ที่จ่ายค่าขนส่งครบก่อนมีการติดตาม */
+const PRE_PAID_INV_TR=new Set([
+  'INV001/015/2025(B)','BSW-J-01/2026','BSW-T-01/2026','BSW-L-01/2026','INV002/001/2026(A)',
+  'TWI60/060/10/25','BSW-L-02/2026','SHL-250904-1','INV002/001/2026(B)','ANTS-JM001/2026',
+  'ANTS-JM002/2026','TWI57/059/23/25','BSW-T-02/2026','BSW-L-03/2026','INV001/001/2026',
+  'TWI01/049/01/26','BSW-L-04/2026','SHL-251203','ANTS-JM003/2026','TWI61/025/01/26',
+  'BSW-J-02/2026','SJ-SN6901002-2026','TWI63/060/11/25'
+]); /* 23 อินวอยซ์ — ม.ค. 2026 ครบทุกตู้ */
+const normStr=s=>String(s||'').replace(/\s+/g,'').toUpperCase();
+function isPrePaidTr(inv){return PRE_PAID_INV_TR.has(normInv(inv));}
+
+/* detectDuplicatesTr: หา record ที่มี normInv+container+truck ซ้ำกัน */
+function detectDuplicatesTr(trMap){
+  const seen={};const dupes=[];
+  Object.keys(trMap).forEach(nk=>{
+    trMap[nk].forEach(rec=>{
+      const ctr=normStr(rec.container),trk=normStr(rec.truck);
+      if(!ctr&&!trk)return;
+      const key=nk+'|'+ctr+'|'+trk;
+      if(!seen[key]){seen[key]={inv:nk,container:rec.container,truck:rec.truck,records:[]};}
+      seen[key].records.push(rec);
+    });
+  });
+  Object.values(seen).forEach(e=>{if(e.records.length>1)dupes.push(e);});
+  return dupes;
+}
+
+/* lookupDb: รองรับ alias key เช่น TWI02(TWI63)
+   1) direct match
+   2) paren alias exact: "TWI63" → "TWI02(TWI63)"
+   3) paren alias prefix: "TWI63/060/11/25" → "TWI02(TWI63)" */
+function lookupDb(normDb,nk){
+  if(normDb[nk])return normDb[nk];
+  const found=Object.keys(normDb).find(k=>{
+    const matches=k.match(/\(([^)]+)\)/g)||[];
+    return matches.some(p=>{
+      const c2=p.slice(1,-1);
+      return c2===nk||nk.startsWith(c2+'/')||nk.startsWith(c2+'-');
+    });
+  });
+  return found?normDb[found]:[];
+}
+
+/* matchContainersTr: จับคู่ DATABASE rows กับ transport records รายตู้ */
+function matchContainersTr(allInv,dbMap,trMap){
+  const normDb={};
+  Object.keys(dbMap).forEach(k=>{normDb[normInv(k)]=dbMap[k];});
+  return allInv.map(inv=>{
+    const nk=normInv(inv.inv);
+    const dbRows=lookupDb(normDb,nk);
+    const trRecs=trMap[nk]||[];
+    const details=dbRows.map(row=>{
+      const matched=trRecs.find(tr=>
+        normStr(tr.container)===normStr(row.เบอร์ตู้)&&
+        normStr(tr.truck)===normStr(row.ทะเบียนรถ)
+      )||null;
+      const prePaid=!matched&&isPrePaidTr(inv.inv);
+      const effectiveMatch=matched||(prePaid?{price:0,date:'-',factory:'-',billNo:'ยืนยันแล้ว (ม.ค.2026)',al:'',_prePaid:true}:null);
+      return{...row,trMatch:effectiveMatch};
+    });
+    const paidCount=details.filter(r=>r.trMatch).length;
+    const totalPaid=details.reduce((a,r)=>a+(r.trMatch&&!r.trMatch._prePaid?r.trMatch.price:0),0);
+    let status='nodata';
+    if(details.length>0){
+      if(paidCount===details.length)status='full';
+      else if(paidCount>0)status='partial';
+      else status='none';
+    }
+    return{...inv,details,paidCount,totalPaid,status};
+  });
+}
+
+/* ===== RENDER STATS ===== */
+function renderTrStats(){
+  const full=TR_DATA.filter(d=>d.status==='full').length;
+  const partial=TR_DATA.filter(d=>d.status==='partial').length;
+  const none=TR_DATA.filter(d=>d.status==='none').length;
+  const nodata=TR_DATA.filter(d=>d.status==='nodata').length;
+  const totalPaid=TR_DATA.reduce((a,d)=>a+d.totalPaid,0);
+  const paidCtr=TR_DATA.reduce((a,d)=>a+d.paidCount,0);
+  const totalCtr=TR_DATA.reduce((a,d)=>a+d.details.length,0);
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  function scTr(l,v,s,col){return '<div class="sc"><div class="lbl">'+l+'</div><div class="val" style="color:'+col+'">'+v+'</div><div class="sub2">'+s+'</div></div>';}
+  document.getElementById('trSBar').innerHTML=
+    scTr('อินวอยซ์ทั้งหมด',TR_DATA.length,'รายการ','#059669')+
+    scTr('ครบทุกตู้',full,'อินวอยซ์','#16a34a')+
+    scTr('บางส่วน',partial,'อินวอยซ์','#d97706')+
+    scTr('ยังไม่จ่าย',none,'อินวอยซ์','#dc2626')+
+    scTr('ตู้ที่จ่ายแล้ว',paidCtr,'/'+totalCtr+' ตู้','#2563eb')+
+    scTr('ยอดรวมทั้งหมด',fmtAmt(totalPaid),'บาท','#7c3aed');
+  document.getElementById('tr-cnt-all').textContent='('+TR_DATA.length+')';
+  document.getElementById('tr-cnt-full').textContent='('+full+')';
+  document.getElementById('tr-cnt-partial').textContent='('+partial+')';
+  document.getElementById('tr-cnt-none').textContent='('+none+')';
+  document.getElementById('tr-cnt-nodata').textContent='('+nodata+')';
+}
+
+function statusBadgeTr(status){
+  if(status==='full')return '<span class="status-badge s-full">✅ ครบทุกตู้</span>';
+  if(status==='partial')return '<span class="status-badge s-partial">⚠️ บางส่วน</span>';
+  if(status==='none')return '<span class="status-badge s-none">❌ ยังไม่จ่าย</span>';
+  return '<span class="status-badge s-nodata">— ไม่มีข้อมูลตู้</span>';
+}
+
+/* ===== RENDER PREFIX BAR ===== */
+function renderTrPrefixBar(){
+  const pfxMap={};
+  TR_DATA.forEach(d=>{
+    if(!pfxMap[d.prefix])pfxMap[d.prefix]={count:0,full:0,none:0};
+    pfxMap[d.prefix].count++;
+    if(d.status==='full')pfxMap[d.prefix].full++;
+    if(d.status==='none')pfxMap[d.prefix].none++;
+  });
+  const pfxs=Object.keys(pfxMap).sort();
+  const noOgmList=TR_DATA.filter(d=>d.prefix!=='OGM');
+  const noOgmDot=noOgmList.some(d=>d.status==='none');
+  let html='<button class="pfx-tab pfx-tab-all'+(TR_PREFIX==='all'?' active':'')+'" data-pfx="all">🏭 ทุกโรงงาน ('+TR_DATA.length+')</button>';
+  if(pfxMap['OGM']){
+    const dot=noOgmDot?'<span style="display:inline-block;width:6px;height:6px;background:#ef4444;border-radius:50%;margin-left:3px;vertical-align:middle;"></span>':'';
+    html+='<button class="pfx-tab'+(TR_PREFIX==='no-ogm'?' active':'')+'" data-pfx="no-ogm" '
+      +'style="background:#fafafa;color:#374151;border-color:#d1d5db;border-style:dashed;">'
+      +'🚫 ยกเว้น OGM <span style="font-weight:400;font-size:10px;">('+noOgmList.length+')</span>'+dot+'</button>';
+  }
+  pfxs.forEach(pfx=>{
+    const s=pst(pfx);const info=pfxMap[pfx];
+    const dot=info.none>0?'<span style="display:inline-block;width:6px;height:6px;background:#ef4444;border-radius:50%;margin-left:3px;vertical-align:middle;"></span>':'';
+    html+='<button class="pfx-tab'+(TR_PREFIX===pfx?' active':'')+'" data-pfx="'+h(pfx)+'" '
+      +'style="background:'+s.bg+';color:'+s.tx+';border-color:'+s.bd+';">'
+      +h(pfx)+' <span style="font-weight:400;font-size:10px;">('+info.count+')</span>'+dot+'</button>';
+  });
+  document.getElementById('trPrefixBar').innerHTML=html;
+}
+
+function matchTrPrefix(d){
+  if(TR_PREFIX==='all')return true;
+  if(TR_PREFIX==='no-ogm')return d.prefix!=='OGM';
+  return d.prefix===TR_PREFIX;
+}
+
+/* ===== RENDER TABLE ===== */
+function renderTrTable(){
+  const q=TR_SEARCH.trim().toUpperCase();
+  const list=TR_DATA.filter(d=>{
+    if(TR_FILTER!=='all'&&d.status!==TR_FILTER)return false;
+    if(!matchTrPrefix(d))return false;
+    if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
+    return true;
+  });
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  document.getElementById('trNoInv').style.display=list.length?'none':'block';
+  document.getElementById('trInvTbl').style.display=list.length?'':'none';
+  let html='';
+  list.forEach((d,idx)=>{
+    const s=pst(d.prefix);
+    const pct=d.details.length>0?Math.round(d.paidCount/d.details.length*100):0;
+    const barColor=pct===100?'#16a34a':pct>0?'#f59e0b':'#f87171';
+    const progHtml=d.details.length>0?
+      '<span class="mini-prog"><span class="mini-bar" style="width:'+pct+'%;background:'+barColor+';display:block;height:100%;"></span></span>':'';
+    const ctrTxt=d.details.length>0?(d.paidCount+'/'+d.details.length):'-';
+    const isOpen=TR_OPEN.has(d.inv);
+    html+='<tr class="inv-row'+(isOpen?' open':'')+'" data-inv="'+h(d.inv)+'">';
+    html+='<td style="color:#94a3b8;font-size:11px;">'+(idx+1)+'</td>';
+    html+='<td><span class="pfx-badge" style="background:'+s.bg+';color:'+s.tx+';border:1px solid '+s.bd+'">'+h(d.prefix)+'</span><span style="font-weight:700;">'+h(d.inv)+'</span></td>';
+    html+='<td style="color:#64748b;">'+(MF[d.month]||d.month)+'</td>';
+    html+='<td style="color:#64748b;font-size:11px;">'+h(d.customer==='-'||d.customer==='- '?'':d.customer||'')+'</td>';
+    html+='<td style="text-align:center;white-space:nowrap;">'+ctrTxt+progHtml+'</td>';
+    html+='<td style="text-align:right;">'+(d.totalPaid>0?'<span class="amt-paid">'+fmtAmt(d.totalPaid)+'</span>':'<span class="amt-zero">-</span>')+'</td>';
+    html+='<td style="text-align:center;">'+statusBadgeTr(d.status)+'</td>';
+    html+='</tr>';
+    /* Detail row */
+    html+='<tr class="detail-row'+(isOpen?' open':'')+'" data-inv-det="'+h(d.inv)+'">';
+    html+='<td class="detail-cell" colspan="7"><div class="det-inner">';
+    if(d.details.length===0){
+      html+='<div style="color:#94a3b8;font-size:12px;padding:8px 0;">ยังไม่มีข้อมูลตู้ใน DATABASE</div>';
+    }else{
+      const paidRecs=d.details.filter(r=>r.trMatch&&!r.trMatch._prePaid);
+      const prePaidRecs=d.details.filter(r=>r.trMatch&&r.trMatch._prePaid);
+      const billNos=[...new Set(paidRecs.map(r=>r.trMatch.billNo).filter(Boolean))];
+      html+='<div class="det-sum">ตู้จ่ายแล้ว: <span>'+d.paidCount+'/'+d.details.length+'</span>'
+        +(d.totalPaid>0?' &nbsp;|&nbsp; ยอดรวม: <span>'+fmtAmt(d.totalPaid)+' บาท</span>':'')
+        +(billNos.length?' &nbsp;|&nbsp; ใบวางบิล: <span>'+billNos.join(', ')+'</span>':'')
+        +(prePaidRecs.length?' &nbsp;|&nbsp; <span style="color:#7c3aed;">📌 ยืนยันแล้ว '+prePaidRecs.length+' ตู้ (ม.ค.2026)</span>':'')
+        +'</div>';
+      html+='<table class="det-tbl"><thead><tr>'
+        +'<th>ทะเบียนรถ</th><th>เบอร์ตู้</th><th>โรงงาน</th><th>เข้าโรงงาน</th>'
+        +'<th>DATE PICKUP</th><th style="text-align:right;">ค่าขนส่ง (บาท)</th><th>ใบวางบิล</th>'
+        +'<th style="text-align:center;">สถานะ</th>'
+        +'</tr></thead><tbody>';
+      d.details.forEach(row=>{
+        const tr2=row.trMatch;
+        html+='<tr>';
+        html+='<td>'+h(row.ทะเบียนรถ)+'</td>';
+        html+='<td style="font-family:monospace;font-size:11px;font-weight:600;">'+h(row.เบอร์ตู้)+'</td>';
+        html+='<td>'+h(row.โรงงาน)+'</td>';
+        html+='<td>'+h(row.เข้าโรงงาน)+'</td>';
+        html+='<td>'+h(row.DATE_PICKUP)+'</td>';
+        if(tr2&&!tr2._prePaid){
+          html+='<td style="text-align:right;font-weight:700;color:#16a34a;white-space:nowrap;">'+fmtAmt(tr2.price)+'</td>';
+          html+='<td style="font-size:10px;color:#64748b;">'+h(tr2.billNo)+'<br><span style="color:#94a3b8;font-size:9px;">'+h(tr2.al)+'</span></td>';
+          html+='<td style="text-align:center;"><span class="paid-mark paid-yes">✅ จ่ายแล้ว</span></td>';
+        }else if(tr2&&tr2._prePaid){
+          html+='<td style="text-align:right;"><span style="color:#7c3aed;font-size:10px;">—</span></td>';
+          html+='<td style="font-size:10px;color:#7c3aed;">ม.ค.2026</td>';
+          html+='<td style="text-align:center;"><span class="paid-mark" style="background:#ede9fe;color:#6d28d9;">📌 ยืนยันแล้ว</span></td>';
+        }else{
+          html+='<td style="text-align:right;"><span style="color:#94a3b8;">-</span></td>';
+          html+='<td></td>';
+          html+='<td style="text-align:center;"><span class="paid-mark paid-no">❌ ยังไม่จ่าย</span></td>';
+        }
+        html+='</tr>';
+      });
+      html+='</tbody></table>';
+    }
+    html+='</div></td></tr>';
+  });
+  document.getElementById('trInvBody').innerHTML=html;
+}
+
+/* ===== MONTHLY SUMMARY ===== */
+const TR_MONTH_ORDER=['1','2','3','4','5','6','7','8','9','10','11','12','-'];
+function renderTrMonthSummary(){
+  const q=TR_SEARCH.trim().toUpperCase();
+  const src=TR_DATA.filter(d=>{
+    if(!matchTrPrefix(d))return false;
+    if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
+    return true;
+  });
+  const months={};
+  src.forEach(d=>{
+    const m=d.month||'-';
+    if(!months[m])months[m]={inv:0,ctr:0,paid:0,amount:0,full:0,partial:0,none:0,nodata:0};
+    const g=months[m];g.inv++;g.ctr+=d.details.length;g.paid+=d.paidCount;g.amount+=d.totalPaid;
+    if(d.status==='full')g.full++;else if(d.status==='partial')g.partial++;else if(d.status==='none')g.none++;else g.nodata++;
+  });
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  const keys=TR_MONTH_ORDER.filter(m=>months[m]).concat(Object.keys(months).filter(m=>!TR_MONTH_ORDER.includes(m)));
+  if(!keys.length){document.getElementById('trMonthGrid').innerHTML='<div style="color:#94a3b8;padding:20px;">ไม่พบข้อมูล</div>';return;}
+  let html='';
+  keys.forEach(m=>{
+    const g=months[m];
+    const pct=g.ctr>0?Math.round(g.paid/g.ctr*100):0;
+    const barColor=pct===100?'#16a34a':pct>0?'#f59e0b':'#f87171';
+    const mLabel=MF[m]||m;
+    let badges='';
+    if(g.full)badges+='<span class="mc-badge mc-full">✅ ครบ '+g.full+'</span> ';
+    if(g.partial)badges+='<span class="mc-badge mc-partial">⚠️ บางส่วน '+g.partial+'</span> ';
+    if(g.none)badges+='<span class="mc-badge mc-none">❌ ค้าง '+g.none+'</span> ';
+    html+='<div class="month-card" onclick="trShowAlModal(\'' + m + '\')" title="คลิกเพื่อดูสรุปตามบริษัทขนส่ง">';
+    html+='<div class="mc-hdr"><span>📅 '+mLabel+'</span><span style="font-size:11px;font-weight:400;color:#64748b;">'+g.inv+' อินวอยซ์</span></div>';
+    html+='<div class="mc-grid">';
+    html+='<div class="mc-stat"><span class="mv">'+g.ctr+'</span><span class="ml">ตู้ทั้งหมด</span></div>';
+    html+='<div class="mc-stat"><span class="mv">'+g.paid+' <span style="font-size:12px;color:#94a3b8;">/ '+g.ctr+'</span></span><span class="ml">ตู้จ่ายแล้ว</span></div>';
+    html+='<div class="mc-stat" style="grid-column:span 2;"><span class="mc-amt">'+fmtAmt(g.amount)+' <span style="font-size:12px;font-weight:400;color:#94a3b8;">บาท</span></span><span class="ml">ยอดรวมค่าขนส่ง</span></div>';
+    html+='</div>';
+    html+='<div style="margin:10px 0 8px;background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden;">';
+    html+='<div style="width:'+pct+'%;background:'+barColor+';height:100%;border-radius:4px;transition:width .4s;"></div></div>';
+    html+='<div style="font-size:11px;">'+badges+'</div>';
+    html+='</div>';
+  });
+  document.getElementById('trMonthGrid').innerHTML=html;
+}
+
+
+let _trAlMonth=null;
+function trCloseAlModal(){document.getElementById('trAlBg').classList.remove('open');}
+function trShowAlModal(month){
+  _trAlMonth=month;
+  /* ── populate month selector dropdown ── */
+  const sel=document.getElementById('trPrintMonthSel');
+  if(sel){
+    const months=[...new Set(TR_DATA.map(d=>d.month))].sort();
+    sel.innerHTML=months.map(mo=>`<option value="${mo}"${mo===month?' selected':''}>${MF[mo]||mo}</option>`).join('');
+  }
+  const q=TR_SEARCH.trim().toUpperCase();
+  const fmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  const src=TR_DATA.filter(d=>{
+    if(d.month!==month)return false;
+    if(!matchTrPrefix(d))return false;
+    if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
+    return true;
+  });
+  /* ── collect bills per company (track invSet per bill) ── */
+  const coIns=[];const coBills={};const coTot={};
+  let totalCtr=0,totalAmount=0;
+  src.forEach(d=>{
+    totalCtr+=d.details.length;
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const co=(row.trMatch.co||row.trMatch.al||'').trim()||'(ไม่ระบุ)';
+      const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+      const price=row.trMatch.price||0;
+      totalAmount+=price;
+      if(!coBills[co]){coBills[co]={};coIns.push(co);}
+      if(!coBills[co][bill])coBills[co][bill]={ref:bill,ctr:0,amount:0,invSet:new Set()};
+      coBills[co][bill].ctr++;coBills[co][bill].amount+=price;
+      coBills[co][bill].invSet.add(d.inv);
+      if(!coTot[co])coTot[co]={ctr:0,amount:0};
+      coTot[co].ctr++;coTot[co].amount+=price;
+    });
+  });
+  /* deduplicate & sort by amount desc */
+  const seen=new Set();
+  const coList=coIns.filter(c=>{if(seen.has(c))return false;seen.add(c);return true;});
+  coList.sort((a,b)=>(coTot[b]?.amount||0)-(coTot[a]?.amount||0));
+  const monthName=MF[month]||('เดือน '+month);
+  document.getElementById('trAlTitle').textContent='🚛 สรุปค่าขนส่งตามบริษัทขนส่ง — '+monthName;
+  document.getElementById('trAlInfo').innerHTML=
+    '<span class="ia">'+src.length+' อินวอยซ์</span>'+
+    '<span class="ia">'+totalCtr+' ตู้</span>'+
+    '<span class="ia ia-amt">'+fmt(totalAmount)+' บาท</span>';
+  /* ── build grouped rows ── */
+  let rows='';
+  coList.forEach(co=>{
+    const bills=Object.values(coBills[co]).sort((a,b)=>a.ref.localeCompare(b.ref));
+    const tot=coTot[co]||{ctr:0,amount:0};
+    const coEsc=co.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    /* company header + print button */
+    rows+='<tr style="background:linear-gradient(90deg,#064e3b,#065f46);">'+
+      '<td style="color:#fff;font-weight:800;font-size:11px;padding:5px 10px;border:none;">'+
+        '<span class="tral-badge" style="margin-right:6px;">'+h(co)+'</span>'+
+      '</td>'+
+      '<td style="padding:4px 8px;border:none;text-align:right;">'+
+        '<button onclick="trPrintOneCoReport(\''+coEsc+'\')" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;white-space:nowrap;">🖨️ รีพอร์ต</button>'+
+      '</td>'+
+      '<td class="r" style="color:#6ee7b7;font-weight:700;font-size:10px;padding:5px 10px;border:none;">'+tot.ctr+' ตู้</td>'+
+      '<td class="r tral-amt" style="color:#6ee7b7;font-weight:800;font-size:11px;padding:5px 10px;border:none;">'+fmt(tot.amount)+'</td>'+
+    '</tr>';
+    /* individual bill rows: เลขที่วางบิล | เลขอินวอยซ์ | ตู้ | ยอด */
+    bills.forEach((b,bi)=>{
+      const invList=[...b.invSet].sort().join(', ');
+      rows+='<tr style="'+(bi%2===1?'background:#f0fdf4;':'')+' border-bottom:1px solid #e2e8f0;">'+
+        '<td style="font-size:10px;padding:3px 10px;color:#0f172a;font-weight:600;">'+h(b.ref)+'</td>'+
+        '<td style="font-size:9px;padding:3px 10px;color:#64748b;">'+h(invList)+'</td>'+
+        '<td class="r" style="color:#475569;font-size:10px;padding:3px 10px;">'+b.ctr+' ตู้</td>'+
+        '<td class="r tral-amt" style="font-size:10px;padding:3px 10px;">'+fmt(b.amount)+'</td>'+
+      '</tr>';
+    });
+    /* spacer */
+    rows+='<tr style="height:5px;background:#f8fafc;"><td colspan="4" style="border:none;"></td></tr>';
+  });
+  /* grand total */
+  rows+='<tr class="tral-sum">'+
+    '<td colspan="2" style="text-align:right;font-size:11px;">รวมทั้งหมด</td>'+
+    '<td class="r">'+totalCtr+' ตู้</td>'+
+    '<td class="r tral-amt">'+fmt(totalAmount)+'</td>'+
+  '</tr>';
+  document.getElementById('trAlBody').innerHTML=
+    '<table class="tral-tbl"><thead><tr>'+
+    '<th style="width:35%">เลขที่วางบิล</th>'+
+    '<th style="width:30%">เลขอินวอยซ์</th>'+
+    '<th class="r" style="width:15%">ตู้</th>'+
+    '<th class="r" style="width:20%">ยอดรวม (บาท)</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table>';
+  document.getElementById('trAlBg').classList.add('open');
+}
+/* ── แบบที่ 1: รีพอร์ตตามโรงงาน (grouped by d.prefix) ── */
+function trPrintByFactoryReport(){
+  const sel=document.getElementById('trPrintMonthSel');
+  const printMonth=(sel&&sel.value)?sel.value:_trAlMonth;
+  if(!printMonth)return;
+  const q=TR_SEARCH.trim().toUpperCase();
+  const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const he2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const src=TR_DATA.filter(d=>{
+    if(d.month!==printMonth)return false;
+    if(!matchTrPrefix(d))return false;
+    if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
+    return true;
+  });
+  /* ── split into 2 fixed groups: OGM vs โรงงานอื่นๆ ── */
+  /* group by transport company — extract English letters from billNo */
+  /* e.g. "2569-PIYA-001"→PIYA, "VT-04/69"→VT, "TWC 04/26"→TWC, "PTC 7/2569"→PTC */
+  const extractTrCo=(bill)=>{const m=bill.match(/[A-Za-z]+/g);return m&&m.length?m.join('-').toUpperCase():'(ไม่ระบุ)';};
+  const groups={
+    ogm: {label:'OGM',sublabel:'(แยกตามบริษัทขนส่ง)',color:'#065f46',light:'#d1fae5',cos:{},coIns:[],tot:{ctr:0,amount:0}},
+    other:{label:'โรงงานอื่นๆ (BSW / TWI / INV)',sublabel:'(แยกตามบริษัทขนส่ง)',color:'#1e3a5f',light:'#dbeafe',cos:{},coIns:[],tot:{ctr:0,amount:0}}
+  };
+  let grandAmt=0,grandCtr=0;
+  src.forEach(d=>{
+    const grp=(d.prefix||'').trim().toUpperCase()==='OGM'?groups.ogm:groups.other;
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+      const al=(row.trMatch.al||row.trMatch.seq||'').trim()||'-';
+      const co=extractTrCo(bill);
+      const price=row.trMatch.price||0;
+      if(!grp.cos[co]){grp.cos[co]={bills:{},tot:{ctr:0,amount:0}};grp.coIns.push(co);}
+      if(!grp.cos[co].bills[bill])grp.cos[co].bills[bill]={ctr:0,amount:0,al:al};
+      grp.cos[co].bills[bill].ctr++;grp.cos[co].bills[bill].amount+=price;
+      grp.cos[co].tot.ctr++;grp.cos[co].tot.amount+=price;
+      grp.tot.ctr++;grp.tot.amount+=price;
+      grandAmt+=price;grandCtr++;
+    });
+  });
+  const monthName=MF[printMonth]||('เดือน '+printMonth);
+  const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
+  const css=`
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+    @page{size:A4 portrait;margin:12mm 15mm;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-hdr{text-align:center;margin-bottom:14px;}
+    .doc-title{font-size:15px;font-weight:800;}
+    .doc-meta{font-size:8.5px;color:#555;margin-top:3px;}
+    .section{margin-bottom:20px;page-break-inside:avoid;}
+    .sec-hdr{padding:7px 10px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:baseline;}
+    .sec-name{font-size:13px;font-weight:800;color:#fff;}
+    .sec-sub{font-size:9px;color:rgba(255,255,255,.7);margin-left:6px;}
+    .sec-tot{font-size:9.5px;font-weight:700;color:rgba(255,255,255,.85);}
+    table{width:100%;border-collapse:collapse;}
+    th{font-size:8.5px;font-weight:700;padding:4px 8px;text-align:left;border:1px solid #ccc;}
+    th.r{text-align:right;}
+    td{border:1px solid #e2e8f0;padding:4px 8px;font-size:9.5px;vertical-align:middle;}
+    td.r{text-align:right;}
+    tbody tr:nth-child(even) td{background:#f8fafc;}
+    .sub-row td{font-weight:800;border-top:2px solid #aaa;}
+    .sub-row td.r{text-align:right;}
+    .grand-row td{background:#1e293b;color:#fff;font-weight:800;border:none;padding:6px 10px;border-radius:4px;margin-top:8px;}
+    .grand-row .r{text-align:right;color:#94a3b8;}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+  `;
+  /* ── build each section ── */
+  const buildSection=(grp)=>{
+    if(grp.coIns.length===0)return '';
+    let coSections='';
+    grp.coIns.forEach(co=>{
+      const coData=grp.cos[co];
+      const bills=Object.entries(coData.bills).sort((a,b)=>a[0].localeCompare(b[0]));
+      const rows=bills.map(([ref,v])=>
+        `<tr>
+          <td style="color:#475569;font-size:9px;">${he2(v.al)}</td>
+          <td>${he2(ref)}</td>
+          <td class="r">${v.ctr} ตู้</td>
+          <td class="r">${fm(v.amount)}</td>
+        </tr>`
+      ).join('');
+      coSections+=`<tr>
+          <td colspan="2" style="background:${grp.light};font-weight:800;font-size:11px;padding:5px 8px;color:${grp.color};">🚛 ${he2(co)}</td>
+          <td class="r" style="background:${grp.light};font-size:9px;font-weight:700;color:${grp.color};">${coData.tot.ctr} ตู้</td>
+          <td class="r" style="background:${grp.light};font-size:9.5px;font-weight:700;color:${grp.color};">${fm(coData.tot.amount)}</td>
+        </tr>${rows}
+        <tr>
+          <td colspan="2" style="background:#f1f5f9;text-align:right;font-size:8.5px;color:#64748b;padding:3px 8px;">รวม ${he2(co)}</td>
+          <td class="r" style="background:#f1f5f9;font-size:8.5px;color:#64748b;">${coData.tot.ctr} ตู้</td>
+          <td class="r" style="background:#f1f5f9;font-size:8.5px;color:#64748b;">${fm(coData.tot.amount)}</td>
+        </tr>`;
+    });
+    return `<div class="section">
+      <div class="sec-hdr" style="background:${grp.color};">
+        <div><span class="sec-name">${he2(grp.label)}</span><span class="sec-sub">${he2(grp.sublabel)}</span></div>
+        <span class="sec-tot">${grp.tot.ctr} ตู้ · ${fm(grp.tot.amount)} บาท</span>
+      </div>
+      <table>
+        <thead style="background:${grp.color};">
+          <tr>
+            <th style="width:18%;color:#fff;">เลขลำดับ (AL)</th>
+            <th style="width:37%;color:#fff;">เลขที่วางบิล</th>
+            <th class="r" style="width:20%;color:#fff;">จำนวนตู้</th>
+            <th class="r" style="width:25%;color:#fff;">จำนวนเงิน (บาท)</th>
+          </tr>
+        </thead>
+        <tbody>${coSections}</tbody>
+        <tfoot>
+          <tr class="sub-row" style="background:${grp.light};">
+            <td colspan="2" style="text-align:right;font-weight:800;">รวม ${he2(grp.label)}</td>
+            <td class="r">${grp.tot.ctr} ตู้</td>
+            <td class="r">${fm(grp.tot.amount)}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  };
+  const body=buildSection(groups.ogm)+buildSection(groups.other)+
+    `<table style="margin-top:10px;"><tbody><tr class="grand-row">
+      <td colspan="2">รวมทั้งหมด</td><td class="r">${grandCtr} ตู้</td><td class="r">${fm(grandAmt)}</td>
+    </tr></tbody></table>`;
+  const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>รีพอร์ตตามโรงงาน — ${he2(monthName)}</title>
+    <style>${css}</style></head><body>
+    <div class="doc-hdr">
+      <div class="doc-title">รีพอร์ตค่าขนส่ง แบ่งตามโรงงาน เดือน ${he2(monthName)}</div>
+      <div class="doc-meta">พิมพ์: ${nowDate}</div>
+    </div>${body}</body></html>`;
+  const win=window.open('','_blank','width=860,height=720');
+  if(!win){alert('⚠️ กรุณาอนุญาต Pop-up ก่อนนะครับ');return;}
+  win.document.open();win.document.write(html);win.document.close();
+  win.focus();setTimeout(()=>{try{win.print();}catch(e){}},600);
+}
+
+/* ── บริษัทขนส่งตามเดือน: OGM/โรงงานอื่นๆ → เดือน → บริษัทขนส่ง → AL ── */
+function trPrintAlMonthXref(){
+  const sel=document.getElementById('trPrintMonthSel');
+  const printMonth=(sel&&sel.value)?sel.value:_trAlMonth;
+  const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const he2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  /* fmap[fk].months[mo].cos[co].als[al] = {billNo,ctr,amount} */
+  const fmap={
+    ogm:{label:'OGM',sublabel:'(เลขลำดับ AL)',color:'#065f46',light:'#d1fae5',months:{},monthIns:[]},
+    other:{label:'โรงงานอื่นๆ',sublabel:'(ไม่รวม OGM)',color:'#1e3a5f',light:'#dbeafe',months:{},monthIns:[]}
+  };
+  TR_DATA.forEach(d=>{
+    if(d.month!==printMonth)return;
+    if(!matchTrPrefix(d))return;
+    const fk=(d.prefix||'').trim().toUpperCase()==='OGM'?'ogm':'other';
+    const grp=fmap[fk];
+    const mo=d.month;
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const al=(row.trMatch.al||row.trMatch.seq||'').trim()||'(ไม่มีเลขลำดับ)';
+      const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+      /* extract transport company from English letters in billNo */
+      const xm=bill.match(/[A-Za-z]+/g);
+      const co=xm&&xm.length?xm.join('-').toUpperCase():'(ไม่ระบุ)';
+      const price=row.trMatch.price||0;
+      if(!grp.months[mo]){grp.months[mo]={cos:{},coIns:[],tot:{ctr:0,amount:0}};grp.monthIns.push(mo);}
+      const mObj=grp.months[mo];
+      if(!mObj.cos[co]){mObj.cos[co]={als:{},alIns:[],tot:{ctr:0,amount:0}};mObj.coIns.push(co);}
+      const cObj=mObj.cos[co];
+      if(!cObj.als[al]){cObj.als[al]={billNo:bill,ctr:0,amount:0};cObj.alIns.push(al);}
+      cObj.als[al].ctr++;cObj.als[al].amount+=price;
+      cObj.tot.ctr++;cObj.tot.amount+=price;
+      mObj.tot.ctr++;mObj.tot.amount+=price;
+    });
+  });
+  /* sort */
+  ['ogm','other'].forEach(fk=>{
+    fmap[fk].monthIns.sort();
+    fmap[fk].monthIns.forEach(mo=>{
+      const mObj=fmap[fk].months[mo];
+      mObj.coIns.sort();
+      mObj.coIns.forEach(co=>mObj.cos[co].alIns.sort());
+    });
+  });
+  const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
+  const css=`
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+    @page{size:A4 portrait;margin:12mm 15mm;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-hdr{text-align:center;margin-bottom:14px;}
+    .doc-title{font-size:15px;font-weight:800;}
+    .doc-meta{font-size:8.5px;color:#555;margin-top:3px;}
+    .fac-hdr{padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;margin-top:20px;}
+    .fac-name{font-size:13px;font-weight:800;color:#fff;}
+    .fac-sub{font-size:9px;color:rgba(255,255,255,.7);margin-left:6px;}
+    .month-block{margin-bottom:12px;}
+    .mo-hdr{padding:5px 10px 5px 14px;display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;font-weight:800;border-left:4px solid;}
+    table{width:100%;border-collapse:collapse;margin-bottom:6px;}
+    th{font-size:8px;font-weight:700;padding:3px 7px;text-align:left;border:1px solid #ccc;background:#f8fafc;}
+    th.r{text-align:right;}
+    td{border:1px solid #e2e8f0;padding:3px 7px;font-size:9.5px;vertical-align:middle;}
+    td.r{text-align:right;}
+    tbody tr:nth-child(even) td{background:#f8fafc;}
+    .tot-row td{font-weight:800;background:#f1f5f9;border-top:2px solid #aaa;}
+    .grand-box{margin-top:16px;border-top:3px solid #334155;padding-top:8px;}
+    .grand-box table{margin:0;}
+    .grand-row td{background:#1e293b;color:#fff;font-weight:800;border:none;padding:7px 10px;}
+    .grand-row td.r{text-align:right;color:#94a3b8;}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.month-block{page-break-inside:avoid;}}
+  `;
+  let grandCtr=0,grandAmt=0;
+  const buildFactory=(fk)=>{
+    const grp=fmap[fk];
+    if(grp.monthIns.length===0)return '';
+    let moBlocks='';
+    grp.monthIns.forEach(mo=>{
+      const mObj=grp.months[mo];
+      const moName=MF[mo]||('เดือน '+mo);
+      let coRows='';
+      mObj.coIns.forEach(co=>{
+        const cObj=mObj.cos[co];
+        const alRows=cObj.alIns.map(al=>{
+          const v=cObj.als[al];
+          return `<tr>
+            <td style="color:#475569;font-size:9px;padding-left:22px;">${he2(al)}</td>
+            <td>${he2(v.billNo)}</td>
+            <td class="r">${v.ctr} ตู้</td>
+            <td class="r">${fm(v.amount)}</td>
+          </tr>`;
+        }).join('');
+        coRows+=`<tr>
+            <td colspan="2" style="background:${grp.light};color:${grp.color};font-weight:800;font-size:10px;padding:4px 8px;">🚛 ${he2(co)}</td>
+            <td class="r" style="background:${grp.light};color:${grp.color};font-size:9px;font-weight:700;">${cObj.tot.ctr} ตู้</td>
+            <td class="r" style="background:${grp.light};color:${grp.color};font-size:9px;font-weight:700;">${fm(cObj.tot.amount)}</td>
+          </tr>${alRows}`;
+      });
+      grandCtr+=mObj.tot.ctr; grandAmt+=mObj.tot.amount;
+      moBlocks+=`<div class="month-block">
+        <div class="mo-hdr" style="background:${grp.light};color:${grp.color};border-color:${grp.color};">
+          <span>📅 ${he2(moName)}</span>
+          <span style="font-size:8.5px;font-weight:400;">${mObj.tot.ctr} รายการ · ${fm(mObj.tot.amount)} บาท</span>
+        </div>
+        <table>
+          <thead><tr>
+            <th style="width:18%">เลขลำดับ AL</th>
+            <th style="width:37%">เลขที่วางบิล</th>
+            <th class="r" style="width:20%">จำนวนตู้</th>
+            <th class="r" style="width:25%">จำนวนเงิน (บาท)</th>
+          </tr></thead>
+          <tbody>${coRows}</tbody>
+        </table>
+      </div>`;
+    });
+    return `<div class="fac-hdr" style="background:${grp.color};">
+        <div><span class="fac-name">${he2(grp.label)}</span><span class="fac-sub">${he2(grp.sublabel)}</span></div>
+        <span style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.85);">${grp.monthIns.reduce((a,mo)=>a+grp.months[mo].tot.ctr,0)} ตู้ · ${fm(grp.monthIns.reduce((a,mo)=>a+grp.months[mo].tot.amount,0))} บาท</span>
+      </div>${moBlocks}`;
+  };
+  const moLabel=MF[printMonth]||('เดือน '+printMonth);
+  const ogmHtml=buildFactory('ogm');
+  const otherHtml=buildFactory('other');
+  const grandHtml=`<div class="grand-box"><table><tbody><tr class="grand-row">
+    <td colspan="2">รวมทั้งหมด — ${he2(moLabel)}</td>
+    <td class="r">${grandCtr} ตู้</td>
+    <td class="r">${fm(grandAmt)}</td>
+  </tr></tbody></table></div>`;
+  const body=ogmHtml+otherHtml+(ogmHtml||otherHtml?grandHtml:'');
+  const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>บริษัทขนส่งตามเดือน — ${he2(moLabel)}</title>
+    <style>${css}</style></head><body>
+    <div class="doc-hdr">
+      <div class="doc-title">บริษัทขนส่งตามเดือน — ${he2(moLabel)}</div>
+      <div class="doc-meta">พิมพ์: ${nowDate}</div>
+    </div>${body}</body></html>`;
+  const win=window.open('','_blank','width=860,height=720');
+  if(!win){alert('⚠️ กรุณาอนุญาต Pop-up ก่อนนะครับ');return;}
+  win.document.open();win.document.write(html);win.document.close();
+  win.focus();setTimeout(()=>{try{win.print();}catch(e){}},600);
+}
+
+/* ── แบบที่ 2: รีพอร์ตตามบริษัทขนส่ง (VT, THIRA, TAWAT...) ── */
+function trPrintByBillReport(){
+  if(_trAlMonth===null)return;
+  const q=TR_SEARCH.trim().toUpperCase();
+  const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const he2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const src=TR_DATA.filter(d=>{
+    if(d.month!==_trAlMonth)return false;
+    if(!matchTrPrefix(d))return false;
+    if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
+    return true;
+  });
+  /* collect bills per transport company (co) */
+  const coIns=[];const coBills={};const coTot={};
+  let grandAmt=0,grandCtr=0;
+  src.forEach(d=>{
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const co=(row.trMatch.co||row.trMatch.al||'').trim()||'?';
+      const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+      const price=row.trMatch.price||0;
+      if(!coBills[co]){coBills[co]={};coIns.push(co);}
+      if(!coBills[co][bill])coBills[co][bill]={ctr:0,amount:0};
+      coBills[co][bill].ctr++;coBills[co][bill].amount+=price;
+      if(!coTot[co])coTot[co]={ctr:0,amount:0};
+      coTot[co].ctr++;coTot[co].amount+=price;
+      grandAmt+=price;grandCtr++;
+    });
+  });
+  const seen=new Set();
+  const coList=coIns.filter(c=>{if(seen.has(c))return false;seen.add(c);return true;});
+  coList.sort((a,b)=>a.localeCompare(b));
+  const monthName=MF[_trAlMonth]||('เดือน '+_trAlMonth);
+  const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
+  const css=`
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+    @page{size:A4 portrait;margin:12mm 15mm;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-hdr{text-align:center;margin-bottom:14px;}
+    .doc-title{font-size:15px;font-weight:800;}
+    .doc-meta{font-size:8.5px;color:#555;margin-top:3px;}
+    .cols{columns:2;column-gap:12mm;column-rule:1px solid #ddd;}
+    .group{break-inside:avoid;margin-bottom:14px;}
+    .co-hdr{display:flex;justify-content:space-between;align-items:center;
+            background:#7c3aed;color:#fff;padding:4px 8px;border-radius:4px;margin-bottom:3px;}
+    .co-name{font-size:12px;font-weight:800;}
+    .co-tot{font-size:8.5px;color:#ddd6fe;white-space:nowrap;}
+    table{width:100%;border-collapse:collapse;}
+    td{border-bottom:1px dashed #ede9fe;padding:2.5px 4px;font-size:9px;vertical-align:middle;}
+    .b-no{color:#7c3aed;font-weight:700;width:55%;}
+    .b-ctr{text-align:right;color:#6b7280;width:20%;}
+    .b-amt{text-align:right;font-weight:700;color:#059669;width:25%;}
+    .grand-row td{background:#7c3aed;color:#fff;font-weight:800;border:none;padding:5px 8px;border-radius:4px;}
+    .grand-row .r{text-align:right;color:#ddd6fe;}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+  `;
+  let groupsHtml='';
+  coList.forEach(co=>{
+    const bills=Object.entries(coBills[co]).sort((a,b)=>a[0].localeCompare(b[0]));
+    const tot=coTot[co];
+    const rows=bills.map(([ref,v])=>
+      `<tr><td class="b-no">${he2(ref)}</td><td class="b-ctr">${v.ctr} ตู้</td><td class="b-amt">${fm(v.amount)}</td></tr>`
+    ).join('');
+    groupsHtml+=`<div class="group">
+      <div class="co-hdr">
+        <span class="co-name">${he2(co)}</span>
+        <span class="co-tot">${tot.ctr} ตู้ · ${fm(tot.amount)}</span>
+      </div>
+      <table><tbody>${rows}</tbody></table>
+    </div>`;
+  });
+  const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>รีพอร์ตตามบริษัทขนส่ง — ${he2(monthName)}</title>
+    <style>${css}</style></head><body>
+    <div class="doc-hdr">
+      <div class="doc-title">รายการวางบิลตามบริษัทขนส่ง เดือน ${he2(monthName)}</div>
+      <div class="doc-meta">${coList.length} บริษัท &nbsp;|&nbsp; ${grandCtr} ตู้ &nbsp;|&nbsp; ${fm(grandAmt)} บาท &nbsp;|&nbsp; พิมพ์: ${nowDate}</div>
+    </div>
+    <div class="cols">${groupsHtml}</div>
+    <table style="margin-top:12px;"><tbody><tr class="grand-row">
+      <td>รวมทั้งหมด</td><td class="r">${grandCtr} ตู้</td><td class="r">${fm(grandAmt)}</td>
+    </tr></tbody></table>
+    </body></html>`;
+  const win=window.open('','_blank','width=860,height=720');
+  if(!win){alert('⚠️ กรุณาอนุญาต Pop-up ก่อนนะครับ');return;}
+  win.document.open();win.document.write(html);win.document.close();
+  win.focus();setTimeout(()=>{try{win.print();}catch(e){}},600);
+}
+
+function trPrintBillListReport(){
+  if(_trAlMonth===null)return;
+  const q=TR_SEARCH.trim().toUpperCase();
+  const he2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const src=TR_DATA.filter(d=>{
+    if(d.month!==_trAlMonth)return false;
+    if(!matchTrPrefix(d))return false;
+    if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
+    return true;
+  });
+  const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  /* ── collect bills per company with ctr + amount ── */
+  const coIns=[];const coBills={};const coTot={};
+  src.forEach(d=>{
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const co=(row.trMatch.co||row.trMatch.al||'').trim()||'?';
+      const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+      const price=row.trMatch.price||0;
+      if(!coBills[co]){coBills[co]={};coIns.push(co);}
+      if(!coBills[co][bill])coBills[co][bill]={ctr:0,amount:0};
+      coBills[co][bill].ctr++;coBills[co][bill].amount+=price;
+      if(!coTot[co])coTot[co]={ctr:0,amount:0};
+      coTot[co].ctr++;coTot[co].amount+=price;
+    });
+  });
+  const seen=new Set();
+  const coList=coIns.filter(c=>{if(seen.has(c))return false;seen.add(c);return true;});
+  coList.sort((a,b)=>a.localeCompare(b));
+  const monthName=MF[_trAlMonth]||('เดือน '+_trAlMonth);
+  const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
+  /* ── CSS ── */
+  const css=`
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+    @page{size:A4 portrait;margin:12mm 15mm;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;
+         -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-hdr{text-align:center;margin-bottom:12px;}
+    .doc-title{font-size:15px;font-weight:800;}
+    .doc-meta{font-size:8.5px;color:#555;margin-top:3px;}
+    .cols{columns:2;column-gap:12mm;column-rule:1px solid #ddd;}
+    .group{break-inside:avoid;margin-bottom:12px;}
+    .co-hdr{display:flex;justify-content:space-between;align-items:center;
+            background:#064e3b;color:#fff;padding:3px 8px;border-radius:4px;margin-bottom:3px;}
+    .co-name{font-size:11px;font-weight:800;}
+    .co-tot{font-size:8.5px;color:#6ee7b7;font-weight:700;white-space:nowrap;}
+    .bill-list{list-style:none;padding-left:0;}
+    .bill-list li{display:flex;justify-content:space-between;align-items:baseline;
+                  font-size:9px;padding:2px 4px;border-bottom:1px dashed #e2e8f0;}
+    .bill-list li:last-child{border-bottom:none;}
+    .b-ref{font-weight:600;color:#0f172a;flex:1;}
+    .b-ctr{color:#64748b;margin:0 6px;white-space:nowrap;}
+    .b-amt{color:#059669;font-weight:700;white-space:nowrap;}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+  `;
+  /* ── build groups ── */
+  let groupsHtml='';
+  coList.forEach(co=>{
+    const bills=Object.entries(coBills[co]).sort((a,b)=>a[0].localeCompare(b[0]));
+    const tot=coTot[co]||{ctr:0,amount:0};
+    const items=bills.map(([ref,v])=>
+      `<li><span class="b-ref">${he2(ref)}</span><span class="b-ctr">${v.ctr} ตู้</span><span class="b-amt">${fm(v.amount)}</span></li>`
+    ).join('');
+    groupsHtml+=`<div class="group">
+      <div class="co-hdr">
+        <span class="co-name">${he2(co)}</span>
+        <span class="co-tot">${tot.ctr} ตู้ · ${fm(tot.amount)}</span>
+      </div>
+      <ul class="bill-list">${items}</ul>
+    </div>`;
+  });
+  const printHtml=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>รายการวางบิล — ${he2(monthName)}</title>
+    <style>${css}</style></head><body>
+    <div class="doc-hdr">
+      <div class="doc-title">รายการวางบิล เดือน ${he2(monthName)}</div>
+      <div class="doc-meta">${coList.length} บริษัท &nbsp;|&nbsp; พิมพ์: ${nowDate}</div>
+    </div>
+    <div class="cols">${groupsHtml}</div>
+    </body></html>`;
+  const win=window.open('','_blank','width=860,height=720');
+  if(!win){alert('⚠️ กรุณาอนุญาต Pop-up ก่อนนะครับ');return;}
+  win.document.open();win.document.write(printHtml);win.document.close();
+  win.focus();setTimeout(()=>{try{win.print();}catch(e){}},600);
+}
+function trPrintOneCoReport(co){
+  if(_trAlMonth===null)return;
+  const q=TR_SEARCH.trim().toUpperCase();
+  const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const he2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const src=TR_DATA.filter(d=>{
+    if(d.month!==_trAlMonth)return false;
+    if(!matchTrPrefix(d))return false;
+    if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
+    return true;
+  });
+  /* ── collect bills for this company only ── */
+  const billsMap={};  /* billNo → {ref,ctr,amount,invSet} */
+  let grandAmt=0,grandCtr=0;
+  src.forEach(d=>{
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const rowCo=(row.trMatch.co||row.trMatch.al||'').trim()||'?';
+      if(rowCo!==co)return;
+      const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+      const price=row.trMatch.price||0;
+      if(!billsMap[bill])billsMap[bill]={ref:bill,ctr:0,amount:0,invSet:new Set()};
+      billsMap[bill].ctr++;billsMap[bill].amount+=price;
+      billsMap[bill].invSet.add(d.inv);
+      grandAmt+=price;grandCtr++;
+    });
+  });
+  const billArr=Object.values(billsMap).sort((a,b)=>a.ref.localeCompare(b.ref));
+  const monthName=MF[_trAlMonth]||('เดือน '+_trAlMonth);
+  const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
+  const css=`
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+    @page{size:A4 portrait;margin:12mm 15mm;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;
+         -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-hdr{margin-bottom:12px;}
+    .doc-title{font-size:17px;font-weight:800;text-align:center;}
+    .doc-sub{font-size:9px;color:#555;text-align:center;margin-top:3px;}
+    .co-badge{display:inline-block;background:#064e3b;color:#fff;font-weight:800;
+              font-size:13px;padding:3px 14px;border-radius:6px;margin:8px auto 10px;display:block;width:fit-content;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{border:1px solid #aaa;padding:4px 8px;vertical-align:middle;}
+    thead th{background:#9dc3e6;font-weight:700;font-size:9px;border-color:#555;}
+    .th-bill{text-align:left;width:32%;}
+    .th-inv{text-align:left;width:38%;}
+    .th-ctr{text-align:center;width:12%;}
+    .th-amt{text-align:right;width:18%;}
+    tbody tr:nth-child(even) td{background:#f5f9ff;}
+    .d-bill{font-weight:700;font-size:10px;}
+    .d-inv{font-size:9px;color:#555;}
+    .d-ctr{text-align:center;font-size:10px;}
+    .d-amt{text-align:right;font-size:10px;}
+    tfoot td{background:#ffe699;font-weight:800;border-color:#cca800;border-top:2px solid #cca800;}
+    .f-lbl{text-align:right;font-size:10px;padding-right:10px;}
+    .f-ctr{text-align:center;font-size:10px;}
+    .f-amt{text-align:right;font-size:11px;}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+  `;
+  let tbody='';
+  billArr.forEach((b,i)=>{
+    const invList=[...b.invSet].sort().join(', ');
+    tbody+=`<tr>
+      <td class="d-bill">${he2(b.ref)}</td>
+      <td class="d-inv">${he2(invList)}</td>
+      <td class="d-ctr">${b.ctr} ตู้</td>
+      <td class="d-amt">${fm(b.amount)}</td>
+    </tr>`;
+  });
+  const printHtml=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>รายงานค่าขนส่ง ${he2(co)} — ${he2(monthName)}</title>
+    <style>${css}</style></head><body>
+    <div class="doc-hdr">
+      <div class="doc-title">รายงานค่าขนส่ง เดือน ${he2(monthName)}</div>
+      <div class="co-badge">${he2(co)}</div>
+      <div class="doc-sub">${billArr.length} เลขวางบิล &nbsp;|&nbsp; ${grandCtr} ตู้ &nbsp;|&nbsp; ${fm(grandAmt)} บาท &nbsp;|&nbsp; พิมพ์: ${nowDate}</div>
+    </div>
+    <table>
+      <thead><tr>
+        <th class="th-bill">เลขที่วางบิล</th>
+        <th class="th-inv">เลขอินวอยซ์</th>
+        <th class="th-ctr">จำนวนตู้</th>
+        <th class="th-amt">จำนวนเงิน (บาท)</th>
+      </tr></thead>
+      <tbody>${tbody}</tbody>
+      <tfoot><tr>
+        <td class="f-lbl" colspan="2">รวม ${he2(co)}</td>
+        <td class="f-ctr">${grandCtr} ตู้</td>
+        <td class="f-amt">${fm(grandAmt)}</td>
+      </tr></tfoot>
+    </table>
+    </body></html>`;
+  const win=window.open('','_blank','width=900,height=720');
+  if(!win){alert('⚠️ กรุณาอนุญาต Pop-up ก่อนนะครับ');return;}
+  win.document.open();win.document.write(printHtml);win.document.close();
+  win.focus();setTimeout(()=>{try{win.print();}catch(e){}},600);
+}
+function trPrintAlReport(){
+  if(_trAlMonth===null)return;
+  const q=TR_SEARCH.trim().toUpperCase();
+  const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const he2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const src=TR_DATA.filter(d=>{
+    if(d.month!==_trAlMonth)return false;
+    if(!matchTrPrefix(d))return false;
+    if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
+    return true;
+  });
+  /* ── collect per-company bills ── */
+  const coInsOrder=[];
+  const coBillsMap={};   /* {co: {billNo: {ref,al,amount,ctr}}} */
+  const coTot={};
+  let grandAmt=0;
+  src.forEach(d=>{
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const co=(row.trMatch.co||row.trMatch.al||'').trim()||'?';
+      const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+      const seq=(row.trMatch.al||'').trim();
+      const price=row.trMatch.price||0;
+      if(!coBillsMap[co]){coBillsMap[co]={};coInsOrder.push(co);}
+      if(!coBillsMap[co][bill])coBillsMap[co][bill]={ref:bill,al:seq,amount:0,ctr:0};
+      coBillsMap[co][bill].amount+=price;coBillsMap[co][bill].ctr++;
+      if(!coTot[co])coTot[co]={amount:0,ctr:0};
+      coTot[co].amount+=price;coTot[co].ctr++;
+      grandAmt+=price;
+    });
+  });
+  /* deduplicate & sort companies by total amount desc */
+  const seenCo=new Set();
+  const coList=coInsOrder.filter(c=>{if(seenCo.has(c))return false;seenCo.add(c);return true;});
+  coList.sort((a,b)=>(coTot[b]?.amount||0)-(coTot[a]?.amount||0));
+  /* convert bill maps to sorted arrays */
+  const coBillArr={};
+  coList.forEach(co=>{
+    coBillArr[co]=Object.values(coBillsMap[co]).sort((a,b)=>a.ref.localeCompare(b.ref));
+  });
+  /* ── grouped layout: companies as section headers, bills as rows ── */
+  const monthName=MF[_trAlMonth]||('เดือน '+_trAlMonth);
+  const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
+  let grandCtr=0;
+  coList.forEach(co=>{grandCtr+=(coTot[co]?.ctr||0);});
+  const css=`
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+    @page{size:A4 portrait;margin:12mm 15mm;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;
+         -webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-hdr{text-align:center;margin-bottom:10px;}
+    .doc-title{font-size:16px;font-weight:800;}
+    .doc-meta{font-size:8.5px;color:#555;margin-top:3px;}
+    table{width:100%;border-collapse:collapse;}
+    th,td{border:1px solid #aaa;padding:3px 6px;vertical-align:middle;}
+    thead th{background:#9dc3e6;font-weight:700;font-size:9px;border-color:#555;}
+    .th-ref{text-align:left;width:50%;}
+    .th-ctr{text-align:center;width:20%;}
+    .th-amt{text-align:right;width:30%;}
+    /* company group header */
+    .g-hdr td{background:#bdd7ee;font-weight:800;font-size:10.5px;
+              border-top:2px solid #4472c4;border-color:#4472c4;
+              page-break-after:avoid;}
+    .g-hdr .g-co{color:#1a3a6e;letter-spacing:.3px;}
+    /* bill rows */
+    .b-row td{border-color:#ddd;}
+    .b-row:nth-child(even) td{background:#f5f9ff;}
+    .b-ref{font-size:9.5px;}
+    .b-ctr{text-align:center;font-size:9.5px;color:#444;}
+    .b-amt{text-align:right;font-size:9.5px;}
+    /* subtotal row */
+    .g-sub td{background:#ffe699;font-weight:700;border-color:#cca800;}
+    .g-sub .s-lbl{text-align:right;font-size:9px;color:#7a5f00;padding-right:8px;}
+    .g-sub .s-ctr{text-align:center;font-size:9.5px;}
+    .g-sub .s-amt{text-align:right;font-size:10px;font-weight:800;}
+    /* group wrapper — keep together if possible */
+    .g-wrap{page-break-inside:avoid;}
+    /* grand total */
+    .grand td{background:#c6efce;font-weight:800;border-color:#70ad47;border-top:2.5px solid #70ad47;}
+    .grand .gr-lbl{font-size:10px;}
+    .grand .gr-ctr{text-align:center;font-size:10px;}
+    .grand .gr-amt{text-align:right;font-size:11px;font-weight:900;}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+  `;
+  /* ── build tbody rows (all groups) ── */
+  let allRows='';
+  coList.forEach(co=>{
+    const bills=coBillArr[co]||[];
+    const tot=coTot[co]||{amount:0,ctr:0};
+    allRows+=`<tr class="g-hdr"><td colspan="3"><span class="g-co">${he2(co)}</span></td></tr>`;
+    bills.forEach(b=>{
+      allRows+=`<tr class="b-row">
+        <td class="b-ref">${he2(b.ref)}</td>
+        <td class="b-ctr">${b.ctr} ตู้</td>
+        <td class="b-amt">${fm(b.amount)}</td>
+      </tr>`;
+    });
+    allRows+=`<tr class="g-sub">
+      <td class="s-lbl" colspan="1">รวม ${he2(co)}</td>
+      <td class="s-ctr">${tot.ctr} ตู้</td>
+      <td class="s-amt">${fm(tot.amount)}</td>
+    </tr>`;
+  });
+  /* grand total row */
+  allRows+=`<tr class="grand">
+    <td class="gr-lbl">รวมทั้งหมด</td>
+    <td class="gr-ctr">${grandCtr} ตู้</td>
+    <td class="gr-amt">${fm(grandAmt)}</td>
+  </tr>`;
+  const printHtml=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>ค่าขนส่ง — ${he2(monthName)} ${nowDate}</title>
+    <style>${css}</style></head><body>
+    <div class="doc-hdr">
+      <div class="doc-title">ค่าขนส่ง เดือน ${he2(monthName)}</div>
+      <div class="doc-meta">${coList.length} บริษัท &nbsp;|&nbsp; ${grandCtr} ตู้ &nbsp;|&nbsp; ${fm(grandAmt)} บาท &nbsp;|&nbsp; พิมพ์: ${nowDate}</div>
+    </div>
+    <table>
+      <thead><tr>
+        <th class="th-ref">เลขที่วางบิล</th>
+        <th class="th-ctr">จำนวนตู้</th>
+        <th class="th-amt">จำนวนเงิน (บาท)</th>
+      </tr></thead>
+      <tbody>${allRows}</tbody>
+    </table>
+    </body></html>`;
+  const win=window.open('','_blank','width=1200,height=800');
+  if(!win){alert('⚠️ กรุณาอนุญาต Pop-up ก่อนนะครับ');return;}
+  win.document.open();win.document.write(printHtml);win.document.close();
+  win.focus();setTimeout(()=>{try{win.print();}catch(e){}},600);
+}
+/* ===== RENDER VIEW (invoice / month) ===== */
+/* ===== TRANSPORT COMPANY VIEW ===== */
+let _trCoOpen=null; // currently expanded company key
+
+function renderTrCoView(){
+  const wrap=document.getElementById('trCoWrap');
+  const extractTrCo=bill=>{const m=(bill||'').match(/[A-Za-z]+/g);return m&&m.length?m.join('-').toUpperCase():'(ไม่ระบุ)';};
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const he=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  /* Build per-company aggregation */
+  const cos={};   // key: company name
+  TR_DATA.forEach(d=>{
+    if(!matchTrPrefix(d))return;
+    const moLabel=MF[d.month]||d.month||'-';
+    const isOgm=(d.prefix||'').trim().toUpperCase()==='OGM';
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+      const al=(row.trMatch.al||row.trMatch.seq||'').trim()||'-';
+      const price=row.trMatch.price||0;
+      const coKey=extractTrCo(bill);
+      if(!cos[coKey])cos[coKey]={ctr:0,amount:0,months:{},bills:{}};
+      const c=cos[coKey];
+      c.ctr++;c.amount+=price;
+      /* per month summary */
+      if(!c.months[d.month])c.months[d.month]={label:moLabel,ctr:0,amount:0};
+      c.months[d.month].ctr++;c.months[d.month].amount+=price;
+      /* per bill detail row */
+      if(!c.bills[bill])c.bills[bill]={month:d.month,moLabel:moLabel,factory:d.inv||'-',isOgm:isOgm,rows:[]};
+      c.bills[bill].rows.push({al:al,inv:d.inv||'-',price:price});
+    });
+  });
+
+  const coKeys=Object.keys(cos).sort();
+  if(!coKeys.length){wrap.innerHTML='<div style="color:#94a3b8;padding:20px;">ไม่พบข้อมูล</div>';return;}
+
+  /* Grand total */
+  const grandCtr=coKeys.reduce((s,k)=>s+cos[k].ctr,0);
+  const grandAmt=coKeys.reduce((s,k)=>s+cos[k].amount,0);
+
+  /* Build cards */
+  let cardsHtml=`<div style="font-size:11px;color:#64748b;margin-bottom:8px;">รวมทั้งหมด: <strong style="color:#3b0764;font-size:14px;">${grandCtr}</strong> ตู้ · <strong style="color:#7c3aed;">${fmtAmt(grandAmt)}</strong> บาท · ${coKeys.length} บริษัทขนส่ง</div>`;
+  cardsHtml+='<div class="co-grid">';
+  coKeys.forEach(ck=>{
+    const c=cos[ck];
+    const moCount=Object.keys(c.months).length;
+    cardsHtml+=`<div class="co-card" onclick="trToggleCoDetail('${he(ck)}')">
+      <div class="cc-name"><span>🚛 ${he(ck)}</span><span style="font-size:11px;font-weight:400;color:#7c3aed;">${moCount} เดือน</span></div>
+      <div class="cc-stats">
+        <div class="cc-stat"><span class="sv">${c.ctr}</span><span class="sl">ตู้ทั้งหมด</span></div>
+        <div class="cc-stat"><span class="sv cc-amt">${fmtAmt(c.amount)}</span><span class="sl">บาท</span></div>
+      </div>
+    </div>`;
+  });
+  cardsHtml+='</div>';
+
+  /* Build detail panels (all hidden initially) */
+  let panelsHtml='';
+  coKeys.forEach(ck=>{
+    const c=cos[ck];
+    /* Group bills by month */
+    const byMonth={};
+    Object.entries(c.bills).forEach(([bill,bd])=>{
+      if(!byMonth[bd.month])byMonth[bd.month]={label:bd.moLabel,bills:[]};
+      byMonth[bd.month].bills.push({bill,isOgm:bd.isOgm,...bd});
+    });
+    const moKeys=Object.keys(byMonth).sort();
+    let sectHtml='';
+    moKeys.forEach(mo=>{
+      const mbObj=byMonth[mo];
+      let rows='';
+      mbObj.bills.forEach(bd=>{
+        const factLabel=bd.isOgm?'OGM':'โรงงานอื่นๆ';
+        bd.rows.forEach(r=>{
+          rows+=`<tr>
+            <td>${he(r.al)}</td>
+            <td>${he(r.inv)}</td>
+            <td>${he(bd.bill)}</td>
+            <td style="font-size:10px;">${factLabel}</td>
+            <td class="r">${fmtAmt(r.price)}</td>
+          </tr>`;
+        });
+      });
+      const moTotal=c.months[mo];
+      sectHtml+=`<div class="co-bill-section">
+        <h4><span class="co-mo-badge">📅 ${he(mbObj.label)}</span>  ${moTotal.ctr} ตู้ · ${fmtAmt(moTotal.amount)} บาท</h4>
+        <table class="co-bill-tbl">
+          <thead><tr><th>AL/Seq</th><th>อินวอยซ์</th><th>เลขวางบิล</th><th>โรงงาน</th><th class="r">ราคา (บาท)</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    });
+    panelsHtml+=`<div class="co-detail-panel" id="coPanel_${he(ck).replace(/[^A-Za-z0-9]/g,'_')}">
+      <div class="co-detail-hdr">
+        <h3>🚛 ${he(ck)} — ${c.ctr} ตู้ · ${fmtAmt(c.amount)} บาท</h3>
+        <button class="co-detail-close" onclick="trToggleCoDetail('${he(ck)}')">✕</button>
+      </div>
+      ${sectHtml}
+    </div>`;
+  });
+
+  wrap.innerHTML=cardsHtml+panelsHtml;
+}
+
+function trToggleCoDetail(ck){
+  const panelId='coPanel_'+ck.replace(/[^A-Za-z0-9]/g,'_');
+  const panel=document.getElementById(panelId);
+  if(!panel)return;
+  const isOpen=panel.classList.contains('open');
+  /* close all panels */
+  document.querySelectorAll('#trCoWrap .co-detail-panel.open').forEach(p=>p.classList.remove('open'));
+  if(!isOpen){panel.classList.add('open');panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+
+function renderTrView(){
+  const isTr=TR_VIEW==='transport';
+  const isMonth=TR_VIEW==='month';
+  document.getElementById('trTblWrap').style.display=(!isMonth&&!isTr)?'block':'none';
+  document.getElementById('trMonthWrap').style.display=isMonth?'block':'none';
+  document.getElementById('trCoWrap').style.display=isTr?'block':'none';
+  /* Hide status filter tabs in month/transport view */
+  document.querySelectorAll('#trFilterBar .ftab[data-f]').forEach(b=>b.style.display=(isMonth||isTr)?'none':'');
+  const sw=document.getElementById('trSearchInp');if(sw)sw.parentElement.style.marginLeft=(isMonth||isTr)?'0':'';
+  if(isMonth)renderTrMonthSummary();else if(isTr)renderTrCoView();else renderTrTable();
+}
+
+/* ===== DUPLICATE ALERT ===== */
+function renderTrDupeAlert(){
+  const bar=document.getElementById('trDupeBar');
+  if(!TR_DUPES.length){bar.style.display='none';return;}
+  bar.style.display='flex';
+  document.getElementById('trDupeBadge').textContent=TR_DUPES.length;
+}
+function openTrDupeModal(){
+  const fmtP=n=>n?Number(n).toLocaleString('th-TH')+'฿':'—';
+  let html='';
+  TR_DUPES.forEach(d=>{
+    const ov=d.records.slice(1).reduce((s,r)=>s+(r.price||0),0);
+    html+='<div class="dupe-row-hdr">'
+      +'<span class="dupe-inv">📋 '+h(d.inv)+'</span>'
+      +'<span style="color:#64748b;font-weight:400;">เบอร์ตู้: <strong>'+h(d.container)+'</strong></span>'
+      +'<span style="color:#64748b;font-weight:400;">ทะเบียน: <strong>'+h(d.truck)+'</strong></span>'
+      +'<span style="background:#dc2626;color:white;border-radius:4px;padding:1px 6px;">ซ้ำ '+d.records.length+'x</span>'
+      +(ov?'<span style="background:#fef3c7;color:#92400e;border-radius:4px;padding:1px 6px;font-size:9px;">⚠️ ส่วนเกิน ~'+fmtP(ov)+'</span>':'')
+      +'</div>';
+    d.records.forEach((r,i)=>{
+      const srcLabel=r.billNo&&r.billNo.toUpperCase().startsWith('AL')?'ALL':'OGM';
+      const srcCls=srcLabel==='ALL'?'all':'ogm';
+      html+='<div class="dupe-entry" style="'+(i>0?'background:#fff5f5;border-left:3px solid #fca5a5;':'')+'">'
+        +'<span class="de-ctr">'+(i===0?'①':'⚠️ '+(i+1))+'  '+h(r.container)+'</span>'
+        +'<span class="de-trk">🚛 '+h(r.truck)+'</span>'
+        +'<span class="de-price">'+fmtP(r.price)+'</span>'
+        +'<span><span class="dupe-source '+srcCls+'">'+srcLabel+'</span>'
+        +(r.billNo?'<span class="de-bill"> #'+h(r.billNo)+'</span>':'')
+        +(r.date&&r.date!=='-'?'<span class="de-bill"> · '+h(r.date)+'</span>':'')
+        +'</span>'
+        +'</div>';
+    });
+  });
+  document.getElementById('trDupeModalBody').innerHTML=html||'<div style="padding:20px;text-align:center;color:#94a3b8;">ไม่พบรายการซ้ำ</div>';
+  document.getElementById('trDupeModalBg').classList.add('open');
+}
+function closeTrDupeModal(){document.getElementById('trDupeModalBg').classList.remove('open');}
+
+/* ===== RENDER TRANSPORT DASHBOARD ===== */
+function renderTransport(){
+  const hasBill=BILL_INFO_TR.ogm!=='-'||BILL_INFO_TR.all!=='-';
+  document.getElementById('trBillInfoBar').style.display=hasBill?'flex':'none';
+  document.getElementById('trBillOgm').style.display=BILL_INFO_TR.ogm!=='-'?'inline-flex':'none';
+  document.getElementById('trBillAll').style.display=BILL_INFO_TR.all!=='-'?'inline-flex':'none';
+  document.getElementById('trBillOgmVal').textContent=BILL_INFO_TR.ogm;
+  document.getElementById('trBillAllVal').textContent=BILL_INFO_TR.all;
+  renderTrStats();renderTrPrefixBar();renderTrView();renderTrDupeAlert();
+}
+
+function toggleDashboard(){
+  _showTransport=!_showTransport;
+  document.getElementById('mainDash').style.display=_showTransport?'none':'flex';
+  document.getElementById('trDash').style.display=_showTransport?'flex':'none';
+  const btn=document.getElementById('dashToggleBtn');
+  btn.textContent=_showTransport?'📦 Dashboard หลัก':'🚛 ค่าขนส่ง';
+  btn.classList.toggle('tr-active',_showTransport);
+  if(_showTransport){
+    TR_SEARCH='';const si=document.getElementById('trSearchInp');if(si)si.value='';
+    TR_FILTER='all';TR_PREFIX='all';TR_VIEW='invoice';TR_OPEN.clear();
+    /* sync vtab active state */
+    document.querySelectorAll('#trDash .vtab').forEach(b=>b.classList.toggle('active',b.dataset.v==='invoice'));
+    renderTransport();
+  }
+}
+
+/* =====================================================
+   SETUP & LOAD HELPERS
+===================================================== */
+function setLoad(txt,sub){document.getElementById('loadTxt').textContent=txt||'กำลังโหลด...';document.getElementById('loadSub').textContent=sub||'';}
+function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errBox').style.display='block';document.getElementById('loadTxt').style.display='none';document.getElementById('spinner').style.display='none';}
+function hideLoad(){document.getElementById('loadScreen').style.display='none';}
+function showSetup(err){
+  hideLoad();document.getElementById('app').style.display='none';
+  document.getElementById('setupScreen').style.display='flex';
+  document.getElementById('errBox').style.display='none';
+  document.getElementById('setupErr').style.display='none';
+  document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
+  if(err){document.getElementById('setupErr').textContent=err;document.getElementById('setupErr').style.display='block';}
+  const tok=ls('dropbox_token');const tokEl=document.getElementById('fToken');if(tok&&tokEl)tokEl.value=tok;
+  [['f_inv','fInv'],['f_bkg','fBkg'],['f_vsl','fVsl'],['f_stm','fStm'],['f_ogm','fOgm'],['f_oth','fOth'],['f_ogm_price','fOgmPrice']].forEach(([k,id])=>{const v=ls(k);const el=document.getElementById(id);if(v&&el)el.value=v;});
+}
+function showDashboard(data){
+  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};
+  hideLoad();document.getElementById('app').style.display='flex';
+  const now=new Date();document.getElementById('lastUpd').textContent='☁️ Dropbox · '+pad(now.getHours())+':'+pad(now.getMinutes());
+  renderTabs();renderStatsMain();const m=Object.keys(BY_MONTH).sort()[0];if(m)selMonth(m);
+}
+async function updateFolderUI(){
+  const box=document.getElementById('folderBox');const nm=document.getElementById('folderName');const sub=document.getElementById('folderSub');const empty=document.getElementById('folderEmpty');const hint=document.getElementById('folderHint');
+  try{const h2=await getHandle('dir');if(h2){box.classList.add('has-folder');nm.style.display='block';sub.style.display='block';empty.style.display='none';hint.style.display='none';nm.textContent='📁 '+h2.name;sub.textContent='✅ เลือกแล้ว — คลิกเพื่อเปลี่ยน';}else{box.classList.remove('has-folder');nm.style.display='none';sub.style.display='none';empty.style.display='block';hint.style.display='block';}}catch{box.classList.remove('has-folder');}
+}
+async function pickFolder(){
+  if(!window.showDirectoryPicker){document.getElementById('setupErr').textContent='Browser นี้ไม่รองรับ — กรุณาใช้ Chrome หรือ Edge';document.getElementById('setupErr').style.display='block';return;}
+  try{const handle=await window.showDirectoryPicker({mode:'read'});await saveHandle('dir',handle);ls('f_folder_name',handle.name);updateFolderUI();}
+  catch(e){if(e.name!=='AbortError'){document.getElementById('setupErr').textContent='เลือก Folder ไม่สำเร็จ: '+e.message;document.getElementById('setupErr').style.display='block';}}
+}
+
+/* =====================================================
+   INIT
+===================================================== */
+async function initApp(){
+  const invPath=ls('f_inv'),bkgPath=ls('f_bkg'),token=ls('dropbox_token');
+  if(!invPath||!bkgPath||!token){showSetup();return;}
+  document.getElementById('setupScreen').style.display='none';document.getElementById('loadScreen').style.display='flex';
+  document.getElementById('permBox').style.display='none';
+  setLoad('☁️ กำลังดาวน์โหลดจาก Dropbox...');
+  try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message||'โหลดไม่สำเร็จ');}
+}
+
+/* =====================================================
+   EVENT LISTENERS
+===================================================== */
+document.getElementById('saveBtn').addEventListener('click',async()=>{
+  const inv=document.getElementById('fInv').value.trim(),bkg=document.getElementById('fBkg').value.trim();
+  const token=document.getElementById('fToken').value.trim();
+  if(!token){document.getElementById('setupErr').textContent='กรุณาใส่ Dropbox Access Token';document.getElementById('setupErr').style.display='block';return;}
+  if(!inv||!bkg){document.getElementById('setupErr').textContent='กรุณาใส่พาธไฟล์อย่างน้อย 2 ไฟล์ (ใบยกตู้ + BKG)';document.getElementById('setupErr').style.display='block';return;}
+  ls('dropbox_token',token);ls('f_inv',inv);ls('f_bkg',bkg);
+  ['fVsl','fStm','fOgm','fOth','fOgmPrice'].forEach((id,i)=>{const k=['f_vsl','f_stm','f_ogm','f_oth','f_ogm_price'][i];const v=document.getElementById(id).value.trim();if(v)ls(k,v);else localStorage.removeItem(k);});
+  document.getElementById('setupScreen').style.display='none';document.getElementById('loadScreen').style.display='flex';
+  document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
+  document.getElementById('permBox').style.display='none';document.getElementById('errBox').style.display='none';
+  setLoad('☁️ กำลังดาวน์โหลดจาก Dropbox...');
+  try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message||'โหลดไม่สำเร็จ');}
+});
+document.getElementById('refreshBtn').addEventListener('click',async()=>{
+  _forceReload=true;
+  document.getElementById('app').style.display='none';document.getElementById('loadScreen').style.display='flex';
+  document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
+  document.getElementById('permBox').style.display='none';document.getElementById('errBox').style.display='none';
+  setLoad('☁️ กำลังรีเฟรชจาก Dropbox...');
+  try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message);}
+  finally{_forceReload=false;}
+});
+document.getElementById('settingsBtn').addEventListener('click',()=>{if(confirm('เปิดหน้าตั้งค่า?'))showSetup();});
+document.getElementById('retryBtn').addEventListener('click',async()=>{document.getElementById('errBox').style.display='none';document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';setLoad('กำลังลองใหม่...');try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message);}});
+document.getElementById('resetBtn').addEventListener('click',()=>showSetup());
+/* stat modal */
+document.getElementById('sBar').addEventListener('click',e=>{const sc=e.target.closest('.sc-click[data-filter]');if(sc)showStatModal(sc.dataset.filter);});
+document.getElementById('sModal').addEventListener('click',e=>{if(e.target===document.getElementById('sModal'))document.getElementById('sModal').classList.remove('open');});
+document.getElementById('sModalClose').addEventListener('click',()=>document.getElementById('sModal').classList.remove('open'));
+document.getElementById('sModalBody').addEventListener('click',e=>{const r=e.target.closest('.sm-row[data-id]');if(!r)return;document.getElementById('sModal').classList.remove('open');const id=parseInt(r.dataset.id);switchTab('pending');setTimeout(()=>selPending(id),80);});
+/* bkg modal */
+document.getElementById('bkgModal').addEventListener('click',e=>{if(e.target===document.getElementById('bkgModal'))document.getElementById('bkgModal').classList.remove('open');});
+document.getElementById('bkgModalClose').addEventListener('click',()=>document.getElementById('bkgModal').classList.remove('open'));
+/* main view nav */
+document.getElementById('mTabs').addEventListener('click',e=>{const t=e.target.closest('.mtab[data-m]');if(t)selMonth(t.dataset.m);const f=e.target.closest('.mtab[data-fac]');if(f)selFactory(f.dataset.fac);});
+document.getElementById('mBody').addEventListener('click',e=>{const p=e.target.closest('.pfx-row[data-pfx]');if(p){selPrefix(SM,p.dataset.pfx);return;}const ir=e.target.closest('.ir[data-id]');if(ir)selInv(parseInt(ir.dataset.id));});
+document.getElementById('mHead').addEventListener('click',e=>{const b=e.target.closest('.bc-item[data-back-m]');if(b)selMonth(b.dataset.backM);});
+document.getElementById('dPanel').addEventListener('click',e=>{const ir=e.target.closest('.ir[data-id]');if(ir)selInv(parseInt(ir.dataset.id));});
+/* pending */
+document.getElementById('pvList').addEventListener('click',e=>{const c=e.target.closest('.pv-card[data-id]');if(c)selPending(parseInt(c.dataset.id));});
+document.getElementById('pvDetail').addEventListener('click',e=>{if(window.innerWidth<=600&&e.target===document.getElementById('pvDetail'))document.getElementById('pvWrap').classList.remove('detail-open');});
+/* stock */
+document.getElementById('stockBody').addEventListener('click',e=>{const g=e.target.closest('.bkg-group[data-no]');if(g)selBkg(g.dataset.no);});
+/* transport search */
+document.getElementById('trFilterBar').addEventListener('click',e=>{
+  /* view toggle */
+  const vt=e.target.closest('.vtab[data-v]');
+  if(vt){
+    TR_VIEW=vt.dataset.v;TR_OPEN.clear();
+    document.querySelectorAll('#trDash .vtab').forEach(b=>b.classList.toggle('active',b.dataset.v===TR_VIEW));
+    renderTrView();return;
+  }
+  /* status filter */
+  const t=e.target.closest('.ftab[data-f]');if(!t)return;
+  TR_FILTER=t.dataset.f;TR_OPEN.clear();
+  document.querySelectorAll('#trFilterBar .ftab[data-f]').forEach(b=>b.classList.toggle('active',b.dataset.f===TR_FILTER));
+  renderTrView();
+});
+document.getElementById('trPrefixBar').addEventListener('click',e=>{
+  const t=e.target.closest('[data-pfx]');if(!t)return;
+  TR_PREFIX=t.dataset.pfx;TR_OPEN.clear();
+  renderTrPrefixBar();renderTrView();
+});
+document.getElementById('trSearchInp').addEventListener('input',e=>{TR_SEARCH=e.target.value;TR_OPEN.clear();renderTrView();});
+document.getElementById('trInvBody').addEventListener('click',e=>{
+  const row=e.target.closest('tr.inv-row[data-inv]');if(!row)return;
+  const inv=row.dataset.inv;
+  if(TR_OPEN.has(inv))TR_OPEN.delete(inv);else TR_OPEN.add(inv);
+  renderTrTable();
+  setTimeout(()=>{const el=document.querySelector('tr.inv-row[data-inv="'+CSS.escape(inv)+'"]');if(el)el.scrollIntoView({block:'nearest'});},30);
+});
+/* factory date */
+document.getElementById('fDateFrom').addEventListener('change',renderFactory);
+document.getElementById('fDateTo').addEventListener('change',renderFactory);
+document.getElementById('fDateClr').addEventListener('click',()=>{document.getElementById('fDateFrom').value='';document.getElementById('fDateTo').value='';renderFactory();});
+document.getElementById('fDateBar').addEventListener('click',e=>{const b=e.target.closest('.fqbtn[data-fq]');if(!b)return;if(b.dataset.fq==='7d'){document.getElementById('fDateFrom').value=dAgoIso(6);document.getElementById('fDateTo').value=todayIso();}else if(b.dataset.fq==='month'){document.getElementById('fDateFrom').value=mStartIso();document.getElementById('fDateTo').value=todayIso();}renderFactory();});
+
+initApp();
+</script>
+</body>
+</html>
