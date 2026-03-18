@@ -791,6 +791,10 @@ const cachePut=async(k,buf)=>{
    DROPBOX FILE READER
 ===================================================== */
 let _forceReload=false;
+/* escape non-ASCII chars to \uXXXX so the header stays ISO-8859-1 safe */
+function dbxArg(obj){
+  return JSON.stringify(obj).replace(/[^\x00-\x7F]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));
+}
 async function readDropboxFile(dropboxPath){
   const token=ls('dropbox_token');
   if(!token)throw new Error('ไม่พบ Access Token กรุณาตั้งค่าใหม่');
@@ -820,7 +824,7 @@ async function readDropboxFile(dropboxPath){
         setLoad('☁️ มีการอัพเดต ดาวน์โหลด: '+fileName);
         const dlRes=await fetch('https://content.dropboxapi.com/2/files/download',{
           method:'POST',
-          headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':JSON.stringify({path})}
+          headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':dbxArg({path})}
         });
         if(!dlRes.ok){
           if(dlRes.status===401)throw new Error('Access Token ไม่ถูกต้องหรือหมดอายุ');
@@ -845,7 +849,7 @@ async function readDropboxFile(dropboxPath){
   setLoad('☁️ ดาวน์โหลด: '+fileName);
   const res=await fetch('https://content.dropboxapi.com/2/files/download',{
     method:'POST',
-    headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':JSON.stringify({path})}
+    headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':dbxArg({path})}
   });
   if(!res.ok){
     if(res.status===401)throw new Error('Access Token ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่');
