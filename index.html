@@ -465,11 +465,25 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     <div class="setup-logo">🚢</div>
     <div class="setup-title">Logistics Dashboard</div>
     <div class="setup-sub">📦 นำเข้า-ส่งออก · ดึงข้อมูลจาก Dropbox</div>
+    <!-- App Key section -->
     <div class="fgrp">
-      <div class="lbl">🔑 Dropbox Access Token <span style="color:#dc2626;">*</span></div>
-      <input class="inp" id="fToken" type="password" placeholder="sl.xxxxxxxxxxxxxxxxxxxxx">
-      <div class="hint">สร้างได้ที่ Dropbox App Console → Generate Access Token</div>
+      <div class="lbl">🔑 Dropbox App Key</div>
+      <div style="display:flex;gap:8px;align-items:stretch;">
+        <input class="inp" id="fAppKey" placeholder="xxxxxxxxxxxxxxxxxxxx" style="flex:1;margin:0;">
+        <button id="connectDropboxBtn" style="padding:0 16px;background:linear-gradient(135deg,#0061fe,#0078ff);color:white;border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;letter-spacing:.2px;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🔗 เชื่อมต่อ</button>
+      </div>
+      <div class="hint">ใส่ App Key จาก Dropbox App Console แล้วกด "เชื่อมต่อ" — ระบบจะพา authorize ให้อัตโนมัติ</div>
     </div>
+    <!-- Token status badge -->
+    <div id="tokenStatusBox" style="display:none;padding:8px 12px;border-radius:10px;font-size:11px;font-weight:700;margin-bottom:10px;"></div>
+    <!-- Manual token (collapsible) -->
+    <details id="manualTokenDetails" style="margin-bottom:12px;">
+      <summary style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.6px;cursor:pointer;user-select:none;padding:4px 0;">🔧 หรือกรอก Access Token โดยตรง</summary>
+      <div style="margin-top:8px;">
+        <input class="inp" id="fToken" type="password" placeholder="sl.xxxxxxxxxxxxxxxxxxxxx">
+        <div class="hint">Token ยาวจาก Dropbox App Console → Generate Access Token</div>
+      </div>
+    </details>
     <div class="divider"><hr><span>พาธไฟล์ใน Dropbox (ขึ้นต้นด้วย /)</span><hr></div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ ใบยกตู้ (.xlsm) <span style="color:#dc2626;">*</span></div>
@@ -3229,15 +3243,27 @@ function toggleDashboard(){
 function setLoad(txt,sub){document.getElementById('loadTxt').textContent=txt||'กำลังโหลด...';document.getElementById('loadSub').textContent=sub||'';}
 function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errBox').style.display='block';document.getElementById('loadTxt').style.display='none';document.getElementById('spinner').style.display='none';}
 function hideLoad(){document.getElementById('loadScreen').style.display='none';}
-function showSetup(err){
+function showSetup(err,justAuthed){
   hideLoad();document.getElementById('app').style.display='none';
   document.getElementById('setupScreen').style.display='flex';
   document.getElementById('errBox').style.display='none';
   document.getElementById('setupErr').style.display='none';
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   if(err){document.getElementById('setupErr').textContent=err;document.getElementById('setupErr').style.display='block';}
+  /* App Key */
+  const savedKey=ls('dropbox_app_key');const keyEl=document.getElementById('fAppKey');if(savedKey&&keyEl)keyEl.value=savedKey;
+  /* Token status */
+  showTokenStatus();
+  /* Legacy token */
   const tok=ls('dropbox_token');const tokEl=document.getElementById('fToken');if(tok&&tokEl)tokEl.value=tok;
+  /* File paths */
   [['f_inv','fInv'],['f_bkg','fBkg'],['f_vsl','fVsl'],['f_stm','fStm'],['f_ogm','fOgm'],['f_oth','fOth'],['f_ogm_price','fOgmPrice'],['f_bill','fBill']].forEach(([k,id])=>{const v=ls(k);const el=document.getElementById(id);if(v&&el)el.value=v;});
+  /* If just came back from OAuth, show success notice */
+  if(justAuthed){
+    const box=document.getElementById('tokenStatusBox');
+    if(box){box.style.display='block';box.style.background='#eff6ff';box.style.color='#1d4ed8';box.style.border='1px solid #93c5fd';
+    box.textContent='🎉 เชื่อมต่อ Dropbox สำเร็จ! กรอกพาธไฟล์แล้วกด "บันทึกและโหลด" ได้เลย';}
+  }
 }
 function showDashboard(data){
   FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Set();
@@ -3260,9 +3286,54 @@ async function pickFolder(){
 /* =====================================================
    INIT
 ===================================================== */
+/* =====================================================
+   DROPBOX OAUTH (App Key flow)
+===================================================== */
+function checkOAuthCallback(){
+  const hash=window.location.hash;
+  if(!hash)return false;
+  const params=new URLSearchParams(hash.replace(/^#/,''));
+  const token=params.get('access_token');
+  if(!token)return false;
+  ls('dropbox_token',token);
+  /* clean the hash out of URL */
+  history.replaceState(null,'',window.location.pathname+window.location.search);
+  return true;
+}
+function connectDropbox(){
+  const appKey=(document.getElementById('fAppKey').value||'').trim();
+  if(!appKey){
+    document.getElementById('setupErr').textContent='กรุณาใส่ App Key ก่อนกดเชื่อมต่อ';
+    document.getElementById('setupErr').style.display='block';return;
+  }
+  ls('dropbox_app_key',appKey);
+  const redirectUri=window.location.href.split('#')[0];
+  const url='https://www.dropbox.com/oauth2/authorize'
+    +'?client_id='+encodeURIComponent(appKey)
+    +'&response_type=token'
+    +'&redirect_uri='+encodeURIComponent(redirectUri)
+    +'&force_reapprove=false'
+    +'&token_access_type=legacy';
+  window.location.href=url;
+}
+function showTokenStatus(){
+  const tok=ls('dropbox_token');
+  const box=document.getElementById('tokenStatusBox');
+  if(!box)return;
+  if(tok){
+    box.style.display='block';
+    box.style.background='#f0fdf4';box.style.color='#166534';box.style.border='1px solid #bbf7d0';
+    box.textContent='✅ เชื่อมต่อ Dropbox แล้ว — token พร้อมใช้งาน';
+  }else{
+    box.style.display='none';
+  }
+}
+
 async function initApp(){
+  /* check if returning from Dropbox OAuth */
+  const justAuthed=checkOAuthCallback();
   const invPath=ls('f_inv'),bkgPath=ls('f_bkg'),token=ls('dropbox_token');
-  if(!invPath||!bkgPath||!token){showSetup();return;}
+  if(!invPath||!bkgPath||!token){showSetup(null,justAuthed);return;}
   document.getElementById('setupScreen').style.display='none';document.getElementById('loadScreen').style.display='flex';
   document.getElementById('permBox').style.display='none';
   setLoad('☁️ กำลังดาวน์โหลดจาก Dropbox...');
@@ -3310,10 +3381,13 @@ async function initApp(){
 /* =====================================================
    EVENT LISTENERS
 ===================================================== */
+document.getElementById('connectDropboxBtn').addEventListener('click',connectDropbox);
 document.getElementById('saveBtn').addEventListener('click',async()=>{
   const inv=document.getElementById('fInv').value.trim(),bkg=document.getElementById('fBkg').value.trim();
-  const token=document.getElementById('fToken').value.trim();
-  if(!token){document.getElementById('setupErr').textContent='กรุณาใส่ Dropbox Access Token';document.getElementById('setupErr').style.display='block';return;}
+  /* token: prefer saved OAuth token, fallback to manual field */
+  const manualToken=(document.getElementById('fToken').value||'').trim();
+  const token=manualToken||ls('dropbox_token')||'';
+  if(!token){document.getElementById('setupErr').textContent='กรุณาเชื่อมต่อ Dropbox ด้วย App Key หรือกรอก Access Token';document.getElementById('setupErr').style.display='block';return;}
   if(!inv||!bkg){document.getElementById('setupErr').textContent='กรุณาใส่พาธไฟล์อย่างน้อย 2 ไฟล์ (ใบยกตู้ + BKG)';document.getElementById('setupErr').style.display='block';return;}
   ls('dropbox_token',token);ls('f_inv',inv);ls('f_bkg',bkg);
   ['fVsl','fStm','fOgm','fOth','fOgmPrice','fBill'].forEach((id,i)=>{const k=['f_vsl','f_stm','f_ogm','f_oth','f_ogm_price','f_bill'][i];const v=document.getElementById(id).value.trim();if(v)ls(k,v);else localStorage.removeItem(k);});
