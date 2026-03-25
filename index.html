@@ -94,7 +94,9 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
 .mtab{padding:9px 8px;color:rgba(255,255,255,.4);cursor:pointer;font-size:10px;font-weight:700;transition:all .15s;border-left:3px solid transparent;text-align:center;letter-spacing:.2px;}
 .mtab:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.07);}
 .mtab.active{color:white;background:rgba(14,165,233,.18);border-left-color:#0ea5e9;}
-.mid-panel{width:200px;background:white;border-right:1px solid #e8edf5;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.mid-panel{width:200px;background:white;display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.mid-resize{width:5px;background:transparent;cursor:col-resize;flex-shrink:0;position:relative;z-index:10;border-right:1px solid #e8edf5;transition:background .15s;}
+.mid-resize:hover,.mid-resize.dragging{background:rgba(14,165,233,.25);border-right-color:#0ea5e9;}
 .mid-hdr{padding:8px 12px;background:#f0f9ff;border-bottom:1px solid #bae6fd;font-size:10px;font-weight:800;color:#0369a1;flex-shrink:0;text-transform:uppercase;letter-spacing:.4px;}
 .mid-body{flex:1;overflow-y:auto;}
 .pfx-row,.ir{padding:8px 12px;border-bottom:1px solid #f1f5f9;cursor:pointer;transition:background .1s;}
@@ -212,7 +214,7 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
 
 /* ===== FACTORY VIEW ===== */
 .factory-view{flex-direction:column;overflow-y:auto;background:#eef2f7;}
-.factory-wrap{max-width:820px;margin:0 auto;padding:14px 16px;}
+.factory-wrap{max-width:1000px;margin:0 auto;padding:14px 16px;}
 .factory-topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:10px;}
 .fdate-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
 .fdate-bar label{font-size:10px;color:#64748b;font-weight:700;white-space:nowrap;}
@@ -223,6 +225,7 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
 .fdate-clr:hover{background:#fee2e2;color:#991b1b;border-color:#fca5a5;}
 .fqbtn{background:white;border:1.5px solid #e2e8f0;border-radius:8px;padding:4px 10px;font-size:10px;font-weight:800;cursor:pointer;color:#475569;transition:all .15s;}
 .fqbtn:hover{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;border-color:transparent;}
+.fqbtn.fqfac-active{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;border-color:transparent;}
 .ftbl-wrap{background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);}
 .ftbl{width:100%;border-collapse:collapse;}
 .ftbl th{background:linear-gradient(135deg,#0a1628,#1a3a6b);color:white;padding:9px 14px;font-size:10px;text-align:left;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
@@ -498,6 +501,11 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
       <input class="inp" id="fOgmPrice" placeholder="/LOGISTICS/OGM (A).xlsx">
       <div class="hint">ไฟล์ราคาค่าขนส่ง OGM(A) แยกโรงงาน ใช้แสดง วางบิลโรงงาน ในดีเทลอินวอยซ์</div>
     </div>
+    <div class="fgrp">
+      <div class="lbl">วางบิลแล้ว — BILL_ANTS (.xlsm)</div>
+      <input class="inp" id="fBill" placeholder="/LOGISTICS/BILL_ANTS.xlsm">
+      <div class="hint">ไฟล์รายการอินวอยซ์ที่วางบิลไปแล้ว (ชีท DATA_BASE_BILL_ANTS) ใช้แสดงสถานะ ✓ วางบิลแล้ว</div>
+    </div>
     <button class="save-btn" id="saveBtn">✅ บันทึกและโหลดข้อมูล</button>
     <div class="err-box" id="setupErr"></div>
   </div>
@@ -566,6 +574,7 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
         <div class="mid-hdr" id="mHead"><span class="bc-cur">เลือกเดือน</span></div>
         <div class="mid-body" id="mBody"></div>
       </div>
+      <div class="mid-resize" id="midResizeHandle"></div>
       <div class="dp" id="dPanel"><div class="placeholder"><div class="ico">📦</div><p>เลือกเดือน → Prefix → อินวอยซ์</p></div></div>
     </div>
     <!-- PENDING -->
@@ -608,6 +617,30 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
             <button class="fqbtn" data-fq="month">เดือนนี้</button>
             <button class="fqbtn" data-fq="7d">7 วัน</button>
           </div>
+          <div class="fdate-bar" id="facFilterBar" style="margin-top:8px;">
+            <label>🏭 เข้าโรงงาน:</label>
+            <button class="fqbtn fqfac fqfac-active" data-facf="all">ทั้งหมด</button>
+            <button class="fqbtn fqfac" data-facf="today">วันนี้</button>
+            <button class="fqbtn fqfac" data-facf="tomorrow">พรุ่งนี้</button>
+          </div>
+          <div class="fdate-bar" style="margin-top:8px;">
+            <button id="btnPrintFactory" style="font-size:10px;padding:5px 14px;background:#0f2a52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:700;height:28px;letter-spacing:.3px;">🖨️ PRINT PDF</button>
+          </div>
+        </div>
+        <!-- Print Date Modal -->
+        <div id="facPrintModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+          <div style="background:#fff;border-radius:14px;padding:22px 24px;min-width:280px;max-width:340px;box-shadow:0 24px 60px rgba(0,0,0,.3);">
+            <div style="font-size:13px;font-weight:700;color:#0f2a52;margin-bottom:3px;">🖨️ เลือกวันที่รับตู้</div>
+            <div style="font-size:10px;color:#94a3b8;margin-bottom:10px;">เลือกได้หลายวัน — พิมพ์รวมในงานเดียว</div>
+            <label style="display:flex;align-items:center;gap:8px;font-size:11px;color:#475569;font-weight:600;padding:6px 2px 10px;border-bottom:1px solid #f1f5f9;margin-bottom:10px;cursor:pointer;">
+              <input type="checkbox" id="facPrintSelectAll" style="width:14px;height:14px;accent-color:#0f2a52;cursor:pointer;"> เลือกทั้งหมด
+            </label>
+            <div id="facPrintDateList" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;margin-bottom:14px;"></div>
+            <div style="display:flex;gap:8px;">
+              <button id="facPrintCancel" style="flex:1;font-size:11px;padding:8px;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;background:#f8fafc;color:#64748b;font-weight:600;">ยกเลิก</button>
+              <button id="facPrintConfirm" style="flex:2;font-size:11px;padding:8px;border:none;border-radius:8px;cursor:pointer;background:#0f2a52;color:#fff;font-weight:700;">🖨️ พิมพ์ที่เลือก</button>
+            </div>
+          </div>
         </div>
         <div class="ftbl-wrap"><div id="factoryTable"></div></div>
       </div>
@@ -647,23 +680,6 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
           <span class="dupe-modal-close" onclick="closeTrDupeModal()">✕</span>
         </div>
         <div class="dupe-modal-body" id="trDupeModalBody"></div>
-      </div>
-    </div>
-    <!-- Vessel PDF modal -->
-    <div class="vpdf-bg" id="vPdfBg" onclick="if(event.target===this)closeVPdfModal()">
-      <div class="vpdf-modal">
-        <div class="vpdf-hdr">
-          <span class="vpdf-hdr-title">🖨️ เลือกเรือสำหรับ PDF (สูงสุด 5 ลำ)</span>
-          <span class="vpdf-hdr-close" onclick="closeVPdfModal()">✕</span>
-        </div>
-        <div class="vpdf-body" id="vPdfBody"></div>
-        <div class="vpdf-footer">
-          <span class="vpdf-count" id="vPdfCount">เลือก 0 / 5 ลำ</span>
-          <div style="display:flex;gap:8px;">
-            <button class="vpdf-cancel-btn" onclick="closeVPdfModal()">ยกเลิก</button>
-            <button class="vpdf-print-btn" id="vPdfPrintBtn" onclick="printVesselPdf()" disabled>🖨️ Print PDF</button>
-          </div>
-        </div>
       </div>
     </div>
     <!-- AL Summary modal -->
@@ -730,6 +746,24 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     <!-- Transport company view -->
     <div id="trCoWrap" style="display:none;flex:1;overflow:auto;padding:12px 16px;"></div>
   </div><!-- end #trDash -->
+
+  <!-- Vessel PDF modal — moved outside #trDash so it works even when #trDash is display:none -->
+  <div class="vpdf-bg" id="vPdfBg" onclick="if(event.target===this)closeVPdfModal()">
+    <div class="vpdf-modal">
+      <div class="vpdf-hdr">
+        <span class="vpdf-hdr-title">🖨️ เลือกเรือสำหรับ PDF (สูงสุด 5 ลำ)</span>
+        <span class="vpdf-hdr-close" onclick="closeVPdfModal()">✕</span>
+      </div>
+      <div class="vpdf-body" id="vPdfBody"></div>
+      <div class="vpdf-footer">
+        <span class="vpdf-count" id="vPdfCount">เลือก 0 / 5 ลำ</span>
+        <div style="display:flex;gap:8px;">
+          <button class="vpdf-cancel-btn" onclick="closeVPdfModal()">ยกเลิก</button>
+          <button class="vpdf-print-btn" id="vPdfPrintBtn" onclick="printVesselPdf()" disabled>🖨️ Print PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
 </div><!-- end #app -->
 <script>
@@ -800,52 +834,15 @@ async function readDropboxFile(dropboxPath){
   if(!token)throw new Error('ไม่พบ Access Token กรุณาตั้งค่าใหม่');
   const path=dropboxPath.startsWith('/')?dropboxPath:'/'+dropboxPath;
   const fileName=path.split('/').pop();
-  const revKey='dbx_rev:'+path;
   const dataKey='dbx_data:'+path;
 
+  /* ถ้าไม่ force reload — ใช้แคชเดิมก่อนเลย ไม่ต้องรอเช็ค Dropbox */
   if(!_forceReload){
-    /* เช็ค revision จาก Dropbox ก่อน — เร็วมาก (ส่งแค่ metadata) */
-    try{
-      setLoad('🔍 เช็คอัพเดต: '+fileName);
-      const metaRes=await fetch('https://api.dropboxapi.com/2/files/get_metadata',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-        body:JSON.stringify({path})
-      });
-      if(metaRes.ok){
-        const meta=await metaRes.json();
-        const rev=meta.rev||meta.server_modified||'';
-        const cachedRev=ls(revKey);
-        if(rev&&rev===cachedRev){
-          const cached=await cacheGet(dataKey);
-          if(cached){setLoad('✅ ใช้แคช (ไม่มีการเปลี่ยนแปลง): '+fileName);return cached;}
-        }
-        /* revision เปลี่ยน หรือไม่มีแคช — download ใหม่ */
-        setLoad('☁️ มีการอัพเดต ดาวน์โหลด: '+fileName);
-        const dlRes=await fetch('https://content.dropboxapi.com/2/files/download',{
-          method:'POST',
-          headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':dbxArg({path})}
-        });
-        if(!dlRes.ok){
-          if(dlRes.status===401)throw new Error('Access Token ไม่ถูกต้องหรือหมดอายุ');
-          if(dlRes.status===409)throw new Error('ไม่พบไฟล์: "'+path+'"');
-          throw new Error('Dropbox error '+dlRes.status+': '+fileName);
-        }
-        const buf=await dlRes.arrayBuffer();
-        if(rev)ls(revKey,rev);
-        cachePut(dataKey,buf.slice(0)).catch(()=>{});
-        return buf;
-      }
-    }catch(e){
-      if(e.message.includes('Token')||e.message.includes('ไม่พบ'))throw e;
-      /* ถ้า metadata fail (network ฯลฯ) ลองใช้แคชเดิมก่อน */
-      const cached=await cacheGet(dataKey);
-      if(cached){setLoad('⚠️ ออฟไลน์ ใช้แคชเดิม: '+fileName);return cached;}
-      throw e;
-    }
+    const cached=await cacheGet(dataKey);
+    if(cached){setLoad('✅ ใช้แคช: '+fileName);return cached;}
   }
 
-  /* _forceReload: download ใหม่เสมอ */
+  /* ไม่มีแคช หรือ force reload — download จาก Dropbox */
   setLoad('☁️ ดาวน์โหลด: '+fileName);
   const res=await fetch('https://content.dropboxapi.com/2/files/download',{
     method:'POST',
@@ -857,9 +854,58 @@ async function readDropboxFile(dropboxPath){
     throw new Error('Dropbox error '+res.status+': '+fileName);
   }
   const buf=await res.arrayBuffer();
-  try{const m=await fetch('https://api.dropboxapi.com/2/files/get_metadata',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({path})});if(m.ok){const md=await m.json();if(md.rev||md.server_modified)ls(revKey,md.rev||md.server_modified);}}catch{}
   cachePut(dataKey,buf.slice(0)).catch(()=>{});
   return buf;
+}
+
+/* เช็คอัพเดตใน background หลัง dashboard โหลดเสร็จแล้ว */
+async function checkBgUpdates(paths){
+  const token=ls('dropbox_token');
+  if(!token)return;
+  try{
+    const metas=await Promise.all(paths.map(p=>{
+      const path=p.startsWith('/')?p:'/'+p;
+      return fetch('https://api.dropboxapi.com/2/files/get_metadata',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+        body:JSON.stringify({path})
+      }).then(r=>r.ok?r.json():null).catch(()=>null);
+    }));
+    const changed=[];
+    metas.forEach((meta,i)=>{
+      if(!meta)return;
+      const path=paths[i].startsWith('/')?paths[i]:'/'+paths[i];
+      const revKey='dbx_rev:'+path;
+      const rev=meta.rev||meta.server_modified||'';
+      const cachedRev=ls(revKey);
+      if(rev&&rev!==cachedRev)changed.push({path,rev,revKey});
+      else if(rev)ls(revKey,rev);
+    });
+    if(changed.length>0){
+      /* download ไฟล์ที่เปลี่ยนแปลงใน background แล้วอัพเดตแคช */
+      await Promise.all(changed.map(async({path,rev,revKey})=>{
+        const dataKey='dbx_data:'+path;
+        try{
+          const r=await fetch('https://content.dropboxapi.com/2/files/download',{
+            method:'POST',
+            headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':dbxArg({path})}
+          });
+          if(r.ok){const buf=await r.arrayBuffer();ls(revKey,rev);await cachePut(dataKey,buf.slice(0));}
+        }catch{}
+      }));
+      showUpdateToast();
+    }
+  }catch{}
+}
+
+function showUpdateToast(){
+  if(document.getElementById('updateToast'))return;
+  const el=document.createElement('div');
+  el.id='updateToast';
+  el.style='position:fixed;bottom:24px;right:24px;background:#7c3aed;color:white;padding:12px 18px;border-radius:12px;cursor:pointer;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);display:flex;align-items:center;gap:10px;animation:fadeIn .3s ease;';
+  el.innerHTML='🔄 <span>Dropbox มีข้อมูลใหม่ — คลิกเพื่อรีโหลด</span>';
+  el.onclick=()=>{el.remove();_forceReload=false;initApp();};
+  document.body.appendChild(el);
 }
 
 /* =====================================================
@@ -900,6 +946,7 @@ function parseDatabase(sheet){
   const hi=findHdr(rows,['ทะเบียนรถ','โรงงาน(inv']);const hdr=rows[hi].map(c=>String(c||'').trim());
   const iT=colOf(hdr,['ทะเบียน']),iI=colOf(hdr,['โรงงาน(inv']),iFD=colOf(hdr,['เข้าโรงงาน']);
   const iCN=colOf(hdr,['เบอร์ตู้']),iCA=colOf(hdr,['CADO']),iPK=colOf(hdr,['DATE PICK','PICKUP']);
+  const iSL=colOf(hdr,['สายเรือ','LINER','SHIPPING']);
   let iF=-1;hdr.forEach((h2,i)=>{if(h2.trim()==='โรงงาน')iF=i;});
   const map={};
   for(let i=hi+1;i<rows.length;i++){
@@ -908,6 +955,7 @@ function parseDatabase(sheet){
     if(!map[inv])map[inv]=[];
     map[inv].push({ทะเบียนรถ:String(r[iT]||'').trim(),เบอร์ตู้:String(r[iCN]||'').trim(),
       โรงงาน:iF>=0?String(r[iF]||'').trim():'-',เข้าโรงงาน:fmtDate(r[iFD]),
+      สายเรือ:iSL>=0?String(r[iSL]||'').trim():'-',
       CADO:String(r[iCA]||'').trim(),DATE_PICKUP:fmtDate(r[iPK])});
   }
   return map;
@@ -992,28 +1040,83 @@ function parseTransportBill(sheet){
   }
   return map;
 }
-function parseOgmPriceSheet(sheet){
-  /* คืน map { normInv: { กนกทอง: price, นาเมืองเพชร: price, นาวาพารา: price } } */
-  if(!sheet)return{};
-  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false});
-  const hi=findHdr(rows,['INVOICE NUMBER','INVOICE','อินวอยซ์','NO.']);
-  const hdr=rows[hi].map(c=>String(c||'').trim());
-  const hdrU=hdr.map(h2=>h2.toUpperCase());
-  const iInv=hdrU.findIndex(h2=>h2.includes('INVOICE NUMBER')||h2.includes('INVOICE')||(h2.includes('อินวอยซ์')));
-  const iNawa=hdr.findIndex(h2=>h2.includes('นาวา'));
-  const iNamuang=hdr.findIndex(h2=>h2.includes('นาเมือง'));
-  const iKanok=hdr.findIndex(h2=>h2.includes('กนก'));
+function parseAllPriceSheets(wb){
+  /* คืน map { normInv: entry }
+     entry.type = 'factory' → OGM (กนกทอง/นาเมืองเพชร/นาวาพารา)
+     entry.type = 'simple'  → SHL/TWI/INV ราคาเดียว
+     entry.type = 'tiered'  → INV มีช่วงตู้ (N-M) หลายราคา */
   const map={};
-  for(let i=hi+1;i<rows.length;i++){
-    const r=rows[i];
-    const inv=String(r[iInv>=0?iInv:1]||'').trim();
-    if(!inv||inv.toLowerCase()==='nan'||inv==='INVOICE NUMBER')continue;
-    const nk=normInv(inv);
-    map[nk]={
-      กนกทอง:parseFloat(String(r[iKanok>=0?iKanok:6]||'').replace(/,/g,''))||0,
-      นาเมืองเพชร:parseFloat(String(r[iNamuang>=0?iNamuang:5]||'').replace(/,/g,''))||0,
-      นาวาพารา:parseFloat(String(r[iNawa>=0?iNawa:4]||'').replace(/,/g,''))||0,
-    };
+  /* --- OGM factory sheet --- */
+  const ogmSh=wb.Sheets['OGM_PRICE(NEW)']||wb.Sheets[wb.SheetNames.find(n=>n.includes('OGM_PRICE')||n.toUpperCase().includes('PRICE'))];
+  if(ogmSh){
+    const rows=XLSX.utils.sheet_to_json(ogmSh,{header:1,defval:'',raw:false});
+    const hi=findHdr(rows,['INVOICE NUMBER','INVOICE','อินวอยซ์','NO.']);
+    const hdr=rows[hi].map(c=>String(c||'').trim());
+    const hdrU=hdr.map(h2=>h2.toUpperCase());
+    const iInv=hdrU.findIndex(h2=>h2.includes('INVOICE NUMBER')||h2.includes('INVOICE')||h2.includes('อินวอยซ์'));
+    const iNawa=hdr.findIndex(h2=>h2.includes('นาวา'));
+    const iNamuang=hdr.findIndex(h2=>h2.includes('นาเมือง'));
+    const iKanok=hdr.findIndex(h2=>h2.includes('กนก'));
+    for(let i=hi+1;i<rows.length;i++){
+      const r=rows[i];
+      const inv=String(r[iInv>=0?iInv:1]||'').trim();
+      if(!inv||inv.toLowerCase()==='nan'||inv==='INVOICE NUMBER')continue;
+      map[normInv(inv)]={type:'factory',
+        กนกทอง:parseFloat(String(r[iKanok>=0?iKanok:6]||'').replace(/,/g,''))||0,
+        นาเมืองเพชร:parseFloat(String(r[iNamuang>=0?iNamuang:5]||'').replace(/,/g,''))||0,
+        นาวาพารา:parseFloat(String(r[iNawa>=0?iNawa:4]||'').replace(/,/g,''))||0,
+      };
+    }
+  }
+  /* --- Simple sheets: SHL, TWI --- */
+  ['SHL','TWI'].forEach(shName=>{
+    const sh=wb.Sheets[shName]||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()===shName)];
+    if(!sh)return;
+    const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false});
+    const hi=findHdr(rows,['INVOICE NUMBER','INVOICE','NO.']);
+    const hdr=rows[hi].map(c=>String(c||'').trim());
+    const hdrU=hdr.map(h=>h.toUpperCase());
+    const iInv=hdrU.findIndex(h=>h.includes('INVOICE NUMBER')||h.includes('INVOICE'));
+    const iPrice=hdr.findIndex(h=>h.includes('ราคา')||h.toUpperCase().includes('PRICE'));
+    for(let i=hi+1;i<rows.length;i++){
+      const r=rows[i];
+      const inv=String(r[iInv>=0?iInv:1]||'').trim();
+      if(!inv)continue;
+      const price=parseFloat(String(r[iPrice>=0?iPrice:4]||'').replace(/,/g,''))||0;
+      const entry={type:'simple',price,sheetPrefix:shName};
+      map[normInv(inv)]=entry;
+      /* ถ้าชื่ออินวอยซ์มีรูปแบบ TWI02(TWI63) ให้ index ด้วย key ข้างใน () ด้วย */
+      const alias=inv.match(/\(([^)]+)\)$/);
+      if(alias&&!/^\d+-\d+$/.test(alias[1].trim())){const ak=normInv(alias[1].trim());if(ak&&ak!==normInv(inv))map[ak]=entry;}
+    }
+  });
+  /* --- INV sheet (simple + tiered ช่วงตู้) --- */
+  const invSh=wb.Sheets['INV']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()==='INV')];
+  if(invSh){
+    const rows=XLSX.utils.sheet_to_json(invSh,{header:1,defval:'',raw:false});
+    const hi=findHdr(rows,['INVOICE NUMBER','INVOICE','NO.']);
+    const hdr=rows[hi].map(c=>String(c||'').trim());
+    const hdrU=hdr.map(h=>h.toUpperCase());
+    const iInv=hdrU.findIndex(h=>h.includes('INVOICE NUMBER')||h.includes('INVOICE'));
+    const iPrice=hdr.findIndex(h=>h.includes('ราคา')||h.toUpperCase().includes('PRICE'));
+    const tieredTmp={};
+    for(let i=hi+1;i<rows.length;i++){
+      const r=rows[i];
+      const inv=String(r[iInv>=0?iInv:1]||'').trim();
+      if(!inv)continue;
+      const price=parseFloat(String(r[iPrice>=0?iPrice:4]||'').replace(/,/g,''))||0;
+      const tm=inv.match(/^(.+?)\((\d+)-(\d+)\)$/);
+      if(tm){
+        const baseKey=normInv(tm[1].trim());
+        if(!tieredTmp[baseKey])tieredTmp[baseKey]=[];
+        tieredTmp[baseKey].push({from:parseInt(tm[2]),to:parseInt(tm[3]),price});
+      }else{
+        map[normInv(inv)]={type:'simple',price,sheetPrefix:'INV'};
+      }
+    }
+    Object.keys(tieredTmp).forEach(baseKey=>{
+      map[baseKey]={type:'tiered',tiers:tieredTmp[baseKey].sort((a,b)=>a.from-b.from),sheetPrefix:'INV'};
+    });
   }
   return map;
 }
@@ -1059,7 +1162,7 @@ function buildFlat(allInv,dbMap){
     let details=lookupDb(nd,nk);
     /* fallback: อนุญาตเฉพาะกรณีที่ nk ยาวกว่า/เฉพาะกว่า k เช่น TWI63/060/11/25 → TWI63
        ห้าม k.includes(nk) เพราะทำให้ SHL-250904 ไป match SHL-250904-1 (คนละ invoice) */
-    if(!details.length){const fk=Object.keys(nd).find(k=>nk.length>k.length&&nk.startsWith(k));if(fk)details=nd[fk]||[];}
+    if(!details.length){const fk=Object.keys(nd).find(k=>{if(nk.length<=k.length||!nk.startsWith(k))return false;const nx=nk[k.length];return nx==='/'||nx==='-';});if(fk)details=nd[fk]||[];}
     const obj={...inv,total_actual:details.length,details:[...details],id:idx};
     flat.push(obj);
     const m=inv.month||'-';if(!byMonth[m])byMonth[m]=[];byMonth[m].push(obj);
@@ -1070,6 +1173,21 @@ function buildFlat(allInv,dbMap){
 /* =====================================================
    LOAD ALL DATA
 ===================================================== */
+function parseBilledAnts(wb){
+  /* อ่าน DATA_BASE_BILL_ANTS: col D (idx 3) = ชื่อ INV, col K (idx 10) = INV_USE (normalize แล้ว) */
+  const s=wb.Sheets['DATA_BASE_BILL_ANTS']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_BILL_ANTS'))];
+  if(!s)return new Set();
+  const rows=XLSX.utils.sheet_to_json(s,{header:1,defval:'',raw:false});
+  const set=new Set();
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i];
+    const invUse=String(r[10]||'').trim();
+    const invRaw=String(r[3]||'').trim();
+    const key=invUse||invRaw;
+    if(key)set.add(normInv(key));
+  }
+  return set;
+}
 async function loadData(){
   const p=k=>ls(k)||'';
   const invPath=p('f_inv'),bkgPath=p('f_bkg');
@@ -1110,11 +1228,23 @@ async function loadData(){
     try{
       const priceBuf=await readDropboxFile(ogmPricePath);
       const priceWb=XLSX.read(priceBuf,{type:'array'});
-      const priceSh=priceWb.Sheets['OGM_PRICE(NEW)']||priceWb.Sheets[priceWb.SheetNames.find(n=>n.includes('OGM_PRICE')||n.toUpperCase().includes('PRICE'))];
-      if(priceSh)ogmPriceMap=parseOgmPriceSheet(priceSh);
+      ogmPriceMap=parseAllPriceSheets(priceWb);
     }catch(e){console.warn('OGM price file error:',e.message);}
   }
-  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap};
+  /* optional: BILL_ANTS วางบิลแล้ว */
+  let billedAnts=new Set();
+  const billPath=p('f_bill');
+  if(billPath){
+    try{
+      const billBuf=await readDropboxFile(billPath);
+      const billWb=XLSX.read(billBuf,{type:'array',cellDates:false});
+      billedAnts=parseBilledAnts(billWb);
+    }catch(e){console.warn('BILL_ANTS file error:',e.message);}
+  }
+  const allPaths=[...paths];
+  if(ogmPricePath)allPaths.push(ogmPricePath);
+  if(billPath)allPaths.push(billPath);
+  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,billedAnts,allPaths};
 }
 /* =====================================================
    DASHBOARD STATE
@@ -1122,6 +1252,9 @@ async function loadData(){
 let FLAT=[],BY_MONTH={},STOCK={groups:[],stats:{}},VESSEL=[],FEES={},STMT={latestNo:'',latestBalance:0,latestDate:''},TRANSPORT={},PEND_CTRS=[];
 let DB_MAP={}; /* raw database map — ใช้สำหรับ transport matching */
 let OGM_PRICE_MAP={}; /* normInv → { กนกทอง, นาเมืองเพชร, นาวาพารา } prices */
+/* lookup ด้วย exact match ก่อน ถ้าไม่เจอลอง prefix match (TWI63 → TWI63/060/11/25) */
+function findPriceEntry(inv){const nk=normInv(inv);if(OGM_PRICE_MAP[nk])return OGM_PRICE_MAP[nk];const k=Object.keys(OGM_PRICE_MAP).find(k=>{if(k.length<3||!nk.startsWith(k))return false;const nx=nk[k.length];return nx===undefined||nx==='/';});return k?OGM_PRICE_MAP[k]:null;}
+let BILLED_ANTS=new Set(); /* normInv → วางบิลแล้ว จาก DATA_BASE_BILL_ANTS */
 let curTab='main',SM=null,SP=null,SI=null,activePV=null,midMode='group',mainMode='month',SF=null;
 const MF={'1':'ม.ค.','2':'ก.พ.','3':'มี.ค.','4':'เม.ย.','5':'พ.ค.','6':'มิ.ย.','7':'ก.ค.','8':'ส.ค.','9':'ก.ย.','10':'ต.ค.','11':'พ.ย.','12':'ธ.ค.','-':'ไม่ระบุ'};
 const PFXC={BSW:{bg:'#dbeafe',tx:'#1e40af',bd:'#bfdbfe'},OGM:{bg:'#dcfce7',tx:'#166534',bd:'#bbf7d0'},TWI:{bg:'#fef3c7',tx:'#92400e',bd:'#fde68a'},INV:{bg:'#f3e8ff',tx:'#6b21a8',bd:'#e9d5ff'},DEF:{bg:'#f1f5f9',tx:'#475569',bd:'#e2e8f0'}};
@@ -1159,7 +1292,13 @@ function renderStatsMain(){
 }
 function renderStatsStock(){
   const s=STOCK.stats;
-  document.getElementById('sBar').innerHTML=kc('ตู้คงเหลือรวม',s.available||0,'จาก '+(s.total||0)+' ตู้','#16a34a',null)+kc('ลานตู้ MMF',s.mmf||0,'ตู้ว่าง','#1e3a8a',null)+kc('ลานตู้ PIP',s.pip||0,'ตู้ว่าง','#14532d',null);
+  const mmfCtrs=new Set(STOCK.groups.filter(b=>b.lockFor.toUpperCase().includes('MMF')).flatMap(b=>(b.containers||[]).map(c=>c.ctrNum.trim().toUpperCase())));
+  const pipCtrs=new Set(STOCK.groups.filter(b=>b.lockFor.toUpperCase().includes('PIP')).flatMap(b=>(b.containers||[]).map(c=>c.ctrNum.trim().toUpperCase())));
+  const allCtrs=new Set(STOCK.groups.flatMap(b=>(b.containers||[]).map(c=>c.ctrNum.trim().toUpperCase())));
+  const mmfPend=PEND_CTRS.filter(p=>mmfCtrs.has(p.ctr.trim().toUpperCase())).length;
+  const pipPend=PEND_CTRS.filter(p=>pipCtrs.has(p.ctr.trim().toUpperCase())).length;
+  const totPend=PEND_CTRS.filter(p=>allCtrs.has(p.ctr.trim().toUpperCase())).length;
+  document.getElementById('sBar').innerHTML=kc('ตู้คงเหลือรวม',Math.max((s.available||0)-totPend,0),'จาก '+(s.total||0)+' ตู้','#16a34a',null)+kc('ลานตู้ MMF',Math.max((s.mmf||0)-mmfPend,0),'ตู้ว่าง','#1e3a8a',null)+kc('ลานตู้ PIP',Math.max((s.pip||0)-pipPend,0),'ตู้ว่าง','#14532d',null);
 }
 function renderStatsVessel(){
   const vn=[...new Set(VESSEL.map(r=>r.vessel))];const tv=VESSEL.reduce((a,r)=>a+r.vol,0);
@@ -1212,8 +1351,9 @@ function selMonth(m){
       const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
       const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
       const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓</span>';
+      const bb=BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
       const s=pst(d.prefix);
-      out+=`<div class="ir" data-id="${d.id}"><span style="background:${s.bg};color:${s.tx};border-radius:3px;padding:0 5px;font-size:9px;font-weight:800;margin-right:3px;">${h(d.prefix)}</span><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}</div>`;
+      out+=`<div class="ir" data-id="${d.id}"><span style="background:${s.bg};color:${s.tx};border-radius:3px;padding:0 5px;font-size:9px;font-weight:800;margin-right:3px;">${h(d.prefix)}</span><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}</div>`;
     });
   }
   document.getElementById('mBody').innerHTML=out||'<div style="padding:12px;color:#94a3b8;font-size:12px;">ไม่มีข้อมูล</div>';
@@ -1228,7 +1368,8 @@ function selPrefix(m,pfx){
     const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
     const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
     const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢 จัดแล้ว</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓ ยังไม่จัด</span>';
-    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}</div>`;
+    const bb=BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
+    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}</div>`;
   });
   document.getElementById('mBody').innerHTML=out;document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">👈</div><p>เลือกอินวอยซ์</p></div>';
 }
@@ -1242,7 +1383,8 @@ function selFactory(pfx){
     const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
     const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
     const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢 จัดแล้ว</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓ ยังไม่จัด</span>';
-    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}<span style="font-size:9px;color:#94a3b8;margin-left:4px;">${MF[d.month]}</span></div>`;
+    const bb=BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
+    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}<span style="font-size:9px;color:#94a3b8;margin-left:4px;">${MF[d.month]}</span></div>`;
   });
   document.getElementById('mBody').innerHTML=out||'<div style="padding:12px;color:#94a3b8;font-size:12px;">ไม่พบข้อมูล</div>';
   document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">👈</div><p>เลือกอินวอยซ์</p></div>';
@@ -1259,19 +1401,23 @@ function selInv(id){
 ===================================================== */
 function showInvDetail(id,panelId){
   const d=FLAT[id];if(!d)return;
+  const invPendCtrs=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv));
   const s=pst(d.prefix);const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
   let out=`<div class="det-title">${h(d.inv)}</div><div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span>`;
   out+=d.doc_status==='ปล่อยเอกสารแล้ว'?'<span class="pv-badge" style="background:#dcfce7;color:#166534">✔ ปล่อยเอกสารแล้ว</span>':'<span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span>';
-  out+=`<span class="pv-badge" style="background:#f1f5f9;color:#475569">${d.total_actual}/${d.total_expected} ตู้</span></div>`;
+  if(BILLED_ANTS.has(normInv(d.inv)))out+='<span class="pv-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;font-weight:700;">🧾 BILLED</span>';
+  out+=`<span class="pv-badge" style="background:#f1f5f9;color:#475569">${d.total_actual}/${d.total_expected} ตู้</span>`;
+  if(invPendCtrs.length)out+=`<span class="pv-badge" style="background:#fef9c3;color:#92400e;border:1px solid #fcd34d;">⏳ +${invPendCtrs.length} PENDING</span>`;
+  out+=`</div>`;
   if(VESSEL.length){const vr=VESSEL.find(r=>normInv(r.inv)===normInv(d.inv));if(vr)out+=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:20px;">🚢</span><div><div style="font-size:12px;font-weight:700;color:#1e40af;">${h(vr.vessel)}</div><div style="font-size:10px;color:#64748b;margin-top:2px;">ETD: <b>${h(vr.date)}</b> · BKG: <b>${h(vr.bkg)}</b> · <b>${h(vr.des)}</b></div></div></div>`;}
   const tr=TRANSPORT[normInv(d.inv)];
   if(Object.keys(TRANSPORT).length>0){if(tr&&tr.total>0){out+=`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:10px;"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;"><span style="font-size:12px;font-weight:700;color:#166534;">🚛 ค่าขนส่ง — จ่ายแล้ว</span><span style="font-size:13px;font-weight:800;color:#16a34a;">${fm(tr.total)} บาท</span></div><div style="font-size:10px;color:#4ade80;margin-top:2px;">${tr.count} ตู้ · ${[...new Set(tr.records.map(r=>r.billNo).filter(Boolean))].join(', ')}</div><details style="margin-top:6px;"><summary style="font-size:10px;color:#16a34a;cursor:pointer;">ดูรายละเอียด (${tr.count})</summary><table class="det-tbl" style="margin-top:4px;"><thead><tr><th>วันที่</th><th>โรงงาน</th><th>เบอร์ตู้</th><th>ราคา</th><th>AL</th></tr></thead><tbody>`;tr.records.forEach(r=>{out+=`<tr><td>${h(r.date)}</td><td>${h(r.factory)}</td><td style="font-family:monospace;font-size:10px;">${h(r.container)}</td><td style="text-align:right;font-weight:600;">${fm(r.price)}</td><td style="color:#94a3b8;font-size:10px;">${h(r.al)}</td></tr>`;});out+='</tbody></table></details></div>';}else{out+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🚛</span><span style="font-size:12px;font-weight:700;color:#dc2626;">ค่าขนส่ง — ยังไม่มีข้อมูล</span></div>';}}
-  /* === วางบิลโรงงาน (เฉพาะ OGM(A)) === */
+  /* === วางบิลโรงงาน (OGM(A) — factory type) === */
   const isOgmA=d.prefix==='OGM'&&normInv(d.inv).includes('(A)');
   if(isOgmA){
     const priceKey=normInv(d.inv);
-    const prices=OGM_PRICE_MAP[priceKey]||{};
-    const hasPrice=Object.values(prices).some(v=>v>0);
+    const prices=(OGM_PRICE_MAP[priceKey]&&OGM_PRICE_MAP[priceKey].type==='factory')?OGM_PRICE_MAP[priceKey]:{};
+    const hasPrice=prices.กนกทอง>0||prices.นาเมืองเพชร>0||prices.นาวาพารา>0;
     const factCounts={};
     if(d.details&&d.details.length)d.details.forEach(r=>{const f=r.โรงงาน||'-';factCounts[f]=(factCounts[f]||0)+1;});
     const fm2=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
@@ -1290,8 +1436,45 @@ function showInvDetail(id,panelId){
     if(!hasPrice)out+=`<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ ไม่พบข้อมูลราคาสำหรับอินวอยซ์นี้ — กรุณาตั้งค่าไฟล์ราคา OGM (A)</div>`;
     out+=`</div>`;
   }
+  /* === ราคาเรียกเก็บลูกค้า (SHL / TWI / INV — simple & tiered) === */
+  const priceEntry2=findPriceEntry(d.inv);
+  if(priceEntry2&&priceEntry2.type!=='factory'){
+    const fm2=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+    const totalCtrs=d.total_actual||0;
+    out+=`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:10px;">`;
+    out+=`<div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:6px;">💰 ราคาเรียกเก็บลูกค้า (${h(priceEntry2.sheetPrefix)})</div>`;
+    if(priceEntry2.type==='simple'){
+      const total=(priceEntry2.price||0)*totalCtrs;
+      out+=`<table class="det-tbl"><thead><tr><th style="text-align:right;">ราคา/ตู้ (฿)</th><th style="text-align:center;">จำนวนตู้</th><th style="text-align:right;">ยอดรวม (฿)</th></tr></thead><tbody>`;
+      out+=`<tr><td style="text-align:right;">${priceEntry2.price>0?fm2(priceEntry2.price):'-'}</td><td style="text-align:center;">${totalCtrs}</td><td style="text-align:right;font-weight:700;color:#16a34a;">${total>0?fm2(total):'-'}</td></tr>`;
+      out+=`</tbody></table>`;
+      if(!priceEntry2.price)out+=`<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ ไม่พบข้อมูลราคาสำหรับอินวอยซ์นี้</div>`;
+    }else if(priceEntry2.type==='tiered'){
+      out+=`<table class="det-tbl"><thead><tr><th>ช่วงตู้</th><th style="text-align:center;">จำนวน</th><th style="text-align:right;">ราคา/ตู้ (฿)</th><th style="text-align:right;">รวม (฿)</th></tr></thead><tbody>`;
+      let grandTotal=0;
+      priceEntry2.tiers.forEach(t=>{
+        const count=t.to-t.from+1;const sub=count*(t.price||0);grandTotal+=sub;
+        out+=`<tr><td>ตู้ที่ ${t.from}–${t.to}</td><td style="text-align:center;">${count}</td><td style="text-align:right;">${fm2(t.price)}</td><td style="text-align:right;font-weight:700;color:#16a34a;">${fm2(sub)}</td></tr>`;
+      });
+      out+=`</tbody>`;
+      if(grandTotal>0)out+=`<tfoot><tr style="font-weight:700;background:#dcfce7;"><td colspan="3" style="text-align:right;padding:5px 8px;">ยอดรวม</td><td style="text-align:right;padding:5px 8px;color:#15803d;">${fm2(grandTotal)}</td></tr></tfoot>`;
+      out+=`</table>`;
+    }
+    out+=`</div>`;
+  }
   if(d.details&&d.details.length){out+='<table class="det-tbl"><thead><tr><th>ทะเบียนรถ</th><th>เบอร์ตู้</th><th>โรงงาน</th><th>เข้าโรงงาน</th><th>DATE PICKUP</th><th>CADO</th></tr></thead><tbody>';d.details.forEach(r=>{out+=`<tr><td>${h(r.ทะเบียนรถ)}</td><td style="font-family:monospace">${h(r.เบอร์ตู้)}</td><td>${h(r.โรงงาน)}</td><td>${h(r.เข้าโรงงาน)}</td><td>${h(r.DATE_PICKUP)}</td><td>${h(r.CADO)}</td></tr>`;});out+='</tbody></table>';}
-  else{out+='<div style="color:#94a3b8;font-size:12px;">ยังไม่มีข้อมูลตู้</div>';}
+  else if(!invPendCtrs.length){out+='<div style="color:#94a3b8;font-size:12px;">ยังไม่มีข้อมูลตู้</div>';}
+  if(invPendCtrs.length){
+    out+=`<div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:8px 12px;margin-top:8px;">`;
+    out+=`<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px;">⏳ PENDING — ยังไม่ไฟนอล (${invPendCtrs.length} ตู้)</div>`;
+    out+=`<table class="det-tbl"><thead><tr><th>เบอร์ตู้</th><th>ทะเบียนรถ</th><th>วันที่</th><th>สถานะ</th></tr></thead><tbody>`;
+    invPendCtrs.forEach(c=>{
+      const zl=c.zone==='pink'?'ค้างหาง':'วันนี้';
+      const zst=c.zone==='pink'?'background:#fce7f3;color:#9d174d':'background:#dcfce7;color:#166534';
+      out+=`<tr style="background:#fffbeb;"><td style="font-family:monospace;">${h(c.ctr)}</td><td>${h(c.truck||'-')}</td><td>${h(c.date||'-')}</td><td><span style="${zst};border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;">${zl}</span></td></tr>`;
+    });
+    out+=`</tbody></table><div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ ยังไม่ได้บันทึกใน DATABASE หลัก</div></div>`;
+  }
   document.getElementById(panelId).innerHTML=out;
 }
 
@@ -1311,8 +1494,9 @@ function renderPendingList(){
       let ctr='';
       if(tot===0)ctr='<div style="margin:4px 0;font-size:10px;color:#64748b;">ไม่ระบุจำนวนตู้</div>';
       else if(dn>=tot)ctr=`<div style="margin:4px 0 5px;display:flex;align-items:center;gap:5px;"><span style="background:#dcfce7;color:#166534;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;">✔ ตู้ครบ ${dn}/${tot}</span><span style="font-size:10px;color:#7c3aed;font-weight:600;">รอปล่อยเอกสาร</span></div>`;
-      else{const left=tot-dn,pct=Math.round(dn/tot*100),bc=dn===0?'#ef4444':(pct<50?'#f97316':pct<80?'#eab308':'#22c55e');ctr=`<div style="margin:4px 0 2px"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:11px;font-weight:800;color:${s.tx}">${dn}/${tot}</span><span style="font-size:10px;color:#a0aec0">${pct}%</span></div><div class="prog-bg"><div class="prog-bar" style="width:${pct}%;background:${bc}"></div></div><div class="prog-labels"><span class="prog-done">✔ ${dn}</span><span class="prog-left">ขาด ${left}</span></div></div>`;}
-      out+=`<div class="pv-card${act}" data-id="${d.id}"><div class="pv-inv">${h(d.inv)}</div>${d.customer!=='-'?`<div class="pv-cust">🏭 ${h(d.customer)}</div>`:''}${ctr}<div class="pv-meta"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span></div></div>`;
+      else{const left=tot-dn,pct=Math.round(dn/tot*100),bc=dn===0?'#ef4444':(pct<50?'#f97316':pct<80?'#eab308':'#22c55e');const pndCnt=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv)).length;const pendPct=pndCnt>0?Math.min(Math.round(pndCnt/tot*100),100-pct):0;const pendBar=pendPct>0?`<div style="position:absolute;top:0;left:${pct}%;width:${pendPct}%;height:100%;background:${s.tx};opacity:0.55;"></div>`:'';const pendLabel=pndCnt>0?`<span style="font-size:9px;color:${s.tx};background:${s.bg};border:1px solid ${s.bd};border-radius:3px;padding:0 4px;margin-right:2px;">⏳+${pndCnt}</span>`:'';ctr=`<div style="margin:4px 0 2px"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:11px;font-weight:800;color:${s.tx}">${dn}/${tot}</span><span style="font-size:10px;color:#a0aec0">${pct}%</span></div><div class="prog-bg" style="position:relative;"><div class="prog-bar" style="width:${pct}%;background:${bc}"></div>${pendBar}</div><div class="prog-labels"><span class="prog-done">✔ ${dn}</span><span style="display:flex;align-items:center;">${pendLabel}<span class="prog-left">ขาด ${left}</span></span></div></div>`;}
+      const bb2=BILLED_ANTS.has(normInv(d.inv))?'<span class="pv-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
+      out+=`<div class="pv-card${act}" data-id="${d.id}"><div class="pv-inv">${h(d.inv)}</div>${d.customer!=='-'?`<div class="pv-cust">🏭 ${h(d.customer)}</div>`:''}${ctr}<div class="pv-meta"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span>${bb2}</div></div>`;
     });
   });
   document.getElementById('pvList').innerHTML=out;
@@ -1336,8 +1520,12 @@ function renderStock(){
   const rg=(label,list)=>{
     if(!list.length)return;
     const tA=list.reduce((a,b)=>a+b.available,0),tAll=list.reduce((a,b)=>a+b.total,0);
-    out+=`<div style="grid-column:1/-1;padding:5px 12px;background:#f8fafc;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;border-top:1px solid #e2e8f0;">${label} · ว่าง ${tA} ตู้ (จาก ${tAll})</div>`;
-    list.forEach(b=>{const pct=b.total>0?Math.round(b.used/b.total*100):0;const bc=pct>80?'#f97316':'#22c55e';out+=`<div class="bkg-group" data-no="${h(b.no)}"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><div class="bkg-no">${h(b.no)}</div><div class="bkg-liner" style="margin-top:3px;">${lockBadge(b.lockFor)} <span style="font-size:10px;color:#64748b;">${h(b.liner)}</span></div></div><div style="text-align:right;"><div class="bkg-avail">${b.available}</div><div class="bkg-avail-lbl">ตู้คงเหลือ</div></div></div><div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:#64748b;">ใช้แล้ว ${b.used}/${b.total}</span><span style="color:#64748b;">${pct}%</span></div><div style="height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${bc};border-radius:3px;"></div></div></div><div style="margin-top:6px;font-size:10px;color:#1a56a0;font-weight:600;">แตะเพื่อดูรายละเอียด →</div></div>`;});
+    const allBkgCtrs=new Set(list.flatMap(b=>(b.containers||[]).map(c=>c.ctrNum.trim().toUpperCase())));
+    const totalPend=PEND_CTRS.filter(p=>allBkgCtrs.has(p.ctr.trim().toUpperCase())).length;
+    const dispTA=Math.max(tA-totalPend,0);
+    const hdrPend=totalPend>0?` · ⏳ ${totalPend} pending`:'';
+    out+=`<div style="grid-column:1/-1;padding:5px 12px;background:#f8fafc;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;border-top:1px solid #e2e8f0;">${label} · ว่าง ${dispTA} ตู้ (จาก ${tAll})${hdrPend}</div>`;
+    list.forEach(b=>{const pct=b.total>0?Math.round(b.used/b.total*100):0;const bc=pct>80?'#f97316':'#22c55e';const bkgSet=new Set((b.containers||[]).map(c=>c.ctrNum.trim().toUpperCase()));const pendCnt=PEND_CTRS.filter(p=>bkgSet.has(p.ctr.trim().toUpperCase())).length;const pendPct=b.total>0&&pendCnt>0?Math.min(Math.round(pendCnt/b.total*100),100-pct):0;const dispAvail=Math.max(b.available-pendCnt,0);out+=`<div class="bkg-group" data-no="${h(b.no)}"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><div class="bkg-no">${h(b.no)}</div><div class="bkg-liner" style="margin-top:3px;">${lockBadge(b.lockFor)} <span style="font-size:10px;color:#64748b;">${h(b.liner)}</span></div></div><div style="text-align:right;"><div class="bkg-avail"${pendCnt?' style="color:#d97706;"':''}>${dispAvail}</div><div class="bkg-avail-lbl">ตู้คงเหลือ</div>${pendCnt?`<div style="font-size:9px;color:#d97706;font-weight:600;">⏳ ${pendCnt} pending</div>`:''}</div></div><div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:3px;"><span style="color:#64748b;">ใช้แล้ว ${b.used}/${b.total}</span><span style="color:#64748b;">${pct}%</span></div><div style="height:5px;background:#e2e8f0;border-radius:3px;overflow:hidden;position:relative;"><div style="height:100%;width:${pct}%;background:${bc};border-radius:3px;"></div>${pendPct>0?`<div style="position:absolute;top:0;left:${pct}%;width:${pendPct}%;height:100%;background:#f59e0b;"></div>`:''}</div></div><div style="margin-top:6px;font-size:10px;color:#1a56a0;font-weight:600;">แตะเพื่อดูรายละเอียด →</div></div>`;});
   };
   rg('MMF',mmf);rg('PIP',pip);rg('อื่นๆ',oth);
   const hidden=STOCK.groups.length-avail.length;
@@ -1611,23 +1799,143 @@ const isoInt=s=>{if(!s)return 0;const p=s.split('-');return p.length===3?parseIn
 const todayIso=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
 const dAgoIso=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
 const mStartIso=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-01';};
+let FAC_FAC_FILTER='all';
 function renderFactory(){
   const fr=isoInt(document.getElementById('fDateFrom').value),to=isoInt(document.getElementById('fDateTo').value);
-  const dm={};FLAT.forEach(d=>{(d.details||[]).forEach(row=>{const dt=(row.DATE_PICKUP&&row.DATE_PICKUP!=='-')?row.DATE_PICKUP:'-';if(!dm[dt])dm[dt]={};if(!dm[dt][d.inv])dm[dt][d.inv]=[];dm[dt][d.inv].push(row['ทะเบียนรถ']||'-');});});
+  const todayFmt=fmtDate(new Date());const tom=new Date();tom.setDate(tom.getDate()+1);const tomFmt=fmtDate(tom);
+  /* dm: DATE_PICKUP → { inv → { facDate → [trucks] } } */
+  const dm={};FLAT.forEach(d=>{(d.details||[]).forEach(row=>{
+    const fd=row['เข้าโรงงาน']||'-';
+    if(FAC_FAC_FILTER==='today'&&fd!==todayFmt)return;
+    if(FAC_FAC_FILTER==='tomorrow'&&fd!==tomFmt)return;
+    const dt=(row.DATE_PICKUP&&row.DATE_PICKUP!=='-')?row.DATE_PICKUP:'-';
+    if(!dm[dt])dm[dt]={};
+    if(!dm[dt][d.inv])dm[dt][d.inv]={};
+    if(!dm[dt][d.inv][fd])dm[dt][d.inv][fd]=[];
+    dm[dt][d.inv][fd].push(row['ทะเบียนรถ']||'-');
+  });});
   let dates=Object.keys(dm).sort((a,b)=>pDate(b)-pDate(a));
   if(fr||to)dates=dates.filter(dt=>{const v=pDate(dt);if(!v)return false;if(fr&&v<fr)return false;if(to&&v>to)return false;return true;});
   let ttl=0,tinv=0,rows='';
   dates.forEach(dt=>{
-    const im=dm[dt];const ins=Object.keys(im);const dtc=ins.reduce((a,k)=>a+im[k].length,0);
+    const im=dm[dt];const ins=Object.keys(im);
+    /* รวบรวม facDates ทั้งหมดใน group → dynamic columns */
+    const facDateSet=new Set();
+    ins.forEach(inv=>Object.keys(im[inv]).forEach(fd=>facDateSet.add(fd)));
+    const facCols=Array.from(facDateSet).sort((a,b)=>{const va=pDate(a),vb=pDate(b);return(va&&vb)?va-vb:a.localeCompare(b);});
+    let dtc=0;ins.forEach(inv=>facCols.forEach(fd=>dtc+=(im[inv][fd]||[]).length));
     ttl+=dtc;tinv+=ins.length;
-    rows+=`<tr class="fdate-hd"><td colspan="2"><span style="font-size:12px;">📅 ${h(dt)}</span><span style="float:right;font-size:9px;color:#1e40af;background:#bfdbfe;border-radius:4px;padding:1px 6px;">${dtc} ตู้ · ${ins.length} INV</span></td></tr>`;
-    ins.forEach((inv,ii)=>{const trucks=im[inv];const pfx=inv.substring(0,3);const s=pst(pfx);const bg=ii%2===0?'':'background:#fafafa;';trucks.forEach((trk,ti)=>{if(ti===0){rows+=`<tr style="${bg}"><td class="finv-cell" rowspan="${trucks.length}" style="border-left:3px solid ${s.tx};${bg}"><span class="finv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(pfx)}</span>${h(inv)}</td><td class="ftrk-cell">${h(trk)}</td></tr>`;}else{rows+=`<tr style="${bg}"><td class="ftrk-cell" style="border-left:1px dashed #e2e8f0;padding-left:18px;">${h(trk)}</td></tr>`;}});});
+    const cs=1+facCols.length;
+    /* Date group header */
+    rows+=`<tr class="fdate-hd"><td colspan="${cs}"><span style="font-size:12px;">📅 ${h(dt)}</span><span style="float:right;font-size:9px;color:#1e40af;background:#bfdbfe;border-radius:4px;padding:1px 6px;">${dtc} ตู้ · ${ins.length} INV</span></td></tr>`;
+    /* Sub-header: วันที่เข้าโรงงานแต่ละ column */
+    let sh=`<tr style="background:#f8fafc;"><td style="padding:3px 10px;font-size:9px;color:#94a3b8;border-bottom:2px solid #e2e8f0;"></td>`;
+    facCols.forEach(fd=>{
+      const isT=fd===todayFmt,isTm=fd===tomFmt;
+      const bg=isT?'background:#dcfce7;':isTm?'background:#dbeafe;':'background:#f1f5f9;';
+      const col=isT?'color:#16a34a;':isTm?'color:#1d4ed8;':'color:#64748b;';
+      sh+=`<td style="padding:4px 8px;font-size:9px;font-weight:700;text-align:center;border-bottom:2px solid #e2e8f0;white-space:nowrap;${bg}${col}">${h(fd)}</td>`;
+    });
+    sh+=`</tr>`;rows+=sh;
+    /* Invoice rows */
+    ins.forEach((inv,ii)=>{
+      const pfx=inv.substring(0,3);const s=pst(pfx);const bg=ii%2===0?'':'background:#fafafa;';
+      rows+=`<tr style="${bg}"><td class="finv-cell" style="border-left:3px solid ${s.tx};${bg}vertical-align:top;"><span class="finv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(pfx)}</span>${h(inv)}</td>`;
+      facCols.forEach(fd=>{
+        const trucks=im[inv][fd]||[];
+        const isT=fd===todayFmt,isTm=fd===tomFmt;
+        const col=isT?'color:#16a34a;font-weight:600;':isTm?'color:#1d4ed8;font-weight:600;':'color:#475569;';
+        rows+=trucks.length?`<td class="ftrk-cell" style="${col}vertical-align:top;">${trucks.map(t=>h(t)).join('<br>')}</td>`:`<td class="ftrk-cell" style="text-align:center;color:#cbd5e1;vertical-align:top;">—</td>`;
+      });
+      rows+=`</tr>`;
+    });
   });
-  document.getElementById('factoryTable').innerHTML=dates.length?`<table class="ftbl"><thead><tr><th>อินวอยซ์</th><th>ทะเบียนรถ</th></tr></thead><tbody>${rows}</tbody></table>`:'<div style="padding:40px;text-align:center;color:#64748b;font-size:12px;">ไม่พบข้อมูลในช่วงวันที่เลือก</div>';
+  document.querySelectorAll('#facFilterBar [data-facf]').forEach(b=>b.classList.toggle('fqfac-active',b.dataset.facf===FAC_FAC_FILTER));
+  document.getElementById('factoryTable').innerHTML=dates.length?`<table class="ftbl"><tbody>${rows}</tbody></table>`:'<div style="padding:40px;text-align:center;color:#64748b;font-size:12px;">ไม่พบข้อมูลในช่วงวันที่เลือก</div>';
   const fromV=document.getElementById('fDateFrom').value,toV=document.getElementById('fDateTo').value;
   let rl='';if(fromV&&toV)rl=' · '+fromV.split('-').reverse().join('/')+'–'+toV.split('-').reverse().join('/');else if(fromV)rl=' · จาก '+fromV.split('-').reverse().join('/');else if(toV)rl=' · ถึง '+toV.split('-').reverse().join('/');
-  document.getElementById('factoryTitle').textContent='🏭 สรุปตู้เข้าโรงงาน'+rl;
+  const facLbl=FAC_FAC_FILTER==='today'?' · เข้าโรงงานวันนี้':FAC_FAC_FILTER==='tomorrow'?' · เข้าโรงงานพรุ่งนี้':'';
+  document.getElementById('factoryTitle').textContent='🏭 สรุปตู้เข้าโรงงาน'+rl+facLbl;
   document.getElementById('factorySub').textContent=`${ttl} ตู้ · ${tinv} อินวอยซ์ · ${dates.length} วันรับตู้`;
+}
+
+function printFactory(){
+  const dset=new Set();
+  FLAT.forEach(d=>{(d.details||[]).forEach(row=>{const dt=(row.DATE_PICKUP&&row.DATE_PICKUP!=='-')?row.DATE_PICKUP:'-';if(dt!=='-')dset.add(dt);});});
+  const sorted=Array.from(dset).sort((a,b)=>pDate(b)-pDate(a));
+  const list=document.getElementById('facPrintDateList');
+  list.innerHTML='';
+  document.getElementById('facPrintSelectAll').checked=false;
+  if(!sorted.length){
+    list.innerHTML='<div style="text-align:center;color:#94a3b8;font-size:11px;padding:12px;">ไม่พบข้อมูล</div>';
+  }else{
+    sorted.forEach(dt=>{
+      const lbl=document.createElement('label');
+      lbl.style.cssText='display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #e2e8f0;border-radius:8px;cursor:pointer;background:#f8fafc;font-size:11px;color:#0f2a52;font-weight:600;user-select:none;';
+      const cb=document.createElement('input');cb.type='checkbox';cb.value=dt;cb.style.cssText='width:14px;height:14px;accent-color:#0f2a52;cursor:pointer;flex-shrink:0;';
+      cb.onchange=()=>{lbl.style.background=cb.checked?'#eff6ff':'#f8fafc';lbl.style.borderColor=cb.checked?'#93c5fd':'#e2e8f0';};
+      lbl.appendChild(cb);lbl.appendChild(document.createTextNode('📅  '+dt));
+      list.appendChild(lbl);
+    });
+  }
+  document.getElementById('facPrintModal').style.display='flex';
+}
+
+function closeFacPrintModal(){
+  document.getElementById('facPrintModal').style.display='none';
+}
+
+function doFacPrint(dates){
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  let pages='';
+  dates.forEach((dt,pi)=>{
+    const im={};
+    FLAT.forEach(d=>{(d.details||[]).forEach(row=>{
+      const fd=row['เข้าโรงงาน']||'-';
+      const rowDt=(row.DATE_PICKUP&&row.DATE_PICKUP!=='-')?row.DATE_PICKUP:'-';
+      if(rowDt!==dt)return;
+      if(!im[d.inv])im[d.inv]={};
+      if(!im[d.inv][fd])im[d.inv][fd]=[];
+      im[d.inv][fd].push(row['ทะเบียนรถ']||'-');
+    });});
+    const ins=Object.keys(im);
+    const facDateSet=new Set();
+    ins.forEach(inv=>Object.keys(im[inv]).forEach(fd=>facDateSet.add(fd)));
+    const facCols=Array.from(facDateSet).sort((a,b)=>{const va=pDate(a),vb=pDate(b);return(va&&vb)?va-vb:a.localeCompare(b);});
+    let ttl=0;ins.forEach(inv=>facCols.forEach(fd=>ttl+=(im[inv][fd]||[]).length));
+    let tbRows='';
+    ins.forEach((inv,ii)=>{
+      const pfx=inv.substring(0,3);const s=pst(pfx);const bg=ii%2===1?'background:#f8fafc;':'';
+      tbRows+=`<tr style="${bg}"><td style="border:1px solid #e2e8f0;padding:4px 8px;white-space:nowrap;vertical-align:top;${bg}"><span style="font-size:7pt;font-weight:700;padding:1px 5px;border-radius:3px;margin-right:5px;background:${s.bg};color:${s.tx};border:1px solid ${s.bd};">${esc(pfx)}</span>${esc(inv)}</td>`;
+      facCols.forEach(fd=>{
+        const trucks=im[inv][fd]||[];
+        tbRows+=trucks.length?`<td style="border:1px solid #e2e8f0;padding:4px 8px;text-align:center;white-space:nowrap;vertical-align:top;${bg}">${trucks.map(t=>esc(t)).join('<br>')}</td>`:`<td style="border:1px solid #e2e8f0;padding:4px 8px;text-align:center;color:#cbd5e1;vertical-align:top;${bg}">—</td>`;
+      });
+      tbRows+=`</tr>`;
+    });
+    const thCols=facCols.map(fd=>`<th style="background:#1e3a5f;color:#fff;padding:6px 12px;font-size:8pt;text-align:center;white-space:nowrap;">${esc(fd)}</th>`).join('');
+    const pb=pi<dates.length-1?'page-break-after:always;':'';
+    pages+=`<div style="${pb}padding-bottom:4mm;">
+<div class="hd"><h1>🏭 สรุปตู้เข้าโรงงาน &nbsp;·&nbsp; วันรับตู้ ${esc(dt)}</h1>
+<p>${ttl} ตู้ · ${ins.length} อินวอยซ์ &nbsp;|&nbsp; วันเข้าโรงงาน: ${facCols.map(fd=>esc(fd)).join(' · ')}</p></div>
+<table><thead><tr><th style="background:#1e3a5f;color:#fff;padding:6px 12px;font-size:8pt;text-align:left;white-space:nowrap;">อินวอยซ์</th>${thCols}</tr></thead><tbody>${tbRows}</tbody></table>
+<div class="ft">พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}</div></div>`;
+  });
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
+<title>สรุปตู้เข้าโรงงาน</title>
+<style>*{box-sizing:border-box;margin:0;padding:0;}
+@page{size:A4 landscape;margin:10mm;}
+body{font-family:'Segoe UI',Tahoma,'Noto Sans Thai',sans-serif;font-size:9pt;color:#0f172a;background:#fff;width:277mm;}
+.hd{margin-bottom:5mm;padding-bottom:3mm;border-bottom:2px solid #0f2a52;}
+.hd h1{font-size:12pt;font-weight:700;color:#0f2a52;}
+.hd p{font-size:8pt;color:#64748b;margin-top:3px;}
+table{width:100%;border-collapse:collapse;}
+.ft{margin-top:4mm;font-size:7pt;color:#94a3b8;text-align:right;}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+</style></head><body>${pages}
+<script>window.onload=function(){window.print();};<\/script>
+</body></html>`;
+  const win=window.open('','_blank');win.document.write(html);win.document.close();
 }
 
 /* =====================================================
@@ -1636,11 +1944,45 @@ function renderFactory(){
 function showStatModal(filter){
   let list,title,color;
   if(filter==='pending'){list=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&d.total_expected>0&&d.total_actual<d.total_expected&&d.month!=='1');title='⏳ คงค้าง — ตู้ยังไม่ครบ';color='#d97706';}
-  else if(filter==='not-loaded'){list=FLAT.filter(d=>!isLoaded(d.inv)).sort((a,b)=>(parseInt(a.month)||99)-(parseInt(b.month)||99));title='⚓ ยังไม่จัดลงเรือ';color='#dc2626';}
+  else if(filter==='planned-vessel'){list=FLAT.filter(d=>!isLoaded(d.inv)&&VESSEL_PLAN[d.inv.toUpperCase()]).sort((a,b)=>(parseInt(a.month)||99)-(parseInt(b.month)||99));title='🚢 แพลนขึ้นเรือแล้ว';color='#0369a1';}
+  else if(filter==='not-loaded'){list=FLAT.filter(d=>!isLoaded(d.inv)&&!VESSEL_PLAN[d.inv.toUpperCase()]).sort((a,b)=>(parseInt(a.month)||99)-(parseInt(b.month)||99));title='⚓ ยังไม่จัดลงเรือ';color='#dc2626';}
   else{list=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&(d.total_expected===0||d.total_actual>=d.total_expected));title='🟣 ตู้ครบแล้ว — รอปล่อยเอกสาร';color='#7c3aed';}
   let rows='';
-  if(filter==='not-loaded'){const byM={};list.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});Object.keys(byM).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99)).forEach(m=>{rows+=`<div style="padding:5px 14px;background:#fef2f2;font-size:9px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca;border-top:1px solid #fecaca;margin-top:4px;">${MF[m]} (${byM[m].length} รายการ)</div>`;byM[m].forEach(d=>{const s=pst(d.prefix);rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr">${d.total_expected>0?d.total_actual+'/'+d.total_expected+' ตู้':'ไม่ระบุ'}</span></div>`;});});}
-  else{list.forEach(d=>{const s=pst(d.prefix);let ctr,cls;if(d.total_expected===0){ctr='ไม่ระบุ';cls='';}else if(d.total_actual>=d.total_expected){ctr='✔ '+d.total_actual+'/'+d.total_expected;cls='done';}else{ctr=d.total_actual+'/'+d.total_expected;cls='inc';}rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr ${cls}">${ctr}</span></div>`;});}
+  if(filter==='planned-vessel'){
+    const byV={};
+    list.forEach(d=>{
+      const vp=VESSEL_PLAN[d.inv.toUpperCase()];
+      const vk=vp?vp.vessel:'—';
+      if(!byV[vk])byV[vk]={etd:vp?.etd||'',etdRaw:vp?.etd||'9999',items:[]};
+      byV[vk].items.push(d);
+    });
+    const sortedVessels=Object.keys(byV).sort((a,b)=>{
+      const ea=byV[a].etdRaw,eb=byV[b].etdRaw;
+      const toSort=s=>{const p=s.split('/');return p.length===3?p[2]+p[1]+p[0]:s;};
+      return toSort(ea).localeCompare(toSort(eb));
+    });
+    sortedVessels.forEach(vk=>{
+      const g=byV[vk];
+      const totAct=g.items.reduce((s,d)=>s+d.total_actual,0);
+      const totExp=g.items.reduce((s,d)=>s+d.total_expected,0);
+      const ctrSum=totExp>0?` · ${totAct}/${totExp} ตู้`:'';
+      rows+=`<div style="padding:5px 14px;background:#eff6ff;font-size:9px;font-weight:700;color:#1e40af;border-bottom:1px solid #bfdbfe;border-top:1px solid #bfdbfe;margin-top:4px;">🚢 ${h(vk)}${g.etd?' · ETD '+h(g.etd):''}${ctrSum} (${g.items.length} รายการ)</div>`;
+      g.items.forEach(d=>{
+        const s=pst(d.prefix);
+        const vp=VESSEL_PLAN[d.inv.toUpperCase()];
+        const act=d.total_actual,exp=d.total_expected;
+        let ctrTxt,ctrColor;
+        if(exp===0){ctrTxt='ไม่ระบุ';ctrColor='#94a3b8';}
+        else if(act>=exp){ctrTxt='✔ '+act+'/'+exp+' ตู้';ctrColor='#16a34a';}
+        else{ctrTxt=act+'/'+exp+' ตู้';ctrColor='#d97706';}
+        const bb3=BILLED_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;flex-shrink:0;">🧾 BILLED</span>':'';
+        const pndCnt3=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv)).length;
+        const pndBadge3=pndCnt3?`<span style="font-size:9px;background:#fef9c3;color:#92400e;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;flex-shrink:0;margin-left:4px;">⏳ +${pndCnt3}</span>`:'';
+        rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr" style="color:#0369a1;flex-shrink:0;">${vp?.bkg||''}</span><span style="font-size:10px;font-weight:700;color:${ctrColor};margin-left:6px;flex-shrink:0;">${ctrTxt}</span>${bb3}${pndBadge3}</div>`;
+      });
+    });
+  }else if(filter==='not-loaded'){const byM={};list.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});Object.keys(byM).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99)).forEach(m=>{rows+=`<div style="padding:5px 14px;background:#fef2f2;font-size:9px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca;border-top:1px solid #fecaca;margin-top:4px;">${MF[m]} (${byM[m].length} รายการ)</div>`;byM[m].forEach(d=>{const s=pst(d.prefix);const bb4=BILLED_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;flex-shrink:0;">🧾 BILLED</span>':'';rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr">${d.total_expected>0?d.total_actual+'/'+d.total_expected+' ตู้':'ไม่ระบุ'}</span>${bb4}</div>`;});});}
+  else{list.forEach(d=>{const s=pst(d.prefix);let ctr,cls;if(d.total_expected===0){ctr='ไม่ระบุ';cls='';}else if(d.total_actual>=d.total_expected){ctr='✔ '+d.total_actual+'/'+d.total_expected;cls='done';}else{ctr=d.total_actual+'/'+d.total_expected;cls='inc';}const pndCnt=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv)).length;const pndBadge=pndCnt?`<span style="font-size:9px;background:#fef9c3;color:#92400e;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;flex-shrink:0;margin-left:4px;">⏳ +${pndCnt}</span>`:'';rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr ${cls}">${ctr}</span>${pndBadge}</div>`;});}
   document.getElementById('sModalTitle').textContent=title;document.getElementById('sModalTitle').style.color=color;
   document.getElementById('sModalBody').innerHTML=rows||'<div style="padding:20px;text-align:center;color:#64748b;">ไม่มีข้อมูล</div>';
   document.getElementById('sModal').classList.add('open');
@@ -1769,14 +2111,14 @@ function renderTrPrefixBar(){
     if(d.status==='none')pfxMap[d.prefix].none++;
   });
   const pfxs=Object.keys(pfxMap).sort();
-  const noOgmList=TR_DATA.filter(d=>d.prefix!=='OGM');
+  const noOgmList=TR_DATA.filter(d=>d.prefix!=='OGM'&&d.prefix!=='PTN');
   const noOgmDot=noOgmList.some(d=>d.status==='none');
   let html='<button class="pfx-tab pfx-tab-all'+(TR_PREFIX==='all'?' active':'')+'" data-pfx="all">🏭 ทุกโรงงาน ('+TR_DATA.length+')</button>';
-  if(pfxMap['OGM']){
+  if(pfxMap['OGM']||pfxMap['PTN']){
     const dot=noOgmDot?'<span style="display:inline-block;width:6px;height:6px;background:#ef4444;border-radius:50%;margin-left:3px;vertical-align:middle;"></span>':'';
     html+='<button class="pfx-tab'+(TR_PREFIX==='no-ogm'?' active':'')+'" data-pfx="no-ogm" '
       +'style="background:#fafafa;color:#374151;border-color:#d1d5db;border-style:dashed;">'
-      +'🚫 ยกเว้น OGM <span style="font-weight:400;font-size:10px;">('+noOgmList.length+')</span>'+dot+'</button>';
+      +'🚫 ยกเว้น OGM & PTN <span style="font-weight:400;font-size:10px;">('+noOgmList.length+')</span>'+dot+'</button>';
   }
   pfxs.forEach(pfx=>{
     const s=pst(pfx);const info=pfxMap[pfx];
@@ -1790,7 +2132,7 @@ function renderTrPrefixBar(){
 
 function matchTrPrefix(d){
   if(TR_PREFIX==='all')return true;
-  if(TR_PREFIX==='no-ogm')return d.prefix!=='OGM';
+  if(TR_PREFIX==='no-ogm')return d.prefix!=='OGM'&&d.prefix!=='PTN';
   return d.prefix===TR_PREFIX;
 }
 
@@ -2895,13 +3237,15 @@ function showSetup(err){
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   if(err){document.getElementById('setupErr').textContent=err;document.getElementById('setupErr').style.display='block';}
   const tok=ls('dropbox_token');const tokEl=document.getElementById('fToken');if(tok&&tokEl)tokEl.value=tok;
-  [['f_inv','fInv'],['f_bkg','fBkg'],['f_vsl','fVsl'],['f_stm','fStm'],['f_ogm','fOgm'],['f_oth','fOth'],['f_ogm_price','fOgmPrice']].forEach(([k,id])=>{const v=ls(k);const el=document.getElementById(id);if(v&&el)el.value=v;});
+  [['f_inv','fInv'],['f_bkg','fBkg'],['f_vsl','fVsl'],['f_stm','fStm'],['f_ogm','fOgm'],['f_oth','fOth'],['f_ogm_price','fOgmPrice'],['f_bill','fBill']].forEach(([k,id])=>{const v=ls(k);const el=document.getElementById(id);if(v&&el)el.value=v;});
 }
 function showDashboard(data){
-  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};
+  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Set();
   hideLoad();document.getElementById('app').style.display='flex';
   const now=new Date();document.getElementById('lastUpd').textContent='☁️ Dropbox · '+pad(now.getHours())+':'+pad(now.getMinutes());
   renderTabs();renderStatsMain();const m=Object.keys(BY_MONTH).sort()[0];if(m)selMonth(m);
+  /* เช็คอัพเดตใน background — ไม่บล็อกการแสดงผล */
+  if(data.allPaths&&data.allPaths.length)setTimeout(()=>checkBgUpdates(data.allPaths),500);
 }
 async function updateFolderUI(){
   const box=document.getElementById('folderBox');const nm=document.getElementById('folderName');const sub=document.getElementById('folderSub');const empty=document.getElementById('folderEmpty');const hint=document.getElementById('folderHint');
@@ -2926,6 +3270,44 @@ async function initApp(){
 }
 
 /* =====================================================
+   MID-PANEL RESIZE
+===================================================== */
+(function(){
+  const MIN_W=140,MAX_W=420;
+  const handle=document.getElementById('midResizeHandle');
+  const panel=document.getElementById('midPanel');
+  const saved=parseInt(localStorage.getItem('mid_panel_w')||'0');
+  if(saved>=MIN_W&&saved<=MAX_W)panel.style.width=saved+'px';
+  let startX,startW;
+  function onMove(e){
+    const dx=(e.clientX||e.touches[0].clientX)-startX;
+    const nw=Math.min(MAX_W,Math.max(MIN_W,startW+dx));
+    panel.style.width=nw+'px';
+  }
+  function onUp(){
+    handle.classList.remove('dragging');
+    document.removeEventListener('mousemove',onMove);
+    document.removeEventListener('mouseup',onUp);
+    document.removeEventListener('touchmove',onMove);
+    document.removeEventListener('touchend',onUp);
+    localStorage.setItem('mid_panel_w',parseInt(panel.style.width));
+  }
+  handle.addEventListener('mousedown',e=>{
+    e.preventDefault();
+    startX=e.clientX;startW=panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  });
+  handle.addEventListener('touchstart',e=>{
+    startX=e.touches[0].clientX;startW=panel.offsetWidth;
+    handle.classList.add('dragging');
+    document.addEventListener('touchmove',onMove,{passive:true});
+    document.addEventListener('touchend',onUp);
+  },{passive:true});
+})();
+
+/* =====================================================
    EVENT LISTENERS
 ===================================================== */
 document.getElementById('saveBtn').addEventListener('click',async()=>{
@@ -2934,7 +3316,7 @@ document.getElementById('saveBtn').addEventListener('click',async()=>{
   if(!token){document.getElementById('setupErr').textContent='กรุณาใส่ Dropbox Access Token';document.getElementById('setupErr').style.display='block';return;}
   if(!inv||!bkg){document.getElementById('setupErr').textContent='กรุณาใส่พาธไฟล์อย่างน้อย 2 ไฟล์ (ใบยกตู้ + BKG)';document.getElementById('setupErr').style.display='block';return;}
   ls('dropbox_token',token);ls('f_inv',inv);ls('f_bkg',bkg);
-  ['fVsl','fStm','fOgm','fOth','fOgmPrice'].forEach((id,i)=>{const k=['f_vsl','f_stm','f_ogm','f_oth','f_ogm_price'][i];const v=document.getElementById(id).value.trim();if(v)ls(k,v);else localStorage.removeItem(k);});
+  ['fVsl','fStm','fOgm','fOth','fOgmPrice','fBill'].forEach((id,i)=>{const k=['f_vsl','f_stm','f_ogm','f_oth','f_ogm_price','f_bill'][i];const v=document.getElementById(id).value.trim();if(v)ls(k,v);else localStorage.removeItem(k);});
   document.getElementById('setupScreen').style.display='none';document.getElementById('loadScreen').style.display='flex';
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   document.getElementById('permBox').style.display='none';document.getElementById('errBox').style.display='none';
@@ -3004,6 +3386,21 @@ document.getElementById('fDateFrom').addEventListener('change',renderFactory);
 document.getElementById('fDateTo').addEventListener('change',renderFactory);
 document.getElementById('fDateClr').addEventListener('click',()=>{document.getElementById('fDateFrom').value='';document.getElementById('fDateTo').value='';renderFactory();});
 document.getElementById('fDateBar').addEventListener('click',e=>{const b=e.target.closest('.fqbtn[data-fq]');if(!b)return;if(b.dataset.fq==='7d'){document.getElementById('fDateFrom').value=dAgoIso(6);document.getElementById('fDateTo').value=todayIso();}else if(b.dataset.fq==='month'){document.getElementById('fDateFrom').value=mStartIso();document.getElementById('fDateTo').value=todayIso();}renderFactory();});
+document.getElementById('facFilterBar').addEventListener('click',e=>{const b=e.target.closest('.fqfac[data-facf]');if(!b)return;FAC_FAC_FILTER=b.dataset.facf;renderFactory();});
+document.getElementById('btnPrintFactory').addEventListener('click',printFactory);
+document.getElementById('facPrintCancel').addEventListener('click',closeFacPrintModal);
+document.getElementById('facPrintModal').addEventListener('click',e=>{if(e.target===document.getElementById('facPrintModal'))closeFacPrintModal();});
+document.getElementById('facPrintSelectAll').addEventListener('change',function(){
+  document.querySelectorAll('#facPrintDateList input[type=checkbox]').forEach(cb=>{
+    cb.checked=this.checked;
+    const lbl=cb.closest('label');if(lbl){lbl.style.background=this.checked?'#eff6ff':'#f8fafc';lbl.style.borderColor=this.checked?'#93c5fd':'#e2e8f0';}
+  });
+});
+document.getElementById('facPrintConfirm').addEventListener('click',()=>{
+  const sel=[...document.querySelectorAll('#facPrintDateList input[type=checkbox]:checked')].map(cb=>cb.value);
+  if(!sel.length){alert('กรุณาเลือกวันที่อย่างน้อย 1 วัน');return;}
+  closeFacPrintModal();doFacPrint(sel);
+});
 
 initApp();
 </script>
