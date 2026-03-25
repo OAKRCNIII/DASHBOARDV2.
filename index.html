@@ -1299,8 +1299,10 @@ function renderStatsMain(){
   let ti=0,rel=0,relC=0;FLAT.forEach(d=>{ti++;if(d.doc_status==='ปล่อยเอกสารแล้ว'){rel++;relC+=d.total_expected||0;}});
   const pCnt=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&d.total_expected>0&&d.total_actual<d.total_expected&&d.month!=='1').length;
   const cDone=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&(d.total_expected===0||d.total_actual>=d.total_expected)).length;
-  const nLoaded=FLAT.filter(d=>!isLoaded(d.inv)).length;
-  document.getElementById('sBar').innerHTML=kc('อินวอยซ์ทั้งหมด',ti,'รายการ','#1a56a0',null)+kc('ปล่อยเอกสารแล้ว',rel,relC+' ตู้','#16a34a',null)+kc('คงค้าง',pCnt,'ตู้ยังไม่ครบ','#d97706','pending')+kc('ตู้ครบ รอปล่อย',cDone,'อินวอยซ์','#7c3aed','ctr-done')+kc('ยังไม่จัดลงเรือ',nLoaded,'รายการ','#dc2626','not-loaded');
+  const notLoadedList=FLAT.filter(d=>!isLoaded(d.inv));
+  const plannedVsl=notLoadedList.filter(d=>VESSEL_PLAN[d.inv.toUpperCase()]).length;
+  const notPlanned=notLoadedList.filter(d=>!VESSEL_PLAN[d.inv.toUpperCase()]).length;
+  document.getElementById('sBar').innerHTML=kc('อินวอยซ์ทั้งหมด',ti,'รายการ','#1a56a0',null)+kc('ปล่อยเอกสารแล้ว',rel,relC+' ตู้','#16a34a',null)+kc('คงค้าง',pCnt,'ตู้ยังไม่ครบ','#d97706','pending')+kc('ตู้ครบ รอปล่อย',cDone,'อินวอยซ์','#7c3aed','ctr-done')+kc('แพลนขึ้นเรือแล้ว',plannedVsl,'รายการ','#0369a1','planned-vessel')+kc('ยังไม่จัดลงเรือ',notPlanned,'รายการ','#dc2626','not-loaded');
   const pb=document.getElementById('pBadge');if(pb)pb.textContent=(pCnt+cDone)||'';
   const mb=document.getElementById('mBadge');if(mb){const t=pCnt+cDone;mb.textContent=t||'';mb.style.display=t?'inline':'none';}
 }
