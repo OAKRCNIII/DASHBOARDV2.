@@ -1263,7 +1263,7 @@ async function loadData(){
 /* =====================================================
    DASHBOARD STATE
 ===================================================== */
-let FLAT=[],BY_MONTH={},STOCK={groups:[],stats:{}},VESSEL=[],FEES={},STMT={latestNo:'',latestBalance:0,latestDate:''},TRANSPORT={},PEND_CTRS=[];
+let FLAT=[],BY_MONTH={},STOCK={groups:[],stats:{}},VESSEL=[],FEES={},STMT={latestNo:'',latestBalance:0,latestDate:''},TRANSPORT={},PEND_CTRS=[],VESSEL_PLAN={};
 let DB_MAP={}; /* raw database map — ใช้สำหรับ transport matching */
 let OGM_PRICE_MAP={}; /* normInv → { กนกทอง, นาเมืองเพชร, นาวาพารา } prices */
 /* lookup ด้วย exact match ก่อน ถ้าไม่เจอลอง prefix match (TWI63 → TWI63/060/11/25) */
@@ -3266,7 +3266,7 @@ function showSetup(err,justAuthed){
   }
 }
 function showDashboard(data){
-  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Set();
+  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Set();VESSEL_PLAN=data.vesselPlan||{};
   hideLoad();document.getElementById('app').style.display='flex';
   const now=new Date();document.getElementById('lastUpd').textContent='☁️ Dropbox · '+pad(now.getHours())+':'+pad(now.getMinutes());
   renderTabs();renderStatsMain();const m=Object.keys(BY_MONTH).sort()[0];if(m)selMonth(m);
