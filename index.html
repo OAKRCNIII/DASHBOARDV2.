@@ -849,14 +849,44 @@ async function readDropboxFile(dropboxPath){
   const path=dropboxPath.startsWith('/')?dropboxPath:'/'+dropboxPath;
   const fileName=path.split('/').pop();
   const dataKey='dbx_data:'+path;
+  const revKey='dbx_rev:'+path;
 
-  /* ถ้าไม่ force reload — ใช้แคชเดิมก่อนเลย ไม่ต้องรอเช็ค Dropbox */
   if(!_forceReload){
     const cached=await cacheGet(dataKey);
-    if(cached){setLoad('✅ ใช้แคช: '+fileName);return cached;}
+    if(cached){
+      /* มีแคช — เช็ค rev กับ Dropbox ก่อน ถ้าไฟล์ยังเหมือนเดิมค่อยใช้แคช */
+      try{
+        setLoad('🔍 เช็คอัพเดต: '+fileName);
+        const metaRes=await fetch('https://api.dropboxapi.com/2/files/get_metadata',{
+          method:'POST',
+          headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+          body:JSON.stringify({path})
+        });
+        if(metaRes.ok){
+          const meta=await metaRes.json();
+          const rev=meta.rev||meta.server_modified||'';
+          const cachedRev=ls(revKey);
+          if(rev&&rev===cachedRev){
+            /* ไม่มีการเปลี่ยนแปลง — ใช้แคช */
+            setLoad('✅ ใช้แคช: '+fileName);
+            return cached;
+          }
+          /* rev เปลี่ยน — โหลดใหม่จาก Dropbox */
+          setLoad('☁️ อัพเดต: '+fileName);
+        }else{
+          /* API error (เช่น offline) — ใช้แคชเดิม */
+          setLoad('✅ ใช้แคช: '+fileName);
+          return cached;
+        }
+      }catch{
+        /* network error — ใช้แคชเดิมเพื่อให้ยังเปิดได้ */
+        setLoad('✅ ใช้แคช: '+fileName);
+        return cached;
+      }
+    }
   }
 
-  /* ไม่มีแคช หรือ force reload — download จาก Dropbox */
+  /* ไม่มีแคช หรือ force reload หรือไฟล์อัพเดต — download จาก Dropbox */
   setLoad('☁️ ดาวน์โหลด: '+fileName);
   const res=await fetch('https://content.dropboxapi.com/2/files/download',{
     method:'POST',
@@ -868,6 +898,8 @@ async function readDropboxFile(dropboxPath){
     throw new Error('Dropbox error '+res.status+': '+fileName);
   }
   const buf=await res.arrayBuffer();
+  /* บันทึก rev จาก response header เพื่อเปรียบเทียบครั้งหน้า */
+  try{const info=JSON.parse(res.headers.get('Dropbox-API-Result')||'{}');const rev=info.rev||info.server_modified||'';if(rev)ls(revKey,rev);}catch{}
   cachePut(dataKey,buf.slice(0)).catch(()=>{});
   return buf;
 }
