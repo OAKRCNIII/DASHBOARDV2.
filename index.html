@@ -538,6 +538,7 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
   </div>
   <div id="errBox">
     <div id="errMsg"></div>
+    <button id="reconnectBtn" onclick="connectDropbox()" style="display:none;width:100%;padding:11px;background:linear-gradient(135deg,#0061fe,#0078ff);color:white;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:8px;">🔗 เชื่อมต่อ Dropbox อีกครั้ง</button>
     <button class="retry-btn" id="retryBtn">🔄 ลองใหม่</button>
     <button class="reset-btn" id="resetBtn">⚙️ ตั้งค่าใหม่</button>
   </div>
@@ -947,12 +948,17 @@ function parseAllInv(sheet){
   const hi=findHdr(rows,['อินวอยซ์']);const hdr=rows[hi].map(c=>String(c||'').trim());
   const iI=colOf(hdr,['อินวอยซ์']),iC=colOf(hdr,['จำนวนตู้']),iD=colOf(hdr,['ปล่อยเอกสาร']);
   const iM=colOf(hdr,['เดือน']),iCu=colOf(hdr,['ลูกค้า']),iDe=colOf(hdr,['ปลายทาง']);
+  const iY=colOf(hdr,['ปี']);
   const out=[];
   for(let i=hi+1;i<rows.length;i++){
     const r=rows[i];const inv=String(r[iI]||'').trim();
     if(!inv||inv.toLowerCase()==='nan'||inv==='อินวอยซ์')continue;
+    const rawM=String(r[iM]||'').trim()||'-';
+    const rawY=iY>=0?String(r[iY]||'').trim():'';
+    const yr=rawY&&!isNaN(parseInt(rawY))?parseInt(rawY):0;
+    const monthKey=(yr>0&&rawM!=='-')?(yr+'_'+rawM):rawM;
     out.push({inv,prefix:inv.substring(0,3),total_expected:parseInt(r[iC])||0,
-      doc_status:String(r[iD]||'').trim()||'-',month:String(r[iM]||'').trim()||'-',
+      doc_status:String(r[iD]||'').trim()||'-',month:monthKey,
       customer:String(r[iCu]||'').trim()||'-',destination:String(r[iDe]||'').trim()||'-'});
   }
   return out;
@@ -1291,8 +1297,12 @@ let OGM_PRICE_MAP={}; /* normInv → { กนกทอง, นาเมือง
 /* lookup ด้วย exact match ก่อน ถ้าไม่เจอลอง prefix match (TWI63 → TWI63/060/11/25) */
 function findPriceEntry(inv){const nk=normInv(inv);if(OGM_PRICE_MAP[nk])return OGM_PRICE_MAP[nk];const k=Object.keys(OGM_PRICE_MAP).find(k=>{if(k.length<3||!nk.startsWith(k))return false;const nx=nk[k.length];return nx===undefined||nx==='/';});return k?OGM_PRICE_MAP[k]:null;}
 let BILLED_ANTS=new Set(); /* normInv → วางบิลแล้ว จาก DATA_BASE_BILL_ANTS */
-let curTab='main',SM=null,SP=null,SI=null,activePV=null,midMode='group',mainMode='month',SF=null;
+let curTab='main',SM=null,SP=null,SI=null,activePV=null,midMode='group',mainMode='month',SF=null,YEAR_FILTER=null;
 const MF={'1':'ม.ค.','2':'ก.พ.','3':'มี.ค.','4':'เม.ย.','5':'พ.ค.','6':'มิ.ย.','7':'ก.ค.','8':'ส.ค.','9':'ก.ย.','10':'ต.ค.','11':'พ.ย.','12':'ธ.ค.','-':'ไม่ระบุ'};
+const mNum=k=>{if(!k||k==='-')return 99;const p=k.includes('_')?k.split('_')[1]:k;return parseInt(p)||99;};
+const mYear=k=>{if(!k||k==='-'||!k.includes('_'))return 0;return parseInt(k.split('_')[0])||0;};
+const mSort=(a,b)=>{const ya=mYear(a),yb=mYear(b);if(ya!==yb)return ya-yb;return mNum(a)-mNum(b);};
+const mLabel=k=>{if(!k||k==='-')return MF['-']||'ไม่ระบุ';const p=k.includes('_')?k.split('_'):[null,k];const m=p[1];const y=p[0]?parseInt(p[0]):0;return(MF[m]||'เดือน '+m)+(y?' '+y:'');};
 const PFXC={BSW:{bg:'#dbeafe',tx:'#1e40af',bd:'#bfdbfe'},OGM:{bg:'#dcfce7',tx:'#166534',bd:'#bbf7d0'},TWI:{bg:'#fef3c7',tx:'#92400e',bd:'#fde68a'},INV:{bg:'#f3e8ff',tx:'#6b21a8',bd:'#e9d5ff'},DEF:{bg:'#f1f5f9',tx:'#475569',bd:'#e2e8f0'}};
 const pst=pfx=>PFXC[pfx]||PFXC.DEF;
 const PRE_PAID=['MONICA 019N','OOCL ZHOUSHAN 291N'];
@@ -1319,7 +1329,7 @@ function switchTab(tab){
 const kc=(l,v,s,c,f)=>`<div class="sc${f?' sc-click':''}"${f?` data-filter="${f}"`:''}><div class="lbl2">${l}</div><div class="val" style="color:${c}">${v}</div><div class="sub2">${s}${f?' · คลิกดูรายการ':''}</div></div>`;
 function renderStatsMain(){
   let ti=0,rel=0,relC=0;FLAT.forEach(d=>{ti++;if(d.doc_status==='ปล่อยเอกสารแล้ว'){rel++;relC+=d.total_expected||0;}});
-  const pCnt=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&d.total_expected>0&&d.total_actual<d.total_expected&&d.month!=='1').length;
+  const pCnt=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&d.total_expected>0&&d.total_actual<d.total_expected&&mNum(d.month)!==1).length;
   const cDone=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&(d.total_expected===0||d.total_actual>=d.total_expected)).length;
   const notLoadedList=FLAT.filter(d=>!isLoaded(d.inv));
   const plannedVsl=notLoadedList.filter(d=>VESSEL_PLAN[d.inv.toUpperCase()]).length;
@@ -1354,14 +1364,22 @@ function renderStatsVessel(){
 function renderTabs(){
   const tog='<div style="padding:6px 4px;display:flex;gap:3px;justify-content:center;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:4px;flex-shrink:0;"><button onclick="setMainMode(\'month\')" style="flex:1;padding:5px 2px;border-radius:5px;border:none;font-size:9px;font-weight:700;cursor:pointer;'+(mainMode==='month'?'background:#63b3ed;color:#0f2a52;':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);')+'">📅<br>เดือน</button><button onclick="setMainMode(\'factory\')" style="flex:1;padding:5px 2px;border-radius:5px;border:none;font-size:9px;font-weight:700;cursor:pointer;'+(mainMode==='factory'?'background:#63b3ed;color:#0f2a52;':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);')+'">🏭<br>โรงงาน</button></div>';
   if(mainMode==='month'){
-    const months=Object.keys(BY_MONTH).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99));
-    let out=tog;months.forEach(m=>{
+    const allYears=[...new Set(Object.keys(BY_MONTH).map(k=>mYear(k)).filter(y=>y>0))].sort();
+    let yearBar='';
+    if(allYears.length>1){
+      yearBar='<div style="padding:4px;display:flex;gap:2px;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:2px;">';
+      yearBar+=`<button onclick="setYearFilter(null)" style="flex:1;padding:3px 2px;border-radius:4px;border:none;font-size:9px;font-weight:700;cursor:pointer;${YEAR_FILTER===null?'background:#63b3ed;color:#0f2a52;':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);'}">ทั้งหมด</button>`;
+      allYears.forEach(y=>{yearBar+=`<button onclick="setYearFilter(${y})" style="flex:1;padding:3px 2px;border-radius:4px;border:none;font-size:9px;font-weight:700;cursor:pointer;${YEAR_FILTER===y?'background:#63b3ed;color:#0f2a52;':'background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);'}">ปี ${y}</button>`;});
+      yearBar+='</div>';
+    }
+    const months=Object.keys(BY_MONTH).filter(k=>YEAR_FILTER===null||mYear(k)===YEAR_FILTER).sort(mSort);
+    let out=tog+yearBar;months.forEach(m=>{
       const cnt=BY_MONTH[m].reduce((a,d)=>a+d.total_actual,0);
       const tot=BY_MONTH[m].reduce((a,d)=>a+d.total_expected,0);
       const pct=tot>0?Math.round(cnt/tot*100):null;
       const clr=pct===null?'rgba(255,255,255,.5)':pct>=100?'#34d399':pct>=50?'#fbbf24':'#f87171';
       const sub=tot>0?`${cnt}/${tot}`:`${cnt}`;
-      out+=`<div class="mtab${SM===m?' active':''}" data-m="${m}">${MF[m]}<br><span style="font-size:10px;font-weight:700;color:${clr};">${sub} ตู้</span></div>`;
+      out+=`<div class="mtab${SM===m?' active':''}" data-m="${m}">${mLabel(m)}<br><span style="font-size:10px;font-weight:700;color:${clr};">${sub} ตู้</span></div>`;
     });
     document.getElementById('mTabs').innerHTML=out;
     if(!SM&&months.length)selMonth(months[0]);
@@ -1375,11 +1393,12 @@ function renderTabs(){
 }
 const midToggle=()=>{const b=(m,l)=>`<button onclick="setMidMode('${m}')" style="padding:2px 7px;border-radius:4px;border:none;font-size:9px;font-weight:700;cursor:pointer;${midMode===m?'background:#1e40af;color:#fff;':'background:#e2e8f0;color:#475569;'}">${l}</button>`;return `<div style="margin-left:auto;display:flex;gap:2px;">${b('group','🏭 กลุ่ม')}${b('list','📋 ลิสต์')}</div>`;};
 function setMidMode(m){midMode=m;if(SM)selMonth(SM);}
-function setMainMode(m){mainMode=m;SM=null;SP=null;SF=null;SI=null;document.getElementById('mHead').innerHTML=`<span class="bc-cur">${m==='month'?'เลือกเดือน':'เลือก Prefix'}</span>`;document.getElementById('mBody').innerHTML='';document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">📦</div><p>เลือกเดือน → Prefix → อินวอยซ์</p></div>';renderTabs();}
+function setMainMode(m){mainMode=m;SM=null;SP=null;SF=null;SI=null;YEAR_FILTER=null;document.getElementById('mHead').innerHTML=`<span class="bc-cur">${m==='month'?'เลือกเดือน':'เลือก Prefix'}</span>`;document.getElementById('mBody').innerHTML='';document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">📦</div><p>เลือกเดือน → Prefix → อินวอยซ์</p></div>';renderTabs();}
+function setYearFilter(y){YEAR_FILTER=y;SM=null;SP=null;SI=null;document.getElementById('mHead').innerHTML='<span class="bc-cur">เลือกเดือน</span>';document.getElementById('mBody').innerHTML='';document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">📦</div><p>เลือกเดือน → Prefix → อินวอยซ์</p></div>';renderTabs();}
 function selMonth(m){
   SM=m;SP=null;SI=null;
   document.querySelectorAll('#mTabs .mtab').forEach(el=>el.classList.toggle('active',el.dataset.m===m));
-  document.getElementById('mHead').innerHTML=`<div style="display:flex;align-items:center;width:100%;gap:4px;"><span class="bc-cur">${MF[m]}</span>${midToggle()}</div>`;
+  document.getElementById('mHead').innerHTML=`<div style="display:flex;align-items:center;width:100%;gap:4px;"><span class="bc-cur">${mLabel(m)}</span>${midToggle()}</div>`;
   const invs=BY_MONTH[m]||[];let out='';
   if(midMode==='group'){
     const pm={};invs.forEach(d=>{if(!pm[d.prefix])pm[d.prefix]={cnt:0,ctr:0};pm[d.prefix].cnt++;pm[d.prefix].ctr+=d.total_actual;});
@@ -1400,7 +1419,7 @@ function selMonth(m){
 }
 function selPrefix(m,pfx){
   SM=m;SP=pfx;SI=null;
-  document.getElementById('mHead').innerHTML=`<div class="bc"><span class="bc-item" data-back-m="${m}">${MF[m]}</span><span class="bc-sep">›</span><span class="bc-cur">${h(pfx)}</span></div>`;
+  document.getElementById('mHead').innerHTML=`<div class="bc"><span class="bc-item" data-back-m="${m}">${mLabel(m)}</span><span class="bc-sep">›</span><span class="bc-cur">${h(pfx)}</span></div>`;
   const invs=(BY_MONTH[m]||[]).filter(d=>d.prefix===pfx);let out='';
   invs.forEach(d=>{
     const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
@@ -1422,7 +1441,7 @@ function selFactory(pfx){
     const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
     const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢 จัดแล้ว</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓ ยังไม่จัด</span>';
     const bb=BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
-    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}<span style="font-size:9px;color:#94a3b8;margin-left:4px;">${MF[d.month]}</span></div>`;
+    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}<span style="font-size:9px;color:#94a3b8;margin-left:4px;">${mLabel(d.month)}</span></div>`;
   });
   document.getElementById('mBody').innerHTML=out||'<div style="padding:12px;color:#94a3b8;font-size:12px;">ไม่พบข้อมูล</div>';
   document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">👈</div><p>เลือกอินวอยซ์</p></div>';
@@ -1520,13 +1539,13 @@ function showInvDetail(id,panelId){
    PENDING LIST
 ===================================================== */
 function renderPendingList(){
-  const pend=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว').sort((a,b)=>(parseInt(a.month)||99)-(parseInt(b.month)||99));
+  const pend=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว').sort((a,b)=>mSort(a.month,b.month));
   const miss=pend.filter(d=>d.total_expected>0&&d.total_actual<d.total_expected).reduce((a,d)=>a+(d.total_expected-d.total_actual),0);
   const done=pend.filter(d=>d.total_expected===0||d.total_actual>=d.total_expected).length;
   let out=`<div class="pv-list-hdr">⏳ คงค้าง ${pend.length} · ตู้ครบ ${done} · ขาดตู้ ${miss}</div>`;
   const byM={};pend.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});
-  Object.keys(byM).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99)).forEach(m=>{
-    out+=`<div style="padding:5px 14px;background:#f0f4f8;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">${MF[m]} (${byM[m].length})</div>`;
+  Object.keys(byM).sort(mSort).forEach(m=>{
+    out+=`<div style="padding:5px 14px;background:#f0f4f8;font-size:9px;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;">${mLabel(m)} (${byM[m].length})</div>`;
     byM[m].forEach(d=>{
       const dn=d.total_actual,tot=d.total_expected;const s=pst(d.prefix);const act=d.id===activePV?' active':'';
       let ctr='';
@@ -1981,9 +2000,9 @@ table{width:100%;border-collapse:collapse;}
 ===================================================== */
 function showStatModal(filter){
   let list,title,color;
-  if(filter==='pending'){list=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&d.total_expected>0&&d.total_actual<d.total_expected&&d.month!=='1');title='⏳ คงค้าง — ตู้ยังไม่ครบ';color='#d97706';}
-  else if(filter==='planned-vessel'){list=FLAT.filter(d=>!isLoaded(d.inv)&&VESSEL_PLAN[d.inv.toUpperCase()]).sort((a,b)=>(parseInt(a.month)||99)-(parseInt(b.month)||99));title='🚢 แพลนขึ้นเรือแล้ว';color='#0369a1';}
-  else if(filter==='not-loaded'){list=FLAT.filter(d=>!isLoaded(d.inv)&&!VESSEL_PLAN[d.inv.toUpperCase()]).sort((a,b)=>(parseInt(a.month)||99)-(parseInt(b.month)||99));title='⚓ ยังไม่จัดลงเรือ';color='#dc2626';}
+  if(filter==='pending'){list=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&d.total_expected>0&&d.total_actual<d.total_expected&&mNum(d.month)!==1);title='⏳ คงค้าง — ตู้ยังไม่ครบ';color='#d97706';}
+  else if(filter==='planned-vessel'){list=FLAT.filter(d=>!isLoaded(d.inv)&&VESSEL_PLAN[d.inv.toUpperCase()]).sort((a,b)=>mSort(a.month,b.month));title='🚢 แพลนขึ้นเรือแล้ว';color='#0369a1';}
+  else if(filter==='not-loaded'){list=FLAT.filter(d=>!isLoaded(d.inv)&&!VESSEL_PLAN[d.inv.toUpperCase()]).sort((a,b)=>mSort(a.month,b.month));title='⚓ ยังไม่จัดลงเรือ';color='#dc2626';}
   else{list=FLAT.filter(d=>d.doc_status!=='ปล่อยเอกสารแล้ว'&&(d.total_expected===0||d.total_actual>=d.total_expected));title='🟣 ตู้ครบแล้ว — รอปล่อยเอกสาร';color='#7c3aed';}
   let rows='';
   if(filter==='planned-vessel'){
@@ -2019,7 +2038,7 @@ function showStatModal(filter){
         rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr" style="color:#0369a1;flex-shrink:0;">${vp?.bkg||''}</span><span style="font-size:10px;font-weight:700;color:${ctrColor};margin-left:6px;flex-shrink:0;">${ctrTxt}</span>${bb3}${pndBadge3}</div>`;
       });
     });
-  }else if(filter==='not-loaded'){const byM={};list.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});Object.keys(byM).sort((a,b)=>(parseInt(a)||99)-(parseInt(b)||99)).forEach(m=>{rows+=`<div style="padding:5px 14px;background:#fef2f2;font-size:9px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca;border-top:1px solid #fecaca;margin-top:4px;">${MF[m]} (${byM[m].length} รายการ)</div>`;byM[m].forEach(d=>{const s=pst(d.prefix);const bb4=BILLED_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;flex-shrink:0;">🧾 BILLED</span>':'';rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr">${d.total_expected>0?d.total_actual+'/'+d.total_expected+' ตู้':'ไม่ระบุ'}</span>${bb4}</div>`;});});}
+  }else if(filter==='not-loaded'){const byM={};list.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});Object.keys(byM).sort(mSort).forEach(m=>{rows+=`<div style="padding:5px 14px;background:#fef2f2;font-size:9px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca;border-top:1px solid #fecaca;margin-top:4px;">${mLabel(m)} (${byM[m].length} รายการ)</div>`;byM[m].forEach(d=>{const s=pst(d.prefix);const bb4=BILLED_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;flex-shrink:0;">🧾 BILLED</span>':'';rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr">${d.total_expected>0?d.total_actual+'/'+d.total_expected+' ตู้':'ไม่ระบุ'}</span>${bb4}</div>`;});});}
   else{list.forEach(d=>{const s=pst(d.prefix);let ctr,cls;if(d.total_expected===0){ctr='ไม่ระบุ';cls='';}else if(d.total_actual>=d.total_expected){ctr='✔ '+d.total_actual+'/'+d.total_expected;cls='done';}else{ctr=d.total_actual+'/'+d.total_expected;cls='inc';}const pndCnt=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv)).length;const pndBadge=pndCnt?`<span style="font-size:9px;background:#fef9c3;color:#92400e;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;flex-shrink:0;margin-left:4px;">⏳ +${pndCnt}</span>`:'';rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr ${cls}">${ctr}</span>${pndBadge}</div>`;});}
   document.getElementById('sModalTitle').textContent=title;document.getElementById('sModalTitle').style.color=color;
   document.getElementById('sModalBody').innerHTML=rows||'<div style="padding:20px;text-align:center;color:#64748b;">ไม่มีข้อมูล</div>';
@@ -2198,7 +2217,7 @@ function renderTrTable(){
     html+='<tr class="inv-row'+(isOpen?' open':'')+'" data-inv="'+h(d.inv)+'">';
     html+='<td style="color:#94a3b8;font-size:11px;">'+(idx+1)+'</td>';
     html+='<td><span class="pfx-badge" style="background:'+s.bg+';color:'+s.tx+';border:1px solid '+s.bd+'">'+h(d.prefix)+'</span><span style="font-weight:700;">'+h(d.inv)+'</span></td>';
-    html+='<td style="color:#64748b;">'+(MF[d.month]||d.month)+'</td>';
+    html+='<td style="color:#64748b;">'+mLabel(d.month)+'</td>';
     html+='<td style="color:#64748b;font-size:11px;">'+h(d.customer==='-'||d.customer==='- '?'':d.customer||'')+'</td>';
     html+='<td style="text-align:center;white-space:nowrap;">'+ctrTxt+progHtml+'</td>';
     html+='<td style="text-align:right;">'+(d.totalPaid>0?'<span class="amt-paid">'+fmtAmt(d.totalPaid)+'</span>':'<span class="amt-zero">-</span>')+'</td>';
@@ -2270,20 +2289,20 @@ function renderTrMonthSummary(){
     if(d.status==='full')g.full++;else if(d.status==='partial')g.partial++;else if(d.status==='none')g.none++;else g.nodata++;
   });
   const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
-  const keys=TR_MONTH_ORDER.filter(m=>months[m]).concat(Object.keys(months).filter(m=>!TR_MONTH_ORDER.includes(m)));
+  const keys=Object.keys(months).sort(mSort);
   if(!keys.length){document.getElementById('trMonthGrid').innerHTML='<div style="color:#94a3b8;padding:20px;">ไม่พบข้อมูล</div>';return;}
   let html='';
   keys.forEach(m=>{
     const g=months[m];
     const pct=g.ctr>0?Math.round(g.paid/g.ctr*100):0;
     const barColor=pct===100?'#16a34a':pct>0?'#f59e0b':'#f87171';
-    const mLabel=MF[m]||m;
+    const moLabel=mLabel(m);
     let badges='';
     if(g.full)badges+='<span class="mc-badge mc-full">✅ ครบ '+g.full+'</span> ';
     if(g.partial)badges+='<span class="mc-badge mc-partial">⚠️ บางส่วน '+g.partial+'</span> ';
     if(g.none)badges+='<span class="mc-badge mc-none">❌ ค้าง '+g.none+'</span> ';
     html+='<div class="month-card" onclick="trShowAlModal(\'' + m + '\')" title="คลิกเพื่อดูสรุปตามบริษัทขนส่ง">';
-    html+='<div class="mc-hdr"><span>📅 '+mLabel+'</span><span style="font-size:11px;font-weight:400;color:#64748b;">'+g.inv+' อินวอยซ์</span></div>';
+    html+='<div class="mc-hdr"><span>📅 '+moLabel+'</span><span style="font-size:11px;font-weight:400;color:#64748b;">'+g.inv+' อินวอยซ์</span></div>';
     html+='<div class="mc-grid">';
     html+='<div class="mc-stat"><span class="mv">'+g.ctr+'</span><span class="ml">ตู้ทั้งหมด</span></div>';
     html+='<div class="mc-stat"><span class="mv">'+g.paid+' <span style="font-size:12px;color:#94a3b8;">/ '+g.ctr+'</span></span><span class="ml">ตู้จ่ายแล้ว</span></div>';
@@ -2305,8 +2324,8 @@ function trShowAlModal(month){
   /* ── populate month selector dropdown ── */
   const sel=document.getElementById('trPrintMonthSel');
   if(sel){
-    const months=[...new Set(TR_DATA.map(d=>d.month))].sort();
-    sel.innerHTML=months.map(mo=>`<option value="${mo}"${mo===month?' selected':''}>${MF[mo]||mo}</option>`).join('');
+    const months=[...new Set(TR_DATA.map(d=>d.month))].sort(mSort);
+    sel.innerHTML=months.map(mo=>`<option value="${mo}"${mo===month?' selected':''}>${mLabel(mo)}</option>`).join('');
   }
   const q=TR_SEARCH.trim().toUpperCase();
   const fmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
@@ -2339,7 +2358,7 @@ function trShowAlModal(month){
   const seen=new Set();
   const coList=coIns.filter(c=>{if(seen.has(c))return false;seen.add(c);return true;});
   coList.sort((a,b)=>(coTot[b]?.amount||0)-(coTot[a]?.amount||0));
-  const monthName=MF[month]||('เดือน '+month);
+  const monthName=mLabel(month);
   document.getElementById('trAlTitle').textContent='🚛 สรุปค่าขนส่งตามบริษัทขนส่ง — '+monthName;
   document.getElementById('trAlInfo').innerHTML=
     '<span class="ia">'+src.length+' อินวอยซ์</span>'+
@@ -2429,7 +2448,7 @@ function trPrintByFactoryReport(){
       grandAmt+=price;grandCtr++;
     });
   });
-  const monthName=MF[printMonth]||('เดือน '+printMonth);
+  const monthName=mLabel(printMonth);
   const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
   const css=`
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
@@ -2602,7 +2621,7 @@ function trPrintAlMonthXref(){
     let moBlocks='';
     grp.monthIns.forEach(mo=>{
       const mObj=grp.months[mo];
-      const moName=MF[mo]||('เดือน '+mo);
+      const moName=mLabel(mo);
       let coRows='';
       mObj.coIns.forEach(co=>{
         const cObj=mObj.cos[co];
@@ -2643,7 +2662,7 @@ function trPrintAlMonthXref(){
         <span style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.85);">${grp.monthIns.reduce((a,mo)=>a+grp.months[mo].tot.ctr,0)} ตู้ · ${fm(grp.monthIns.reduce((a,mo)=>a+grp.months[mo].tot.amount,0))} บาท</span>
       </div>${moBlocks}`;
   };
-  const moLabel=MF[printMonth]||('เดือน '+printMonth);
+  const moLabel=mLabel(printMonth);
   const ogmHtml=buildFactory('ogm');
   const otherHtml=buildFactory('other');
   const grandHtml=`<div class="grand-box"><table><tbody><tr class="grand-row">
@@ -2697,7 +2716,7 @@ function trPrintByBillReport(){
   const seen=new Set();
   const coList=coIns.filter(c=>{if(seen.has(c))return false;seen.add(c);return true;});
   coList.sort((a,b)=>a.localeCompare(b));
-  const monthName=MF[_trAlMonth]||('เดือน '+_trAlMonth);
+  const monthName=mLabel(_trAlMonth);
   const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
   const css=`
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
@@ -2784,7 +2803,7 @@ function trPrintBillListReport(){
   const seen=new Set();
   const coList=coIns.filter(c=>{if(seen.has(c))return false;seen.add(c);return true;});
   coList.sort((a,b)=>a.localeCompare(b));
-  const monthName=MF[_trAlMonth]||('เดือน '+_trAlMonth);
+  const monthName=mLabel(_trAlMonth);
   const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
   /* ── CSS ── */
   const css=`
@@ -2869,7 +2888,7 @@ function trPrintOneCoReport(co){
     });
   });
   const billArr=Object.values(billsMap).sort((a,b)=>a.ref.localeCompare(b.ref));
-  const monthName=MF[_trAlMonth]||('เดือน '+_trAlMonth);
+  const monthName=mLabel(_trAlMonth);
   const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
   const css=`
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
@@ -2979,7 +2998,7 @@ function trPrintAlReport(){
     coBillArr[co]=Object.values(coBillsMap[co]).sort((a,b)=>a.ref.localeCompare(b.ref));
   });
   /* ── grouped layout: companies as section headers, bills as rows ── */
-  const monthName=MF[_trAlMonth]||('เดือน '+_trAlMonth);
+  const monthName=mLabel(_trAlMonth);
   const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
   let grandCtr=0;
   coList.forEach(co=>{grandCtr+=(coTot[co]?.ctr||0);});
@@ -3083,7 +3102,7 @@ function renderTrCoView(){
   const cos={};   // key: company name
   TR_DATA.forEach(d=>{
     if(!matchTrPrefix(d))return;
-    const moLabel=MF[d.month]||d.month||'-';
+    const moLabel=mLabel(d.month);
     const isOgm=(d.prefix||'').trim().toUpperCase()==='OGM';
     d.details.forEach(row=>{
       if(!row.trMatch||row.trMatch._prePaid)return;
@@ -3265,7 +3284,17 @@ function toggleDashboard(){
    SETUP & LOAD HELPERS
 ===================================================== */
 function setLoad(txt,sub){document.getElementById('loadTxt').textContent=txt||'กำลังโหลด...';document.getElementById('loadSub').textContent=sub||'';}
-function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errBox').style.display='block';document.getElementById('loadTxt').style.display='none';document.getElementById('spinner').style.display='none';}
+function showErr(msg){
+  document.getElementById('errMsg').textContent=msg;
+  document.getElementById('errBox').style.display='block';
+  document.getElementById('loadTxt').style.display='none';
+  document.getElementById('spinner').style.display='none';
+  /* ถ้า error เป็นเรื่อง token และมี App Key บันทึกไว้ — แสดงปุ่มเชื่อมต่อใหม่ */
+  const isTokenErr=msg.includes('Access Token')||msg.includes('token')||msg.includes('401');
+  const hasAppKey=!!ls('dropbox_app_key');
+  const btn=document.getElementById('reconnectBtn');
+  if(btn)btn.style.display=(isTokenErr&&hasAppKey)?'block':'none';
+}
 function hideLoad(){document.getElementById('loadScreen').style.display='none';}
 function showSetup(err,justAuthed){
   hideLoad();document.getElementById('app').style.display='none';
