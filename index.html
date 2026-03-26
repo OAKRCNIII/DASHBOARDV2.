@@ -849,61 +849,30 @@ async function readDropboxFile(dropboxPath){
   const path=dropboxPath.startsWith('/')?dropboxPath:'/'+dropboxPath;
   const fileName=path.split('/').pop();
   const dataKey='dbx_data:'+path;
-  const revKey='dbx_rev:'+path;
-  let latestRev=''; /* เก็บ rev ล่าสุดจาก metadata ไว้ใช้บันทึกหลัง download */
 
-  if(!_forceReload){
-    /* เช็ค rev กับ Dropbox ก่อนเสมอ (metadata call เร็ว ~100ms) */
-    try{
-      setLoad('🔍 เช็คอัพเดต: '+fileName);
-      const metaRes=await fetch('https://api.dropboxapi.com/2/files/get_metadata',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-        body:JSON.stringify({path})
-      });
-      if(metaRes.ok){
-        const meta=await metaRes.json();
-        latestRev=meta.rev||meta.server_modified||'';
-        const cachedRev=ls(revKey);
-        if(latestRev&&latestRev===cachedRev){
-          /* rev ตรงกัน — ไฟล์ไม่เปลี่ยน ใช้แคช */
-          const cached=await cacheGet(dataKey);
-          if(cached){setLoad('✅ ใช้แคช: '+fileName);return cached;}
-          /* มี rev แต่ไม่มีข้อมูลในแคช — fall through ไป download */
-        }
-        /* latestRev ต่าง หรือ cachedRev null — ต้อง download */
-        setLoad('☁️ '+(latestRev&&cachedRev?'อัพเดต':'ดาวน์โหลด')+': '+fileName);
-      }else{
-        /* metadata API error — ใช้แคชถ้ามี ไม่อย่างนั้น download */
-        const cached=await cacheGet(dataKey);
-        if(cached){setLoad('✅ ใช้แคช: '+fileName);return cached;}
-        setLoad('☁️ ดาวน์โหลด: '+fileName);
-      }
-    }catch{
-      /* network error — ใช้แคชถ้ามี ไม่อย่างนั้น download */
-      const cached=await cacheGet(dataKey);
-      if(cached){setLoad('✅ ใช้แคช: '+fileName);return cached;}
-      setLoad('☁️ ดาวน์โหลด: '+fileName);
+  /* ดาวน์โหลดจาก Dropbox เสมอ — ได้ข้อมูลล่าสุดแน่นอน */
+  setLoad('☁️ ดาวน์โหลด: '+fileName);
+  try{
+    const res=await fetch('https://content.dropboxapi.com/2/files/download',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':dbxArg({path})}
+    });
+    if(!res.ok){
+      if(res.status===401)throw new Error('Access Token ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่');
+      if(res.status===409)throw new Error('ไม่พบไฟล์: "'+path+'" — ตรวจสอบพาธ Dropbox');
+      throw new Error('Dropbox error '+res.status+': '+fileName);
     }
-  }else{
-    setLoad('☁️ ดาวน์โหลด: '+fileName);
+    const buf=await res.arrayBuffer();
+    cachePut(dataKey,buf.slice(0)).catch(()=>{}); /* อัพเดตแคชสำรองกรณีออฟไลน์ */
+    return buf;
+  }catch(e){
+    /* ถ้า download ไม่ได้ (ออฟไลน์/network error) — ใช้แคชเดิมแทน */
+    if(e.message.includes('Access Token')||e.message.includes('ไม่พบไฟล์'))throw e;
+    setLoad('✅ ใช้แคช (offline): '+fileName);
+    const cached=await cacheGet(dataKey);
+    if(cached)return cached;
+    throw e;
   }
-
-  /* download จาก Dropbox */
-  const res=await fetch('https://content.dropboxapi.com/2/files/download',{
-    method:'POST',
-    headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':dbxArg({path})}
-  });
-  if(!res.ok){
-    if(res.status===401)throw new Error('Access Token ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่');
-    if(res.status===409)throw new Error('ไม่พบไฟล์: "'+path+'" — ตรวจสอบพาธ Dropbox');
-    throw new Error('Dropbox error '+res.status+': '+fileName);
-  }
-  const buf=await res.arrayBuffer();
-  /* บันทึก rev ที่ได้จาก metadata (latestRev) ไว้เปรียบเทียบครั้งหน้า */
-  if(latestRev)ls(revKey,latestRev);
-  cachePut(dataKey,buf.slice(0)).catch(()=>{});
-  return buf;
 }
 
 /* เช็คอัพเดตใน background หลัง dashboard โหลดเสร็จแล้ว */
