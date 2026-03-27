@@ -3130,7 +3130,7 @@ function renderTrCoView(){
   const grandAmt=coKeys.reduce((s,k)=>s+cos[k].amount,0);
 
   /* Build cards */
-  let cardsHtml=`<div style="font-size:11px;color:#64748b;margin-bottom:8px;">รวมทั้งหมด: <strong style="color:#3b0764;font-size:14px;">${grandCtr}</strong> ตู้ · <strong style="color:#7c3aed;">${fmtAmt(grandAmt)}</strong> บาท · ${coKeys.length} บริษัทขนส่ง</div>`;
+  let cardsHtml=`<div style="font-size:11px;color:#64748b;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;"><span>รวมทั้งหมด: <strong style="color:#3b0764;font-size:14px;">${grandCtr}</strong> ตู้ · <strong style="color:#7c3aed;">${fmtAmt(grandAmt)}</strong> บาท · ${coKeys.length} บริษัทขนส่ง</span><button onclick="trCoReportModalOpen()" style="padding:5px 14px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">📄 Report PDF</button></div>`;
   cardsHtml+='<div class="co-grid">';
   coKeys.forEach(ck=>{
     const c=cos[ck];
@@ -3201,6 +3201,186 @@ function trToggleCoDetail(ck){
   /* close all panels */
   document.querySelectorAll('#trCoWrap .co-detail-panel.open').forEach(p=>p.classList.remove('open'));
   if(!isOpen){panel.classList.add('open');panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
+}
+
+/* ===== REPORT PDF — invoice selection modal ===== */
+let TR_CO_SEL=new Set();
+function trCoReportModalOpen(){
+  const he2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const src=TR_DATA.filter(d=>matchTrPrefix(d)&&d.paidCount>0);
+  // Group by prefix first, then by month within each prefix
+  const byPfx={};
+  src.forEach(d=>{const pfx=(d.prefix||'(ไม่ระบุ)').trim();if(!byPfx[pfx])byPfx[pfx]=[];byPfx[pfx].push(d);});
+  const pfxKeys=Object.keys(byPfx).sort();
+  let listHtml='';
+  pfxKeys.forEach(pfx=>{
+    const items=byPfx[pfx];
+    const s=pst(pfx);
+    const byMo={};items.forEach(d=>{const mk=d.month||'-';if(!byMo[mk])byMo[mk]=[];byMo[mk].push(d);});
+    const moKeys=Object.keys(byMo).sort(mSort);
+    const pfxCtr=items.reduce((a,d)=>a+d.paidCount,0);
+    const pfxAmt=items.reduce((a,d)=>a+d.totalPaid,0);
+    listHtml+=`<div class="trsel-pfx-hdr" data-pfx-id="${he2(pfx)}" style="padding:7px 14px;display:flex;align-items:center;justify-content:space-between;background:${s.bg};border-top:2px solid ${s.bd};border-bottom:1px solid ${s.bd};">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="background:${s.tx};color:#fff;border-radius:5px;padding:2px 10px;font-size:11px;font-weight:900;">${he2(pfx)}</span>
+        <span style="font-size:11px;font-weight:700;color:${s.tx};">${items.length} รายการ · ${pfxCtr} ตู้ · ${fmtAmt(pfxAmt)} บาท</span>
+      </div>
+      <button onclick="trCoSelectPfx('${he2(pfx).replace(/'/g,"\\'")}')" style="padding:2px 9px;border-radius:5px;border:1.5px solid ${s.bd};background:#fff;color:${s.tx};font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;">✔ เลือก ${he2(pfx)}</button>
+    </div>`;
+    moKeys.forEach(mk=>{
+      listHtml+=`<div style="padding:4px 14px 4px 20px;background:#f8fafc;font-size:9px;font-weight:700;color:#7c3aed;border-bottom:1px solid #ede9fe;">📅 ${mLabel(mk)} — ${byMo[mk].length} รายการ</div>`;
+      byMo[mk].forEach(d=>{
+        const key=normInv(d.inv);const sel=TR_CO_SEL.has(key);
+        listHtml+=`<div class="trsel-row" data-inv-key="${he2(key)}" data-pfx="${he2(pfx)}" onclick="trCoToggleInv('${he2(key).replace(/'/g,"\\'")}')" style="display:flex;align-items:center;gap:8px;padding:7px 14px 7px 24px;cursor:pointer;border-bottom:1px solid #f1f5f9;${sel?'background:#f5f3ff;':''}">
+          <div class="trsel-box" style="width:18px;height:18px;border-radius:4px;border:2px solid ${sel?'#7c3aed':'#d1d5db'};background:${sel?'#7c3aed':'#fff'};flex-shrink:0;display:flex;align-items:center;justify-content:center;">${sel?'<span style="color:#fff;font-size:11px;font-weight:900;line-height:1;">✓</span>':''}</div>
+          <span style="flex:1;font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${he2(d.inv)}</span>
+          <span style="font-size:10px;color:#64748b;white-space:nowrap;flex-shrink:0;">${d.paidCount} ตู้ · ${fmtAmt(d.totalPaid)}</span>
+        </div>`;
+      });
+    });
+  });
+  const existing=document.getElementById('trCoReportBg');if(existing)existing.remove();
+  document.body.insertAdjacentHTML('beforeend',`<div id="trCoReportBg" onclick="if(event.target===this)trCoReportModalClose()" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:14px;width:min(540px,96vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.35);">
+      <div style="padding:14px 18px;background:#3b0764;color:#fff;border-radius:14px 14px 0 0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+        <div><div style="font-size:15px;font-weight:800;">📄 เลือกอินวอยซ์สำหรับ Report</div><div id="trCoSelInfo" style="font-size:11px;color:#ddd6fe;margin-top:2px;">กรุณาเลือกอินวอยซ์</div></div>
+        <button onclick="trCoReportModalClose()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;color:#fff;font-size:16px;cursor:pointer;padding:4px 11px;">✕</button>
+      </div>
+      <div style="padding:8px 12px;background:#f5f3ff;border-bottom:1px solid #ede9fe;display:flex;gap:6px;align-items:center;flex-shrink:0;flex-wrap:wrap;">
+        <button onclick="trCoSelectAll()" style="padding:4px 10px;border-radius:6px;border:1px solid #7c3aed;background:#ede9fe;color:#6d28d9;font-size:11px;font-weight:700;cursor:pointer;">เลือกทั้งหมด</button>
+        <button onclick="trCoClearAll()" style="padding:4px 10px;border-radius:6px;border:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:11px;font-weight:700;cursor:pointer;">ล้างทั้งหมด</button>
+        <input id="trCoSelSearch" oninput="trCoSelFilter()" placeholder="🔍 ค้นหาอินวอยซ์..." style="flex:1;min-width:120px;padding:5px 9px;border-radius:6px;border:1px solid #d1d5db;font-size:12px;outline:none;">
+      </div>
+      <div id="trCoSelList" style="flex:1;overflow-y:auto;">${listHtml}</div>
+      <div style="padding:12px 14px;border-top:1px solid #ede9fe;background:#faf5ff;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+        <span id="trCoSelCount" style="font-size:12px;color:#7c3aed;font-weight:700;"></span>
+        <div style="display:flex;gap:8px;">
+          <button onclick="trCoReportModalClose()" style="padding:7px 16px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#64748b;font-size:12px;font-weight:700;cursor:pointer;">ยกเลิก</button>
+          <button id="trCoPrintBtn" onclick="trCoPrintSelectedReport()" style="padding:7px 16px;border-radius:8px;border:none;background:#7c3aed;color:#fff;font-size:12px;font-weight:700;cursor:pointer;opacity:.5;">🖨️ พิมพ์ PDF</button>
+        </div>
+      </div>
+    </div>
+  </div>`);
+  trCoUpdateSelInfo();
+}
+function trCoReportModalClose(){const el=document.getElementById('trCoReportBg');if(el)el.remove();}
+function trCoToggleInv(key){
+  if(TR_CO_SEL.has(key))TR_CO_SEL.delete(key);else TR_CO_SEL.add(key);
+  const row=document.querySelector(`.trsel-row[data-inv-key="${key}"]`);
+  if(row){
+    const sel=TR_CO_SEL.has(key);
+    const box=row.querySelector('.trsel-box');
+    if(box){box.style.border=`2px solid ${sel?'#7c3aed':'#d1d5db'}`;box.style.background=sel?'#7c3aed':'#fff';box.innerHTML=sel?'<span style="color:#fff;font-size:11px;font-weight:900;line-height:1;">✓</span>':'';}
+    row.style.background=sel?'#f5f3ff':'';
+  }
+  trCoUpdateSelInfo();
+}
+function trCoSelectAll(){
+  document.querySelectorAll('#trCoSelList .trsel-row').forEach(el=>{
+    const k=el.dataset.invKey;if(!k)return;
+    if(el.style.display==='none')return;
+    if(!TR_CO_SEL.has(k)){TR_CO_SEL.add(k);const box=el.querySelector('.trsel-box');if(box){box.style.border='2px solid #7c3aed';box.style.background='#7c3aed';box.innerHTML='<span style="color:#fff;font-size:11px;font-weight:900;line-height:1;">✓</span>';}el.style.background='#f5f3ff';}
+  });trCoUpdateSelInfo();
+}
+function trCoClearAll(){
+  TR_CO_SEL.clear();
+  document.querySelectorAll('#trCoSelList .trsel-row').forEach(el=>{
+    const box=el.querySelector('.trsel-box');if(box){box.style.border='2px solid #d1d5db';box.style.background='#fff';box.innerHTML='';}el.style.background='';
+  });trCoUpdateSelInfo();
+}
+function trCoSelectPfx(pfx){
+  document.querySelectorAll(`#trCoSelList .trsel-row[data-pfx="${pfx}"]`).forEach(el=>{
+    if(el.style.display==='none')return;
+    const k=el.dataset.invKey;if(!k)return;
+    if(!TR_CO_SEL.has(k)){TR_CO_SEL.add(k);const box=el.querySelector('.trsel-box');if(box){box.style.border='2px solid #7c3aed';box.style.background='#7c3aed';box.innerHTML='<span style="color:#fff;font-size:11px;font-weight:900;line-height:1;">✓</span>';}el.style.background='#f5f3ff';}
+  });trCoUpdateSelInfo();
+}
+function trCoSelFilter(){
+  const q=(document.getElementById('trCoSelSearch')?.value||'').toUpperCase().trim();
+  document.querySelectorAll('#trCoSelList .trsel-row').forEach(el=>{
+    el.style.display=(!q||(el.dataset.invKey||'').toUpperCase().includes(q))?'':'none';
+  });
+  // Show/hide prefix group headers based on whether any child rows are visible
+  document.querySelectorAll('#trCoSelList .trsel-pfx-hdr').forEach(hdr=>{
+    const pfx=hdr.dataset.pfxId;
+    const rows=document.querySelectorAll(`#trCoSelList .trsel-row[data-pfx="${pfx}"]`);
+    hdr.style.display=[...rows].some(r=>r.style.display!=='none')?'':'none';
+  });
+}
+function trCoUpdateSelInfo(){
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  let ctr=0,amt=0;
+  TR_DATA.filter(d=>TR_CO_SEL.has(normInv(d.inv))).forEach(d=>{ctr+=d.paidCount;amt+=d.totalPaid;});
+  const n=TR_CO_SEL.size;
+  const info=document.getElementById('trCoSelInfo');if(info)info.textContent=n>0?`เลือกแล้ว ${n} รายการ · ${ctr} ตู้ · ${fmtAmt(amt)} บาท`:'กรุณาเลือกอินวอยซ์';
+  const cnt=document.getElementById('trCoSelCount');if(cnt)cnt.textContent=n>0?`เลือก ${n} รายการ`:'';
+  const btn=document.getElementById('trCoPrintBtn');if(btn)btn.style.opacity=n>0?'1':'0.5';
+}
+function trCoPrintSelectedReport(){
+  if(!TR_CO_SEL.size){alert('กรุณาเลือกอินวอยซ์ก่อนพิมพ์');return;}
+  const he2=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const src=TR_DATA.filter(d=>TR_CO_SEL.has(normInv(d.inv)));
+  // Group by prefix, then sort by month within each prefix
+  const byPfx={};
+  src.forEach(d=>{const pfx=(d.prefix||'(ไม่ระบุ)').trim();if(!byPfx[pfx])byPfx[pfx]=[];byPfx[pfx].push(d);});
+  const pfxKeys=Object.keys(byPfx).sort();
+  const pfxColors={BSW:{bg:'#dbeafe',tx:'#1e40af'},OGM:{bg:'#dcfce7',tx:'#166534'},TWI:{bg:'#fef3c7',tx:'#92400e'},INV:{bg:'#f3e8ff',tx:'#6b21a8'},DEF:{bg:'#f1f5f9',tx:'#475569'}};
+  const pfxC=p=>pfxColors[p]||pfxColors.DEF;
+  const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
+  let totalCtr=0,totalAmt=0;let tbody='';let rowIdx=0;
+  pfxKeys.forEach(pfx=>{
+    const items=byPfx[pfx].sort((a,b)=>mSort(a.month,b.month)||a.inv.localeCompare(b.inv));
+    const pc=pfxC(pfx);
+    const pfxPaidRows=items.flatMap(d=>d.details.filter(r=>r.trMatch&&!r.trMatch._prePaid));
+    const pfxCtr=pfxPaidRows.length;
+    const pfxAmt=pfxPaidRows.reduce((s,r)=>s+(r.trMatch.price||0),0);
+    tbody+=`<tr><td colspan="7" style="background:${pc.bg};color:${pc.tx};font-size:10.5px;font-weight:800;padding:6px 10px;border-top:2px solid ${pc.tx};">🏭 ${he2(pfx)} &nbsp;·&nbsp; ${items.length} อินวอยซ์ &nbsp;·&nbsp; ${pfxCtr} ตู้ &nbsp;·&nbsp; ${fmtAmt(pfxAmt)} บาท</td></tr>`;
+    items.forEach(d=>{
+      const paidRows=d.details.filter(r=>r.trMatch&&!r.trMatch._prePaid);
+      if(!paidRows.length)return;
+      paidRows.forEach((r,ri)=>{
+        tbody+=`<tr>
+          <td style="color:#94a3b8;">${ri===0?++rowIdx:''}</td>
+          <td style="font-weight:700;">${ri===0?he2(d.inv):''}</td>
+          <td>${ri===0?he2(mLabel(d.month)):''}</td>
+          <td style="font-family:monospace;font-size:9.5px;">${he2(r.เบอร์ตู้||'-')}</td>
+          <td>${he2(r.ทะเบียนรถ||'-')}</td>
+          <td style="font-size:9.5px;">${he2(r.trMatch.billNo||'-')}</td>
+          <td style="text-align:right;font-weight:700;color:#059669;">${fmtAmt(r.trMatch.price||0)}</td>
+        </tr>`;
+        totalCtr++;totalAmt+=r.trMatch.price||0;
+      });
+    });
+  });
+  const css=`@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
+    @page{size:A4 landscape;margin:10mm 14mm;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .hdr{margin-bottom:12px;display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #3b0764;padding-bottom:8px;}
+    .hdr-title{font-size:16px;font-weight:800;color:#3b0764;}
+    .hdr-meta{font-size:8.5px;color:#64748b;margin-top:3px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#3b0764;color:#fff;font-size:8.5px;font-weight:700;padding:5px 8px;text-align:left;}
+    th.r{text-align:right;}
+    td{border-bottom:1px solid #e2e8f0;padding:4px 8px;font-size:9.5px;vertical-align:middle;}
+    tr:nth-child(even) td{background:#faf5ff;}
+    .tot-row td{font-weight:800;background:#ede9fe;border-top:2px solid #7c3aed;font-size:11px;}
+    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}`;
+  const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>Report ค่าขนส่ง</title><style>${css}</style></head><body>
+    <div class="hdr">
+      <div><div class="hdr-title">📄 Report ค่าขนส่ง</div><div class="hdr-meta">พิมพ์: ${nowDate} &nbsp;·&nbsp; ${src.length} อินวอยซ์ &nbsp;·&nbsp; ${totalCtr} ตู้</div></div>
+      <div style="text-align:right;"><div style="font-size:14px;font-weight:800;color:#7c3aed;">${fmtAmt(totalAmt)} <span style="font-size:10px;font-weight:400;color:#64748b;">บาท</span></div><div class="hdr-meta">ยอดรวมค่าขนส่ง</div></div>
+    </div>
+    <table>
+      <thead><tr><th style="width:3%">#</th><th style="width:20%">อินวอยซ์</th><th style="width:10%">เดือน</th><th style="width:15%">เบอร์ตู้</th><th style="width:13%">ทะเบียนรถ</th><th style="width:20%">เลขวางบิล</th><th class="r" style="width:12%">ราคา (บาท)</th></tr></thead>
+      <tbody>${tbody}<tr class="tot-row"><td colspan="6" style="text-align:right;">รวมทั้งหมด &nbsp; ${totalCtr} ตู้</td><td style="text-align:right;">${fmtAmt(totalAmt)}</td></tr></tbody>
+    </table></body></html>`;
+  const win=window.open('','_blank','width=1060,height=720');
+  if(!win){alert('⚠️ กรุณาอนุญาต Pop-up ก่อนนะครับ');return;}
+  win.document.open();win.document.write(html);win.document.close();
+  win.focus();setTimeout(()=>{try{win.print();}catch(e){}},600);
 }
 
 function renderTrView(){
