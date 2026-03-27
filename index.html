@@ -1852,6 +1852,8 @@ td{padding:6px 9px;vertical-align:middle;font-size:10px;}
    FACTORY VIEW
 ===================================================== */
 const pDate=s=>{if(!s||s==='-')return 0;const p=s.split('/');return p.length===3?parseInt(p[2])*10000+parseInt(p[1])*100+parseInt(p[0]):0;};
+const _MO={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12,ม:1,กพ:2,มี:3,เม:4,พค:5,มิ:6,กค:7,สค:8,กย:9,ตค:10,พย:11,ธ:12};
+const parseFacDate=s=>{const v=pDate(s);if(v)return v;const m=String(s).match(/(\d+)\s+([A-Za-zก-ฮ]{2,4})/);if(m){const mo=_MO[m[2].toLowerCase().substring(0,3)]||0;return mo*100+parseInt(m[1]);}return 0;};
 const isoInt=s=>{if(!s)return 0;const p=s.split('-');return p.length===3?parseInt(p[0])*10000+parseInt(p[1])*100+parseInt(p[2]):0;};
 const todayIso=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
 const dAgoIso=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());};
@@ -1879,7 +1881,7 @@ function renderFactory(){
     /* รวบรวม facDates ทั้งหมดใน group → dynamic columns */
     const facDateSet=new Set();
     ins.forEach(inv=>Object.keys(im[inv]).forEach(fd=>facDateSet.add(fd)));
-    const facCols=Array.from(facDateSet).sort((a,b)=>{const va=pDate(a),vb=pDate(b);return(va&&vb)?va-vb:a.localeCompare(b);});
+    const facCols=Array.from(facDateSet).sort((a,b)=>parseFacDate(a)-parseFacDate(b)||a.localeCompare(b));
     let dtc=0;ins.forEach(inv=>facCols.forEach(fd=>dtc+=(im[inv][fd]||[]).length));
     ttl+=dtc;tinv+=ins.length;
     const cs=1+facCols.length;
@@ -1958,7 +1960,7 @@ function doFacPrint(dates){
     const ins=Object.keys(im);
     const facDateSet=new Set();
     ins.forEach(inv=>Object.keys(im[inv]).forEach(fd=>facDateSet.add(fd)));
-    const facCols=Array.from(facDateSet).sort((a,b)=>{const va=pDate(a),vb=pDate(b);return(va&&vb)?va-vb:a.localeCompare(b);});
+    const facCols=Array.from(facDateSet).sort((a,b)=>parseFacDate(a)-parseFacDate(b)||a.localeCompare(b));
     let ttl=0;ins.forEach(inv=>facCols.forEach(fd=>ttl+=(im[inv][fd]||[]).length));
     let tbRows='';
     ins.forEach((inv,ii)=>{
