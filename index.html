@@ -1455,6 +1455,7 @@ function applyRoleRestrictions(){
       document.getElementById('trDash').style.display='flex';
       document.getElementById('debtDash').style.display='none';}
   } else if(USER_ROLE==='manager'){
+    if(dashBtn)dashBtn.style.display='none';
     if(debtBtn)debtBtn.style.display='none';
     if(setBtn)setBtn.style.display='none';
   }
