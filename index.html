@@ -245,6 +245,20 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
 .mob-tab-icon{font-size:20px;line-height:1;}
 .mob-badge{background:#ef4444;color:white;border-radius:8px;padding:0 4px;font-size:9px;font-weight:800;min-width:14px;text-align:center;margin-left:2px;}
 
+/* ===== DEBT DASHBOARD ===== */
+#debtDash{display:none;flex-direction:column;flex:1;overflow:hidden;background:#fefce8;}
+#debtDash .debt-hdr{padding:12px 18px;background:#fff;border-bottom:1.5px solid #fde68a;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+#debtDash .debt-title{font-size:15px;font-weight:900;color:#92400e;}
+#debtDash .debt-body{flex:1;overflow:auto;padding:14px 18px;}
+#debtDash .debt-tbl{width:100%;border-collapse:collapse;background:white;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+#debtDash .debt-tbl th{background:#92400e;color:#fff;font-size:10px;font-weight:700;padding:8px 12px;text-align:left;}
+#debtDash .debt-tbl th.r{text-align:right;}
+#debtDash .debt-pfx-row{cursor:pointer;transition:background .1s;}
+#debtDash .debt-pfx-row:hover td{background:#fef3c7 !important;}
+#debtDash .debt-pfx-row td{font-size:12px;font-weight:700;padding:9px 12px;border-bottom:1px solid #fef3c7;}
+#debtDash .debt-inv-row td{font-size:11px;padding:6px 12px 6px 28px;border-bottom:1px solid #fef9c3;color:#374151;background:#fffbeb;}
+#debtDash .debt-total-row td{font-size:13px;font-weight:900;padding:10px 12px;background:#fef3c7;border-top:2px solid #f59e0b;}
+.debt-badge{font-size:9px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:4px;padding:1px 6px;font-weight:700;}
 /* ===== TRANSPORT DASHBOARD ===== */
 #trDash{display:none;flex-direction:column;flex:1;overflow:hidden;background:#f8fafb;}
 #trDash .stats-bar{display:flex;gap:8px;padding:10px 16px;background:white;border-bottom:1px solid #e2e8f0;flex-wrap:wrap;}
@@ -455,9 +469,34 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
   .factory-topbar{flex-direction:column;}
   .fdate-bar{width:100%;}
 }
+/* LOGIN */
+.login-card{background:#fff;border-radius:20px;padding:36px 32px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;}
+.login-logo{font-size:40px;margin-bottom:8px;}
+.login-title{font-size:18px;font-weight:900;color:#0f2a52;margin-bottom:4px;}
+.login-sub{font-size:11px;color:#94a3b8;margin-bottom:24px;}
+.login-inp{width:100%;box-sizing:border-box;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;margin-bottom:10px;outline:none;transition:border .15s;}
+.login-inp:focus{border-color:#1e3a5f;}
+.login-btn{width:100%;padding:11px;border:none;border-radius:10px;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;transition:background .15s;}
+.login-btn:hover{background:#2563eb;}
+.login-err{font-size:11px;color:#dc2626;margin-top:8px;min-height:16px;}
+#userChip{font-size:11px;background:rgba(255,255,255,.12);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;cursor:pointer;white-space:nowrap;}
+#userChip:hover{background:rgba(255,255,255,.2);}
 </style>
 </head>
 <body>
+
+<!-- LOGIN -->
+<div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f 0%,#0f2a52 100%);display:flex;align-items:center;justify-content:center;z-index:99999;">
+  <div class="login-card">
+    <div class="login-logo">🔐</div>
+    <div class="login-title">Logistics Dashboard</div>
+    <div class="login-sub">กรุณาเข้าสู่ระบบ</div>
+    <input class="login-inp" id="loginUser" placeholder="ชื่อผู้ใช้" autocomplete="username">
+    <input class="login-inp" id="loginPass" type="password" placeholder="รหัสผ่าน" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
 
 <!-- SETUP -->
 <div id="setupScreen">
@@ -520,6 +559,11 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
       <input class="inp" id="fBill" placeholder="/LOGISTICS/BILL_ANTS.xlsm">
       <div class="hint">ไฟล์รายการอินวอยซ์ที่วางบิลไปแล้ว (ชีท DATA_BASE_BILL_ANTS) ใช้แสดงสถานะ ✓ วางบิลแล้ว</div>
     </div>
+    <div class="fgrp">
+      <div class="lbl">รับเงินแล้ว — PAID_ANTS (.xlsm)</div>
+      <input class="inp" id="fPaid" placeholder="/LOGISTICS/PAID_ANTS.xlsm">
+      <div class="hint">ไฟล์รายการอินวอยซ์ที่ได้รับชำระแล้ว (ชีท DATA_BASE_PAID_ANTS)</div>
+    </div>
     <button class="save-btn" id="saveBtn">✅ บันทึกและโหลดข้อมูล</button>
     <div class="err-box" id="setupErr"></div>
   </div>
@@ -553,8 +597,11 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     </div>
     <div class="hdr-right">
       <button class="dash-toggle-btn" id="dashToggleBtn" onclick="toggleDashboard()">🚛 ค่าขนส่ง</button>
+      <button class="dash-toggle-btn" id="debtDashBtn" onclick="toggleDebtDash()" style="background:#92400e;border-color:#92400e;">🏦 หนี้โรงงาน</button>
       <button class="hdr-btn" id="refreshBtn">🔄 รีเฟรช</button>
       <button class="hdr-btn" id="settingsBtn">⚙️</button>
+      <span id="userChip" style="display:none;"></span>
+      <button id="logoutBtn" onclick="doLogout()" style="display:none;padding:5px 10px;border:1px solid rgba(255,255,255,.25);border-radius:8px;background:rgba(220,38,38,.15);color:#fca5a5;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s;" onmouseover="this.style.background='rgba(220,38,38,.35)'" onmouseout="this.style.background='rgba(220,38,38,.15)'">🚪 ออกจากระบบ</button>
     </div>
   </div>
   <!-- ===== MAIN DASHBOARD ===== -->
@@ -761,6 +808,31 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     <!-- Transport company view -->
     <div id="trCoWrap" style="display:none;flex:1;overflow:auto;padding:12px 16px;"></div>
   </div><!-- end #trDash -->
+
+  <!-- DEBT DASHBOARD -->
+  <div id="debtDash">
+    <div class="debt-hdr">
+      <span class="debt-title">🏦 ยอดค้างชำระ — วางบิลแล้วแต่ยังไม่รับเงิน</span>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span id="debtSummaryChip" style="font-size:11px;color:#92400e;font-weight:700;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:4px 12px;"></span>
+        <button onclick="printDebtReport(null)" style="padding:5px 14px;border-radius:8px;border:1px solid #fde68a;background:#92400e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;">🖨️ พิมพ์รวม</button>
+        <button onclick="debtPrintSelectModal()" style="padding:5px 14px;border-radius:8px;border:1px solid #fde68a;background:#b45309;color:#fff;font-size:11px;font-weight:700;cursor:pointer;">🖨️ เลือกโรงงาน</button>
+        <button onclick="toggleDebtDash()" style="padding:5px 14px;border-radius:8px;border:1px solid #fde68a;background:#fff;color:#92400e;font-size:11px;font-weight:700;cursor:pointer;">✕ ปิด</button>
+      </div>
+    </div>
+    <div class="debt-body"><div id="debtDashBody"></div></div>
+  </div><!-- end #debtDash -->
+  <!-- Debt print select modal -->
+  <div id="debtPrintBg" onclick="if(event.target===this)document.getElementById('debtPrintBg').style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:24px;min-width:280px;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.2);">
+      <div style="font-size:14px;font-weight:900;color:#92400e;margin-bottom:14px;">🖨️ เลือกโรงงานที่ต้องการพิมพ์</div>
+      <div id="debtPrintSelList" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto;margin-bottom:16px;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button onclick="document.getElementById('debtPrintBg').style.display='none'" style="padding:7px 18px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;cursor:pointer;">ยกเลิก</button>
+        <button onclick="debtPrintConfirm()" style="padding:7px 18px;border-radius:8px;border:none;background:#92400e;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">🖨️ พิมพ์</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Vessel PDF modal — moved outside #trDash so it works even when #trDash is display:none -->
   <div class="vpdf-bg" id="vPdfBg" onclick="if(event.target===this)closeVPdfModal()">
@@ -1216,19 +1288,43 @@ function buildFlat(allInv,dbMap){
    LOAD ALL DATA
 ===================================================== */
 function parseBilledAnts(wb){
-  /* อ่าน DATA_BASE_BILL_ANTS: col D (idx 3) = ชื่อ INV, col K (idx 10) = INV_USE (normalize แล้ว) */
+  /* อ่าน DATA_BASE_BILL_ANTS: col B=WEEK(idx1), col C=YEAR(idx2), col D=INV(idx3), col H=AMOUNT(idx7), col K=INV_USE(idx10) */
   const s=wb.Sheets['DATA_BASE_BILL_ANTS']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_BILL_ANTS'))];
-  if(!s)return new Set();
+  if(!s)return new Map();
   const rows=XLSX.utils.sheet_to_json(s,{header:1,defval:'',raw:false});
-  const set=new Set();
+  const map=new Map();
+  let latestScore=0,latestWeek=0,latestYear=0;
   for(let i=1;i<rows.length;i++){
     const r=rows[i];
     const invUse=String(r[10]||'').trim();
     const invRaw=String(r[3]||'').trim();
     const key=invUse||invRaw;
-    if(key)set.add(normInv(key));
+    if(!key)continue;
+    const amount=parseFloat(String(r[7]||'').replace(/,/g,''))||0;
+    map.set(normInv(key),amount);
+    const wk=parseInt(String(r[1]||'').replace(/\D/g,''))||0;
+    const yr=parseInt(String(r[2]||'').replace(/\D/g,''))||0;
+    const score=yr*100+wk;
+    if(score>latestScore){latestScore=score;latestWeek=wk;latestYear=yr;}
   }
-  return set;
+  map._meta={week:latestWeek,year:latestYear};
+  return map;
+}
+function parsePaidAnts(wb){
+  /* อ่าน DATA_BASE_PAID_ANTS: col D (idx 3)=INV_RAW, col H (idx 7)=AMOUNT, col I (idx 8)=DATE_PAID */
+  const s=wb.Sheets['DATA_BASE_PAID_ANTS']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_PAID_ANTS'))];
+  if(!s)return new Map();
+  const rows=XLSX.utils.sheet_to_json(s,{header:1,defval:'',raw:false});
+  const map=new Map();
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i];
+    const invRaw=String(r[3]||'').trim();
+    if(!invRaw)continue;
+    const amount=parseFloat(String(r[7]||'').replace(/,/g,''))||0;
+    const datePaid=String(r[8]||'').trim()||'-';
+    map.set(normInv(invRaw),{amount,datePaid});
+  }
+  return map;
 }
 async function loadData(){
   const p=k=>ls(k)||'';
@@ -1274,7 +1370,7 @@ async function loadData(){
     }catch(e){console.warn('OGM price file error:',e.message);}
   }
   /* optional: BILL_ANTS วางบิลแล้ว */
-  let billedAnts=new Set();
+  let billedAnts=new Map();
   const billPath=p('f_bill');
   if(billPath){
     try{
@@ -1283,10 +1379,21 @@ async function loadData(){
       billedAnts=parseBilledAnts(billWb);
     }catch(e){console.warn('BILL_ANTS file error:',e.message);}
   }
+  /* optional: PAID_ANTS รับเงินแล้ว */
+  let paidAnts=new Map();
+  const paidPath=p('f_paid');
+  if(paidPath){
+    try{
+      const paidBuf=await readDropboxFile(paidPath);
+      const paidWb=XLSX.read(paidBuf,{type:'array',cellDates:false});
+      paidAnts=parsePaidAnts(paidWb);
+    }catch(e){console.warn('PAID_ANTS file error:',e.message);}
+  }
   const allPaths=[...paths];
   if(ogmPricePath)allPaths.push(ogmPricePath);
   if(billPath)allPaths.push(billPath);
-  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,billedAnts,vesselPlan,allPaths};
+  if(paidPath)allPaths.push(paidPath);
+  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,billedAnts,paidAnts,vesselPlan,allPaths};
 }
 /* =====================================================
    DASHBOARD STATE
@@ -1296,7 +1403,63 @@ let DB_MAP={}; /* raw database map — ใช้สำหรับ transport mat
 let OGM_PRICE_MAP={}; /* normInv → { กนกทอง, นาเมืองเพชร, นาวาพารา } prices */
 /* lookup ด้วย exact match ก่อน ถ้าไม่เจอลอง prefix match (TWI63 → TWI63/060/11/25) */
 function findPriceEntry(inv){const nk=normInv(inv);if(OGM_PRICE_MAP[nk])return OGM_PRICE_MAP[nk];const k=Object.keys(OGM_PRICE_MAP).find(k=>{if(k.length<3||!nk.startsWith(k))return false;const nx=nk[k.length];return nx===undefined||nx==='/';});return k?OGM_PRICE_MAP[k]:null;}
-let BILLED_ANTS=new Set(); /* normInv → วางบิลแล้ว จาก DATA_BASE_BILL_ANTS */
+let BILLED_ANTS=new Map(); /* normInv → amount จาก DATA_BASE_BILL_ANTS */
+let PAID_ANTS=new Map(); /* normInv → {amount,datePaid} จาก DATA_BASE_PAID_ANTS */
+let BILL_ANTS_META={week:0,year:0}; /* WEEK ล่าสุดที่วางบิล */
+
+/* =====================================================
+   AUTH / ROLE
+===================================================== */
+const _CREDS=[
+  {user:'OAK_THIRA', hash:'721c73ec8e751ceb16a443083201aa169e37643d6614ce38b391c0968db1b8a8', role:'admin'},
+  {user:'YAI_THIRA', hash:'1f4314b87ee4771cd4c7bd1a13b51bc8349672abd1201568a187d5ad74836191', role:'transport'},
+  {user:'ANTS_THIRA',hash:'13490ad4c4effaac6e9cb6bb07a2b254ebc3f27b5c94bd237448198b7b8fbf34', role:'manager'},
+];
+let USER_ROLE=''; /* 'admin' | 'transport' | 'manager' */
+let LOGGED_USER='';
+async function _hashPass(str){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function doLogin(){
+  const user=document.getElementById('loginUser').value.trim().toUpperCase();
+  const pass=document.getElementById('loginPass').value;
+  const err=document.getElementById('loginErr');
+  if(!user||!pass){err.textContent='กรุณาใส่ชื่อผู้ใช้และรหัสผ่าน';return;}
+  const h=await _hashPass(user+':'+pass);
+  const cred=_CREDS.find(c=>c.user===user&&c.hash===h);
+  if(!cred){err.textContent='ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';return;}
+  USER_ROLE=cred.role; LOGGED_USER=cred.user;
+  sessionStorage.setItem('rcn_role',cred.role);
+  sessionStorage.setItem('rcn_user',cred.user);
+  document.getElementById('loginScreen').style.display='none';
+  const chip=document.getElementById('userChip');
+  if(chip){chip.textContent='👤 '+cred.user+' ('+_roleLabel(cred.role)+')';chip.style.display='inline-flex';}
+  const lb=document.getElementById('logoutBtn');if(lb)lb.style.display='inline-flex';
+  initApp();
+}
+function doLogout(){sessionStorage.removeItem('rcn_role');sessionStorage.removeItem('rcn_user');location.reload();}
+function _roleLabel(r){return r==='admin'?'Admin':r==='transport'?'ขนส่ง':r==='manager'?'Manager':r;}
+function _canSeeFees(){return USER_ROLE==='admin';}
+function _canSeeBilledPaid(){return USER_ROLE==='admin';}
+function applyRoleRestrictions(){
+  const dashBtn=document.getElementById('dashToggleBtn');
+  const debtBtn=document.getElementById('debtDashBtn');
+  const setBtn=document.getElementById('settingsBtn');
+  if(USER_ROLE==='transport'){
+    if(dashBtn)dashBtn.style.display='none';
+    if(debtBtn)debtBtn.style.display='none';
+    if(setBtn)setBtn.style.display='none';
+    if(!_showTransport){_showTransport=true;
+      document.getElementById('mainDash').style.display='none';
+      document.getElementById('trDash').style.display='flex';
+      document.getElementById('debtDash').style.display='none';}
+  } else if(USER_ROLE==='manager'){
+    if(debtBtn)debtBtn.style.display='none';
+    if(setBtn)setBtn.style.display='none';
+  }
+}
+
 let curTab='main',SM=null,SP=null,SI=null,activePV=null,midMode='group',mainMode='month',SF=null,YEAR_FILTER=null;
 const MF={'1':'ม.ค.','2':'ก.พ.','3':'มี.ค.','4':'เม.ย.','5':'พ.ค.','6':'มิ.ย.','7':'ก.ค.','8':'ส.ค.','9':'ก.ย.','10':'ต.ค.','11':'พ.ย.','12':'ธ.ค.','-':'ไม่ระบุ'};
 const mNum=k=>{if(!k||k==='-')return 99;const p=k.includes('_')?k.split('_')[1]:k;return parseInt(p)||99;};
@@ -1353,8 +1516,8 @@ function renderStatsVessel(){
   let tocf=0,ttlx=0;VESSEL.forEach(r=>{const f=FEES[normInv(r.inv)];if(f){tocf+=f.ocf||0;ttlx+=f.tlx||0;}});
   const tot=tocf+ttlx;const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
   let bar=kc('เรือทั้งหมด',vn.length,'รอบการส่ง','#1a56a0',null)+kc('อินวอยซ์',VESSEL.length,'จัดขึ้นเรือแล้ว','#16a34a',null)+kc('ตู้รวม',tv,'ตู้','#7c3aed',null);
-  if(tot>0)bar+=kc('OCF',fm(tocf)+' RM','ค่าระวาง','#16a34a',null)+kc('TLX',fm(ttlx)+' RM','ค่า Telex','#2563eb',null)+kc('รวม',fm(tot)+' RM','OCF+TLX','#dc2626',null);
-  if(STMT.latestNo)bar+=kc('ลำดับล่าสุด','#'+STMT.latestNo,STMT.latestDate,'#475569',null)+kc('ยอดคงเหลือ',fm(STMT.latestBalance)+' RM','ณ #'+STMT.latestNo,'#dc2626',null);
+  if(_canSeeFees()&&tot>0)bar+=kc('OCF',fm(tocf)+' RM','ค่าระวาง','#16a34a',null)+kc('TLX',fm(ttlx)+' RM','ค่า Telex','#2563eb',null)+kc('รวม',fm(tot)+' RM','OCF+TLX','#dc2626',null);
+  if(_canSeeFees()&&STMT.latestNo)bar+=kc('ลำดับล่าสุด','#'+STMT.latestNo,STMT.latestDate,'#475569',null)+kc('ยอดคงเหลือ',fm(STMT.latestBalance)+' RM','ณ #'+STMT.latestNo,'#dc2626',null);
   document.getElementById('sBar').innerHTML=bar;
 }
 
@@ -1408,9 +1571,10 @@ function selMonth(m){
       const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
       const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
       const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓</span>';
-      const bb=BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
+      const bb=_canSeeBilledPaid()&&BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
+      const pb=_canSeeBilledPaid()&&PAID_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">💰 PAID</span>':'';
       const s=pst(d.prefix);
-      out+=`<div class="ir" data-id="${d.id}"><span style="background:${s.bg};color:${s.tx};border-radius:3px;padding:0 5px;font-size:9px;font-weight:800;margin-right:3px;">${h(d.prefix)}</span><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}</div>`;
+      out+=`<div class="ir" data-id="${d.id}"><span style="background:${s.bg};color:${s.tx};border-radius:3px;padding:0 5px;font-size:9px;font-weight:800;margin-right:3px;">${h(d.prefix)}</span><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}${pb}</div>`;
     });
   }
   document.getElementById('mBody').innerHTML=out||'<div style="padding:12px;color:#94a3b8;font-size:12px;">ไม่มีข้อมูล</div>';
@@ -1425,8 +1589,9 @@ function selPrefix(m,pfx){
     const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
     const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
     const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢 จัดแล้ว</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓ ยังไม่จัด</span>';
-    const bb=BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
-    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}</div>`;
+    const bb=_canSeeBilledPaid()&&BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
+    const pb=_canSeeBilledPaid()&&PAID_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">💰 PAID</span>':'';
+    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}${pb}</div>`;
   });
   document.getElementById('mBody').innerHTML=out;document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">👈</div><p>เลือกอินวอยซ์</p></div>';
 }
@@ -1440,8 +1605,9 @@ function selFactory(pfx){
     const cOk=d.total_expected>0&&d.total_actual>=d.total_expected,dOk=d.doc_status==='ปล่อยเอกสารแล้ว';
     const badge=dOk?'<span class="ir-badge" style="background:#dcfce7;color:#166534">✔</span>':(cOk?'<span class="ir-badge" style="background:#ede9fe;color:#7c3aed">~</span>':`<span class="ir-badge" style="background:#fee2e2;color:#991b1b">${d.total_actual}/${d.total_expected}</span>`);
     const vb=isLoaded(d.inv)?'<span class="ir-badge" style="background:#e0f2fe;color:#0369a1">🚢 จัดแล้ว</span>':'<span class="ir-badge" style="background:#fef9c3;color:#92400e">⚓ ยังไม่จัด</span>';
-    const bb=BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
-    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}<span style="font-size:9px;color:#94a3b8;margin-left:4px;">${mLabel(d.month)}</span></div>`;
+    const bb=_canSeeBilledPaid()&&BILLED_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
+    const pb=_canSeeBilledPaid()&&PAID_ANTS.has(normInv(d.inv))?'<span class="ir-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">💰 PAID</span>':'';
+    out+=`<div class="ir" data-id="${d.id}"><span class="ir-inv">${h(d.inv)}</span>${badge}${vb}${bb}${pb}<span style="font-size:9px;color:#94a3b8;margin-left:4px;">${mLabel(d.month)}</span></div>`;
   });
   document.getElementById('mBody').innerHTML=out||'<div style="padding:12px;color:#94a3b8;font-size:12px;">ไม่พบข้อมูล</div>';
   document.getElementById('dPanel').innerHTML='<div class="placeholder"><div class="ico">👈</div><p>เลือกอินวอยซ์</p></div>';
@@ -1462,7 +1628,8 @@ function showInvDetail(id,panelId){
   const s=pst(d.prefix);const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
   let out=`<div class="det-title">${h(d.inv)}</div><div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span>`;
   out+=d.doc_status==='ปล่อยเอกสารแล้ว'?'<span class="pv-badge" style="background:#dcfce7;color:#166534">✔ ปล่อยเอกสารแล้ว</span>':'<span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span>';
-  if(BILLED_ANTS.has(normInv(d.inv)))out+='<span class="pv-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;font-weight:700;">🧾 BILLED</span>';
+  if(_canSeeBilledPaid()&&BILLED_ANTS.has(normInv(d.inv)))out+='<span class="pv-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;font-weight:700;">🧾 BILLED</span>';
+  if(_canSeeBilledPaid()&&PAID_ANTS.has(normInv(d.inv)))out+='<span class="pv-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;font-weight:700;">💰 PAID</span>';
   out+=`<span class="pv-badge" style="background:#f1f5f9;color:#475569">${d.total_actual}/${d.total_expected} ตู้</span>`;
   if(invPendCtrs.length)out+=`<span class="pv-badge" style="background:#fef9c3;color:#92400e;border:1px solid #fcd34d;">⏳ +${invPendCtrs.length} PENDING</span>`;
   out+=`</div>`;
@@ -1472,29 +1639,43 @@ function showInvDetail(id,panelId){
   /* === วางบิลโรงงาน (OGM(A) — factory type) === */
   const isOgmA=d.prefix==='OGM'&&normInv(d.inv).includes('(A)');
   if(isOgmA){
+    const showPrice=_canSeeFees();
     const priceKey=normInv(d.inv);
-    const prices=(OGM_PRICE_MAP[priceKey]&&OGM_PRICE_MAP[priceKey].type==='factory')?OGM_PRICE_MAP[priceKey]:{};
-    const hasPrice=prices.กนกทอง>0||prices.นาเมืองเพชร>0||prices.นาวาพารา>0;
+    const prices=showPrice&&(OGM_PRICE_MAP[priceKey]&&OGM_PRICE_MAP[priceKey].type==='factory')?OGM_PRICE_MAP[priceKey]:{};
+    const hasPrice=showPrice&&(prices.กนกทอง>0||prices.นาเมืองเพชร>0||prices.นาวาพารา>0);
     const factCounts={};
     if(d.details&&d.details.length)d.details.forEach(r=>{const f=r.โรงงาน||'-';factCounts[f]=(factCounts[f]||0)+1;});
     const fm2=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
-    const FACTORIES=['กนกทอง','นาเมืองเพชร','นาวาพารา'];
+    const FACTORIES=['นาวาพารา','นาเมืองเพชร','กนกทอง','ชะอวด','พัทลุง'];
     let totalBill=0;let billRows='';
     FACTORIES.forEach(f=>{
-      const cnt=factCounts[f]||0;const price=prices[f]||0;const subtotal=cnt*price;totalBill+=subtotal;
-      if(cnt>0||price>0)billRows+=`<tr><td>${h(f)}</td><td style="text-align:center;">${cnt}</td><td style="text-align:right;">${price>0?fm2(price):'-'}</td><td style="text-align:right;font-weight:700;color:#16a34a;">${subtotal>0?fm2(subtotal):'-'}</td></tr>`;
+      const cnt=factCounts[f]||0;const price=showPrice?(prices[f]||0):0;const subtotal=cnt*price;totalBill+=subtotal;
+      if(cnt>0||price>0){
+        billRows+=showPrice
+          ?`<tr><td>${h(f)}</td><td style="text-align:center;">${cnt}</td><td style="text-align:right;">${price>0?fm2(price):'-'}</td><td style="text-align:right;font-weight:700;color:#16a34a;">${subtotal>0?fm2(subtotal):'-'}</td></tr>`
+          :`<tr><td>${h(f)}</td><td style="text-align:center;font-weight:700;">${cnt}</td></tr>`;
+      }
     });
-    Object.keys(factCounts).filter(f=>!FACTORIES.includes(f)&&f!=='-').forEach(f=>{const cnt=factCounts[f];billRows+=`<tr><td>${h(f)}</td><td style="text-align:center;">${cnt}</td><td style="text-align:right;color:#94a3b8;">?</td><td style="text-align:right;color:#94a3b8;">?</td></tr>`;});
+    Object.keys(factCounts).filter(f=>!FACTORIES.includes(f)&&f!=='-').forEach(f=>{
+      const cnt=factCounts[f];
+      billRows+=showPrice
+        ?`<tr><td>${h(f)}</td><td style="text-align:center;">${cnt}</td><td style="text-align:right;color:#94a3b8;">?</td><td style="text-align:right;color:#94a3b8;">?</td></tr>`
+        :`<tr><td>${h(f)}</td><td style="text-align:center;font-weight:700;">${cnt}</td></tr>`;
+    });
     out+=`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:10px;">`;
-    out+=`<div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:6px;">💰 วางบิลโรงงาน</div>`;
-    out+=`<table class="det-tbl"><thead><tr><th>โรงงาน</th><th style="text-align:center;">ตู้</th><th style="text-align:right;">ราคา/ตู้ (฿)</th><th style="text-align:right;">รวม (฿)</th></tr></thead><tbody>${billRows}</tbody>`;
-    if(totalBill>0)out+=`<tfoot><tr style="font-weight:700;background:#dcfce7;"><td colspan="3" style="text-align:right;padding:5px 8px;">ยอดรวม</td><td style="text-align:right;padding:5px 8px;color:#15803d;">${fm2(totalBill)}</td></tr></tfoot>`;
-    out+=`</table>`;
-    if(!hasPrice)out+=`<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ ไม่พบข้อมูลราคาสำหรับอินวอยซ์นี้ — กรุณาตั้งค่าไฟล์ราคา OGM (A)</div>`;
+    out+=`<div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:6px;">🏭 เข้าโรงงาน</div>`;
+    if(showPrice){
+      out+=`<table class="det-tbl"><thead><tr><th>โรงงาน</th><th style="text-align:center;">ตู้</th><th style="text-align:right;">ราคา/ตู้ (฿)</th><th style="text-align:right;">รวม (฿)</th></tr></thead><tbody>${billRows}</tbody>`;
+      if(totalBill>0)out+=`<tfoot><tr style="font-weight:700;background:#dcfce7;"><td colspan="3" style="text-align:right;padding:5px 8px;">ยอดรวม</td><td style="text-align:right;padding:5px 8px;color:#15803d;">${fm2(totalBill)}</td></tr></tfoot>`;
+      out+=`</table>`;
+      if(!hasPrice)out+=`<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ ไม่พบข้อมูลราคาสำหรับอินวอยซ์นี้ — กรุณาตั้งค่าไฟล์ราคา OGM (A)</div>`;
+    }else{
+      out+=`<table class="det-tbl"><thead><tr><th>โรงงาน</th><th style="text-align:center;">จำนวนตู้</th></tr></thead><tbody>${billRows}</tbody></table>`;
+    }
     out+=`</div>`;
   }
   /* === ราคาเรียกเก็บลูกค้า (SHL / TWI / INV — simple & tiered) === */
-  const priceEntry2=findPriceEntry(d.inv);
+  const priceEntry2=_canSeeFees()?findPriceEntry(d.inv):null;
   if(priceEntry2&&priceEntry2.type!=='factory'){
     const fm2=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
     const totalCtrs=d.total_actual||0;
@@ -1552,8 +1733,9 @@ function renderPendingList(){
       if(tot===0)ctr='<div style="margin:4px 0;font-size:10px;color:#64748b;">ไม่ระบุจำนวนตู้</div>';
       else if(dn>=tot)ctr=`<div style="margin:4px 0 5px;display:flex;align-items:center;gap:5px;"><span style="background:#dcfce7;color:#166534;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;">✔ ตู้ครบ ${dn}/${tot}</span><span style="font-size:10px;color:#7c3aed;font-weight:600;">รอปล่อยเอกสาร</span></div>`;
       else{const left=tot-dn,pct=Math.round(dn/tot*100),bc=dn===0?'#ef4444':(pct<50?'#f97316':pct<80?'#eab308':'#22c55e');const pndCnt=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv)).length;const pendPct=pndCnt>0?Math.min(Math.round(pndCnt/tot*100),100-pct):0;const pendBar=pendPct>0?`<div style="position:absolute;top:0;left:${pct}%;width:${pendPct}%;height:100%;background:${s.tx};opacity:0.55;"></div>`:'';const pendLabel=pndCnt>0?`<span style="font-size:9px;color:${s.tx};background:${s.bg};border:1px solid ${s.bd};border-radius:3px;padding:0 4px;margin-right:2px;">⏳+${pndCnt}</span>`:'';ctr=`<div style="margin:4px 0 2px"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:11px;font-weight:800;color:${s.tx}">${dn}/${tot}</span><span style="font-size:10px;color:#a0aec0">${pct}%</span></div><div class="prog-bg" style="position:relative;"><div class="prog-bar" style="width:${pct}%;background:${bc}"></div>${pendBar}</div><div class="prog-labels"><span class="prog-done">✔ ${dn}</span><span style="display:flex;align-items:center;">${pendLabel}<span class="prog-left">ขาด ${left}</span></span></div></div>`;}
-      const bb2=BILLED_ANTS.has(normInv(d.inv))?'<span class="pv-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
-      out+=`<div class="pv-card${act}" data-id="${d.id}"><div class="pv-inv">${h(d.inv)}</div>${d.customer!=='-'?`<div class="pv-cust">🏭 ${h(d.customer)}</div>`:''}${ctr}<div class="pv-meta"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span>${bb2}</div></div>`;
+      const bb2=_canSeeBilledPaid()&&BILLED_ANTS.has(normInv(d.inv))?'<span class="pv-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
+      const pb2=_canSeeBilledPaid()&&PAID_ANTS.has(normInv(d.inv))?'<span class="pv-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">💰 PAID</span>':'';
+      out+=`<div class="pv-card${act}" data-id="${d.id}"><div class="pv-inv">${h(d.inv)}</div>${d.customer!=='-'?`<div class="pv-cust">🏭 ${h(d.customer)}</div>`:''}${ctr}<div class="pv-meta"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span>${bb2}${pb2}</div></div>`;
     });
   });
   document.getElementById('pvList').innerHTML=out;
@@ -1627,7 +1809,7 @@ function renderVessel(){
   let sorted=Object.values(groups).sort((a,b)=>pDate(b.date)-pDate(a.date));
   _VSL_GROUPS=[...sorted]; /* store all groups for PDF picker */
   if(_vslFilter)sorted=sorted.filter(g=>g.vessel===_vslFilter);
-  const hasFees=Object.keys(FEES).length>0;const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
+  const hasFees=_canSeeFees()&&Object.keys(FEES).length>0;const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
   let opts=`<option value="">🚢 เรือทั้งหมด (${all.length} ลำ)</option>`;all.forEach(v=>{opts+=`<option value="${h(v)}"${v===_vslFilter?' selected':''}>${h(v)}</option>`;});
   let out=`<div style="padding:4px 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><label style="font-size:12px;color:#475569;font-weight:600;">กรองเรือ:</label><select id="vslSel" onchange="_vslFilter=this.value;renderVessel();" style="padding:6px 12px;border:1.5px solid #bfdbfe;border-radius:8px;font-size:13px;background:#fff;color:#1e40af;cursor:pointer;min-width:220px;">${opts}</select><button onclick="showVesselPdfModal()" style="padding:6px 14px;border:1.5px solid #0ea5e9;border-radius:8px;background:#eff6ff;color:#0369a1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;">🖨️ PDF</button></div>`;
   sorted.forEach(g=>{
@@ -1671,7 +1853,7 @@ function renderVessel(){
 ===================================================== */
 function closeVPdfModal(){document.getElementById('vPdfBg').classList.remove('open');}
 function showVesselPdfModal(){
-  const hasFees=Object.keys(FEES).length>0;
+  const hasFees=_canSeeFees()&&Object.keys(FEES).length>0;
   const fm=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
   let html='';
   _VSL_GROUPS.forEach((g,i)=>{
@@ -1704,7 +1886,7 @@ function printVesselPdf(){
   const idxs=cbs.map((c,i)=>c.checked?i:-1).filter(i=>i>=0);
   if(!idxs.length)return;
   const sel=idxs.map(i=>_VSL_GROUPS[i]);
-  const hasFees=Object.keys(FEES).length>0;
+  const hasFees=_canSeeFees()&&Object.keys(FEES).length>0;
   const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';
   const he=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const nowDate=()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();};
@@ -2034,13 +2216,14 @@ function showStatModal(filter){
         if(exp===0){ctrTxt='ไม่ระบุ';ctrColor='#94a3b8';}
         else if(act>=exp){ctrTxt='✔ '+act+'/'+exp+' ตู้';ctrColor='#16a34a';}
         else{ctrTxt=act+'/'+exp+' ตู้';ctrColor='#d97706';}
-        const bb3=BILLED_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;flex-shrink:0;">🧾 BILLED</span>':'';
+        const bb3=_canSeeBilledPaid()&&BILLED_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;flex-shrink:0;">🧾 BILLED</span>':'';
+        const pb3=_canSeeBilledPaid()&&PAID_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px;padding:1px 5px;flex-shrink:0;">💰 PAID</span>':'';
         const pndCnt3=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv)).length;
         const pndBadge3=pndCnt3?`<span style="font-size:9px;background:#fef9c3;color:#92400e;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;flex-shrink:0;margin-left:4px;">⏳ +${pndCnt3}</span>`:'';
-        rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr" style="color:#0369a1;flex-shrink:0;">${vp?.bkg||''}</span><span style="font-size:10px;font-weight:700;color:${ctrColor};margin-left:6px;flex-shrink:0;">${ctrTxt}</span>${bb3}${pndBadge3}</div>`;
+        rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr" style="color:#0369a1;flex-shrink:0;">${vp?.bkg||''}</span><span style="font-size:10px;font-weight:700;color:${ctrColor};margin-left:6px;flex-shrink:0;">${ctrTxt}</span>${bb3}${pb3}${pndBadge3}</div>`;
       });
     });
-  }else if(filter==='not-loaded'){const byM={};list.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});Object.keys(byM).sort(mSort).forEach(m=>{rows+=`<div style="padding:5px 14px;background:#fef2f2;font-size:9px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca;border-top:1px solid #fecaca;margin-top:4px;">${mLabel(m)} (${byM[m].length} รายการ)</div>`;byM[m].forEach(d=>{const s=pst(d.prefix);const bb4=BILLED_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;flex-shrink:0;">🧾 BILLED</span>':'';rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr">${d.total_expected>0?d.total_actual+'/'+d.total_expected+' ตู้':'ไม่ระบุ'}</span>${bb4}</div>`;});});}
+  }else if(filter==='not-loaded'){const byM={};list.forEach(d=>{if(!byM[d.month])byM[d.month]=[];byM[d.month].push(d);});Object.keys(byM).sort(mSort).forEach(m=>{rows+=`<div style="padding:5px 14px;background:#fef2f2;font-size:9px;font-weight:700;color:#991b1b;border-bottom:1px solid #fecaca;border-top:1px solid #fecaca;margin-top:4px;">${mLabel(m)} (${byM[m].length} รายการ)</div>`;byM[m].forEach(d=>{const s=pst(d.prefix);const bb4=_canSeeBilledPaid()&&BILLED_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;border-radius:4px;padding:1px 5px;flex-shrink:0;">🧾 BILLED</span>':'';const pb4=_canSeeBilledPaid()&&PAID_ANTS.has(normInv(d.inv))?'<span style="font-size:9px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px;padding:1px 5px;flex-shrink:0;">💰 PAID</span>':'';rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr">${d.total_expected>0?d.total_actual+'/'+d.total_expected+' ตู้':'ไม่ระบุ'}</span>${bb4}${pb4}</div>`;});});}
   else{list.forEach(d=>{const s=pst(d.prefix);let ctr,cls;if(d.total_expected===0){ctr='ไม่ระบุ';cls='';}else if(d.total_actual>=d.total_expected){ctr='✔ '+d.total_actual+'/'+d.total_expected;cls='done';}else{ctr=d.total_actual+'/'+d.total_expected;cls='inc';}const pndCnt=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv)).length;const pndBadge=pndCnt?`<span style="font-size:9px;background:#fef9c3;color:#92400e;border:1px solid #fcd34d;border-radius:4px;padding:1px 5px;flex-shrink:0;margin-left:4px;">⏳ +${pndCnt}</span>`:'';rows+=`<div class="sm-row" data-id="${d.id}"><span class="sm-pfx" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="sm-inv">${h(d.inv)}</span><span class="sm-ctr ${cls}">${ctr}</span>${pndBadge}</div>`;});}
   document.getElementById('sModalTitle').textContent=title;document.getElementById('sModalTitle').style.color=color;
   document.getElementById('sModalBody').innerHTML=rows||'<div style="padding:20px;text-align:center;color:#64748b;">ไม่มีข้อมูล</div>';
@@ -3507,8 +3690,10 @@ function renderTransport(){
 
 function toggleDashboard(){
   _showTransport=!_showTransport;
+  if(_showTransport&&_showDebt){_showDebt=false;const db=document.getElementById('debtDashBtn');if(db)db.textContent='🏦 หนี้โรงงาน';}
   document.getElementById('mainDash').style.display=_showTransport?'none':'flex';
   document.getElementById('trDash').style.display=_showTransport?'flex':'none';
+  document.getElementById('debtDash').style.display='none';
   const btn=document.getElementById('dashToggleBtn');
   btn.textContent=_showTransport?'📦 Dashboard หลัก':'🚛 ค่าขนส่ง';
   btn.classList.toggle('tr-active',_showTransport);
@@ -3519,6 +3704,147 @@ function toggleDashboard(){
     document.querySelectorAll('#trDash .vtab').forEach(b=>b.classList.toggle('active',b.dataset.v==='invoice'));
     renderTransport();
   }
+}
+
+let _showDebt=false;
+function toggleDebtDash(){
+  _showDebt=!_showDebt;
+  document.getElementById('mainDash').style.display=_showDebt?'none':'flex';
+  document.getElementById('trDash').style.display='none';
+  document.getElementById('debtDash').style.display=_showDebt?'flex':'none';
+  if(_showDebt&&_showTransport){_showTransport=false;const tb=document.getElementById('dashToggleBtn');if(tb){tb.textContent='🚛 ค่าขนส่ง';tb.classList.remove('tr-active');}}
+  const btn=document.getElementById('debtDashBtn');
+  if(btn){btn.textContent=_showDebt?'📦 Dashboard หลัก':'🏦 หนี้โรงงาน';}
+  if(_showDebt)renderDebtDash();
+}
+function renderDebtDash(){
+  const pfxMap=_buildDebtMap();
+  /* hide prefixes with 0 outstanding (e.g. CK — all paid) */
+  const pfxs=Object.keys(pfxMap).filter(p=>pfxMap[p].total>0).sort();
+  const grandTotal=pfxs.reduce((a,p)=>a+pfxMap[p].total,0);
+  const totalInvs=pfxs.reduce((a,p)=>a+pfxMap[p].invs.length,0);
+  const fm=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const chip=document.getElementById('debtSummaryChip');
+  const weekTxt=BILL_ANTS_META.week>0?` · วางบิลล่าสุด WEEK ${BILL_ANTS_META.week}/${BILL_ANTS_META.year}`:'';
+  if(chip)chip.textContent=`${totalInvs} อินวอยซ์ · ${fm(grandTotal)} บาท${weekTxt}`;
+  if(!pfxs.length){document.getElementById('debtDashBody').innerHTML='<div style="text-align:center;padding:40px;color:#92400e;font-size:14px;">✅ ไม่มียอดค้างชำระ</div>';return;}
+  let tbl=`<table class="debt-tbl"><thead><tr><th>โรงงาน</th><th>จำนวน INV</th><th class="r">ยอดค้างชำระ (บาท)</th></tr></thead><tbody>`;
+  pfxs.forEach(pfx=>{
+    const g=pfxMap[pfx];
+    tbl+=`<tr class="debt-pfx-row" onclick="debtTogglePfx(this,'${pfx.replace(/'/g,"\\'")}')"><td>📦 ${h(pfx)} <span class="debt-badge">${g.invs.length} INV</span></td><td style="color:#92400e;">${g.invs.length}</td><td style="text-align:right;color:#b45309;font-family:monospace;">${fm(g.total)}</td></tr>`;
+    tbl+=`<tr class="debt-pfx-detail" data-pfx="${h(pfx)}" style="display:none;"><td colspan="3" style="padding:0;"><table style="width:100%;border-collapse:collapse;">`;
+    g.invs.sort((a,b)=>a.inv.localeCompare(b.inv)).forEach(iv=>{
+      tbl+=`<tr class="debt-inv-row"><td style="padding:6px 12px 6px 28px;">${h(iv.inv)}</td><td style="text-align:right;font-family:monospace;padding:6px 12px;">${fm(iv.amount)}</td><td></td></tr>`;
+    });
+    tbl+=`</table></td></tr>`;
+  });
+  tbl+=`<tr class="debt-total-row"><td colspan="2">💰 ยอดรวมค้างชำระทั้งหมด</td><td style="text-align:right;font-family:monospace;">${fm(grandTotal)}</td></tr>`;
+  tbl+=`</tbody></table>`;
+  document.getElementById('debtDashBody').innerHTML=tbl;
+}
+function debtTogglePfx(row,pfx){
+  const detail=document.querySelector(`.debt-pfx-detail[data-pfx="${CSS.escape(pfx)}"]`);
+  if(!detail)return;
+  const open=detail.style.display!=='none';
+  detail.style.display=open?'none':'table-row';
+  const badge=row.querySelector('.debt-badge');
+  if(badge)badge.textContent=open?`${row.cells[1].textContent} INV`:`▲ ${row.cells[1].textContent} INV`;
+}
+function _buildDebtMap(){
+  const pfxMap={};
+  BILLED_ANTS.forEach((amount,nInv)=>{
+    if(PAID_ANTS.has(nInv))return;
+    const rec=FLAT.find(d=>normInv(d.inv)===nInv);
+    const rawPfx=rec?rec.prefix:nInv.replace(/\d.*$/,'').toUpperCase()||'(ไม่ทราบ)';
+    const pfx=rawPfx.split('-')[0]||rawPfx;
+    if(!pfxMap[pfx])pfxMap[pfx]={invs:[],total:0};
+    pfxMap[pfx].invs.push({inv:rec?rec.inv:nInv,amount});
+    pfxMap[pfx].total+=amount;
+  });
+  return pfxMap;
+}
+function printDebtReport(pfxFilter,showDetail){
+  const pfxMap=_buildDebtMap();
+  const allPfxs=Object.keys(pfxMap).filter(p=>pfxMap[p].total>0).sort();
+  const pfxs=pfxFilter?allPfxs.filter(p=>pfxFilter.includes(p)):allPfxs;
+  if(!pfxs.length){alert('ไม่มียอดค้างชำระ');return;}
+  const fm=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const grandTotal=pfxs.reduce((a,p)=>a+(pfxMap[p]?pfxMap[p].total:0),0);
+  const totalInvs=pfxs.reduce((a,p)=>a+(pfxMap[p]?pfxMap[p].invs.length:0),0);
+  const now=new Date();const dateStr=now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  let body='';
+  if(showDetail){
+    pfxs.forEach((pfx,idx)=>{
+      const g=pfxMap[pfx];if(!g)return;
+      const isLast=idx===pfxs.length-1;
+      body+=`<div class="pfx-page${isLast?'':' page-break'}">`;
+      body+=`<div class="pfx-hdr">📦 ${pfx} <span class="pfx-sub">${g.invs.length} อินวอยซ์</span></div>`;
+      body+=`<table><thead><tr><th>อินวอยซ์</th><th class="r">จำนวน (บาท)</th></tr></thead><tbody>`;
+      g.invs.sort((a,b)=>a.inv.localeCompare(b.inv)).forEach(iv=>{
+        body+=`<tr><td style="padding:7px 12px;font-size:12px;">${iv.inv}</td><td style="text-align:right;font-family:monospace;font-size:12px;padding:7px 12px;">${fm(iv.amount)}</td></tr>`;
+      });
+      body+=`<tr class="sub-total"><td>รวม ${pfx}</td><td style="text-align:right;font-family:monospace;">${fm(g.total)}</td></tr>`;
+      body+=`</tbody></table></div>`;
+    });
+  }else{
+    pfxs.forEach(pfx=>{
+      const g=pfxMap[pfx];if(!g)return;
+      body+=`<tr><td style="padding:9px 12px;font-size:13px;font-weight:800;color:#92400e;">📦 ${pfx}</td><td style="padding:9px 12px;font-size:11px;color:#6b7280;text-align:center;">${g.invs.length} อินวอยซ์</td><td style="text-align:right;font-family:monospace;font-size:13px;font-weight:700;padding:9px 12px;">${fm(g.total)}</td></tr>`;
+    });
+  }
+  const title=showDetail?'รายงานยอดค้างชำระ (รายละเอียด)':'รายงานยอดค้างชำระ (สรุปรวม)';
+  const summaryContent=showDetail?'':`<table><thead><tr><th>โรงงาน</th><th style="text-align:center;">จำนวน INV</th><th class="r">ยอดค้างชำระ (บาท)</th></tr></thead><tbody>${body}<tr class="grand"><td colspan="2">💰 ยอดรวมค้างชำระทั้งหมด</td><td style="text-align:right;font-family:monospace;">${fm(grandTotal)}</td></tr></tbody></table>`;
+  const detailContent=showDetail?`${body}<div class="grand-bar">💰 ยอดรวมค้างชำระทั้งหมด &nbsp;·&nbsp; <span style="font-family:monospace;">${fm(grandTotal)}</span></div>`:'';
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>
+    body{font-family:'Sarabun',sans-serif;margin:0;padding:${showDetail?'0':'24px'};font-size:12px;color:#1f2937;}
+    h2{color:#92400e;margin:0 0 4px;}
+    .sub{font-size:11px;color:#6b7280;margin-bottom:16px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#92400e;color:#fff;padding:9px 12px;text-align:left;font-size:11px;}
+    th.r{text-align:right;}
+    tr:nth-child(even) td{background:#fffbeb;}
+    td{border-bottom:1px solid #fef3c7;}
+    .grand td{border-top:2px solid #f59e0b;padding:10px 12px;background:#fef3c7;font-weight:900;font-size:13px;}
+    .pfx-page{padding:20px 24px;box-sizing:border-box;}
+    .pfx-hdr{font-size:18px;font-weight:900;color:#92400e;margin-bottom:4px;padding-bottom:8px;border-bottom:2px solid #f59e0b;}
+    .pfx-sub{font-size:12px;font-weight:400;color:#b45309;margin-left:8px;}
+    .doc-hdr{padding:16px 24px 8px;border-bottom:1px solid #fde68a;background:#fffbeb;}
+    .sub-total td{border-top:2px solid #f59e0b;background:#fef3c7;font-weight:800;font-size:12px;padding:7px 12px;}
+    .grand-bar{margin:16px 24px 0;padding:12px 16px;background:#fef3c7;border-top:2px solid #f59e0b;font-size:14px;font-weight:900;color:#92400e;text-align:right;}
+    .page-break{page-break-after:always;break-after:page;}
+    @media print{.pfx-page{padding:12px 16px;}@page{margin:12mm;}}
+  </style></head><body>
+  ${showDetail
+    ?`<div class="doc-hdr"><h2 style="margin:0 0 2px;">🏦 ${title}</h2><div style="font-size:11px;color:#6b7280;">วันที่พิมพ์: ${dateStr} · ${totalInvs} อินวอยซ์ · ${pfxs.length} โรงงาน</div></div>${detailContent}`
+    :`<h2>🏦 ${title}</h2><div class="sub">วันที่พิมพ์: ${dateStr} · ${totalInvs} อินวอยซ์ · ${pfxs.length} โรงงาน${pfxFilter?` (${pfxs.join(', ')})`:''}  </div>${summaryContent}`
+  }
+  </body></html>`;
+  const w=window.open('','_blank','width=800,height=700');
+  w.document.write(html);w.document.close();
+  w.onload=()=>{w.focus();w.print();};
+}
+let _debtPrintPfxMap={};
+function debtPrintSelectModal(){
+  _debtPrintPfxMap=_buildDebtMap();
+  const pfxs=Object.keys(_debtPrintPfxMap).sort();
+  const fm=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+  let html='';
+  pfxs.forEach(pfx=>{
+    const g=_debtPrintPfxMap[pfx];
+    html+=`<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #fde68a;border-radius:8px;cursor:pointer;background:#fffbeb;">
+      <input type="checkbox" value="${h(pfx)}" checked style="width:16px;height:16px;accent-color:#92400e;">
+      <span style="font-size:12px;font-weight:700;color:#92400e;flex:1;">${h(pfx)}</span>
+      <span style="font-size:11px;color:#6b7280;">${g.invs.length} INV · ${fm(g.total)} บาท</span>
+    </label>`;
+  });
+  document.getElementById('debtPrintSelList').innerHTML=html;
+  const bg=document.getElementById('debtPrintBg');bg.style.display='flex';
+}
+function debtPrintConfirm(){
+  const selected=Array.from(document.querySelectorAll('#debtPrintSelList input[type=checkbox]:checked')).map(cb=>cb.value);
+  document.getElementById('debtPrintBg').style.display='none';
+  if(!selected.length){alert('กรุณาเลือกโรงงานอย่างน้อย 1 แห่ง');return;}
+  printDebtReport(selected,true);
 }
 
 /* =====================================================
@@ -3551,7 +3877,7 @@ function showSetup(err,justAuthed){
   /* Legacy token */
   const tok=ls('dropbox_token');const tokEl=document.getElementById('fToken');if(tok&&tokEl)tokEl.value=tok;
   /* File paths */
-  [['f_inv','fInv'],['f_bkg','fBkg'],['f_vsl','fVsl'],['f_stm','fStm'],['f_ogm','fOgm'],['f_oth','fOth'],['f_ogm_price','fOgmPrice'],['f_bill','fBill']].forEach(([k,id])=>{const v=ls(k);const el=document.getElementById(id);if(v&&el)el.value=v;});
+  [['f_inv','fInv'],['f_bkg','fBkg'],['f_vsl','fVsl'],['f_stm','fStm'],['f_ogm','fOgm'],['f_oth','fOth'],['f_ogm_price','fOgmPrice'],['f_bill','fBill'],['f_paid','fPaid']].forEach(([k,id])=>{const v=ls(k);const el=document.getElementById(id);if(v&&el)el.value=v;});
   /* If just came back from OAuth, show success notice */
   if(justAuthed){
     const box=document.getElementById('tokenStatusBox');
@@ -3560,10 +3886,11 @@ function showSetup(err,justAuthed){
   }
 }
 function showDashboard(data){
-  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Set();VESSEL_PLAN=data.vesselPlan||{};
+  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Map();PAID_ANTS=data.paidAnts||new Map();BILL_ANTS_META=(BILLED_ANTS._meta)||{week:0,year:0};VESSEL_PLAN=data.vesselPlan||{};
   hideLoad();document.getElementById('app').style.display='flex';
   const now=new Date();document.getElementById('lastUpd').textContent='☁️ Dropbox · '+pad(now.getHours())+':'+pad(now.getMinutes());
   renderTabs();renderStatsMain();const m=Object.keys(BY_MONTH).sort()[0];if(m)selMonth(m);
+  applyRoleRestrictions();
   /* เช็คอัพเดตใน background — ไม่บล็อกการแสดงผล */
   if(data.allPaths&&data.allPaths.length)setTimeout(()=>checkBgUpdates(data.allPaths),500);
 }
@@ -3624,6 +3951,23 @@ function showTokenStatus(){
 }
 
 async function initApp(){
+  /* --- role gate --- */
+  if(!USER_ROLE){
+    const sr=sessionStorage.getItem('rcn_role'),su=sessionStorage.getItem('rcn_user');
+    if(sr&&su){
+      USER_ROLE=sr; LOGGED_USER=su;
+      const chip=document.getElementById('userChip');
+      if(chip){chip.textContent='👤 '+su+' ('+_roleLabel(sr)+')';chip.style.display='inline-flex';}
+      const lb=document.getElementById('logoutBtn');if(lb)lb.style.display='inline-flex';
+      document.getElementById('loginScreen').style.display='none';
+    } else {
+      document.getElementById('loginScreen').style.display='flex';
+      document.getElementById('setupScreen').style.display='none';
+      document.getElementById('loadScreen').style.display='none';
+      document.getElementById('app').style.display='none';
+      return;
+    }
+  }
   /* check if returning from Dropbox OAuth */
   const justAuthed=checkOAuthCallback();
   const invPath=ls('f_inv'),bkgPath=ls('f_bkg'),token=ls('dropbox_token');
@@ -3684,7 +4028,7 @@ document.getElementById('saveBtn').addEventListener('click',async()=>{
   if(!token){document.getElementById('setupErr').textContent='กรุณาเชื่อมต่อ Dropbox ด้วย App Key หรือกรอก Access Token';document.getElementById('setupErr').style.display='block';return;}
   if(!inv||!bkg){document.getElementById('setupErr').textContent='กรุณาใส่พาธไฟล์อย่างน้อย 2 ไฟล์ (ใบยกตู้ + BKG)';document.getElementById('setupErr').style.display='block';return;}
   ls('dropbox_token',token);ls('f_inv',inv);ls('f_bkg',bkg);
-  ['fVsl','fStm','fOgm','fOth','fOgmPrice','fBill'].forEach((id,i)=>{const k=['f_vsl','f_stm','f_ogm','f_oth','f_ogm_price','f_bill'][i];const v=document.getElementById(id).value.trim();if(v)ls(k,v);else localStorage.removeItem(k);});
+  ['fVsl','fStm','fOgm','fOth','fOgmPrice','fBill','fPaid'].forEach((id,i)=>{const k=['f_vsl','f_stm','f_ogm','f_oth','f_ogm_price','f_bill','f_paid'][i];const v=document.getElementById(id).value.trim();if(v)ls(k,v);else localStorage.removeItem(k);});
   document.getElementById('setupScreen').style.display='none';document.getElementById('loadScreen').style.display='flex';
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   document.getElementById('permBox').style.display='none';document.getElementById('errBox').style.display='none';
