@@ -1182,8 +1182,8 @@ function parseAllPriceSheets(wb){
       };
     }
   }
-  /* --- Simple sheets: SHL, TWI --- */
-  ['SHL','TWI'].forEach(shName=>{
+  /* --- Simple+Tiered sheets: SHL, TWI, BSW --- */
+  ['SHL','TWI','BSW'].forEach(shName=>{
     const sh=wb.Sheets[shName]||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()===shName)];
     if(!sh)return;
     const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false});
@@ -1192,17 +1192,29 @@ function parseAllPriceSheets(wb){
     const hdrU=hdr.map(h=>h.toUpperCase());
     const iInv=hdrU.findIndex(h=>h.includes('INVOICE NUMBER')||h.includes('INVOICE'));
     const iPrice=hdr.findIndex(h=>h.includes('ราคา')||h.toUpperCase().includes('PRICE'));
+    const tieredTmp={};
     for(let i=hi+1;i<rows.length;i++){
       const r=rows[i];
       const inv=String(r[iInv>=0?iInv:1]||'').trim();
       if(!inv)continue;
       const price=parseFloat(String(r[iPrice>=0?iPrice:4]||'').replace(/,/g,''))||0;
-      const entry={type:'simple',price,sheetPrefix:shName};
-      map[normInv(inv)]=entry;
-      /* ถ้าชื่ออินวอยซ์มีรูปแบบ TWI02(TWI63) ให้ index ด้วย key ข้างใน () ด้วย */
-      const alias=inv.match(/\(([^)]+)\)$/);
-      if(alias&&!/^\d+-\d+$/.test(alias[1].trim())){const ak=normInv(alias[1].trim());if(ak&&ak!==normInv(inv))map[ak]=entry;}
+      /* ถ้ามี suffix (N-M) = tiered ช่วงตู้ */
+      const tm=inv.match(/^(.+?)\((\d+)-(\d+)\)$/);
+      if(tm){
+        const baseKey=normInv(tm[1].trim());
+        if(!tieredTmp[baseKey])tieredTmp[baseKey]=[];
+        tieredTmp[baseKey].push({from:parseInt(tm[2]),to:parseInt(tm[3]),price});
+      }else{
+        const entry={type:'simple',price,sheetPrefix:shName};
+        map[normInv(inv)]=entry;
+        /* ถ้าชื่ออินวอยซ์มีรูปแบบ TWI02(TWI63) ให้ index ด้วย key ข้างใน () ด้วย */
+        const alias=inv.match(/\(([^)]+)\)$/);
+        if(alias&&!/^\d+-\d+$/.test(alias[1].trim())){const ak=normInv(alias[1].trim());if(ak&&ak!==normInv(inv))map[ak]=entry;}
+      }
     }
+    Object.keys(tieredTmp).forEach(baseKey=>{
+      map[baseKey]={type:'tiered',tiers:tieredTmp[baseKey].sort((a,b)=>a.from-b.from),sheetPrefix:shName};
+    });
   });
   /* --- INV sheet (simple + tiered ช่วงตู้) --- */
   const invSh=wb.Sheets['INV']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()==='INV')];
