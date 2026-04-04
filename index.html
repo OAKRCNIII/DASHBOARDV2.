@@ -3915,6 +3915,13 @@ const THIRA_TRUCKS=['71-9538','72-1620','72-2237','72-2420','72-2953','72-3148']
 const normTruck=s=>String(s||'').replace(/[\s\-\.]/g,'').toUpperCase();
 const THIRA_NORM=new Set(THIRA_TRUCKS.map(normTruck));
 const isThiraTruck=truck=>THIRA_NORM.has(normTruck(truck));
+let THIRA_FAC_FILTER='all'; /* 'all' | 'ogm' | 'ptn' | 'other' */
+const thiraFacTag=e=>{
+  const isOgm=(e.prefix||'').toUpperCase()==='OGM'||e.inv.toUpperCase().startsWith('OGM');
+  const isPtn=(e.prefix||'').toUpperCase()==='PTN'||(e.factory||'').toUpperCase().includes('PTN')||(e.factory||'').includes('พัทลุง');
+  return isOgm?'ogm':isPtn?'ptn':'other';
+};
+const thiraFacOk=e=>THIRA_FAC_FILTER==='all'||thiraFacTag(e)===THIRA_FAC_FILTER;
 
 function renderTrThira(){
   const wrap=document.getElementById('trThiraWrap');
@@ -3937,18 +3944,30 @@ function renderTrThira(){
       else byTruck[plate].unpaid.push(entry);
     });
   });
+  /* กรองตาม THIRA_FAC_FILTER */
+  THIRA_TRUCKS.forEach(t=>{
+    byTruck[t].paid=byTruck[t].paid.filter(thiraFacOk);
+    byTruck[t].unpaid=byTruck[t].unpaid.filter(thiraFacOk);
+  });
   const grandPaidAmt=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].paid.reduce((a,r)=>a+(r.price||0),0),0);
   const grandExpected=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].unpaid.reduce((a,r)=>a+(r.expectedPrice||0),0),0);
   const grandPaidCtr=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].paid.length,0);
   const grandUnpaidCtr=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].unpaid.length,0);
+  const facTabs=[{v:'all',lbl:'🔍 ทั้งหมด'},{v:'other',lbl:'🏭 โรงงานอื่นๆ'},{v:'ogm',lbl:'🟢 OGM'},{v:'ptn',lbl:'🔵 PTN'}];
+  const tabBar=facTabs.map(t=>{
+    const active=THIRA_FAC_FILTER===t.v;
+    return `<button onclick="THIRA_FAC_FILTER='${t.v}';renderTrThira();" style="padding:5px 13px;border-radius:20px;border:1.5px solid ${active?'#1e40af':'#cbd5e0'};background:${active?'#1e40af':'#fff'};color:${active?'#fff':'#475569'};font-size:11px;font-weight:${active?'800':'600'};cursor:pointer;transition:all .15s;">${t.lbl}</button>`;
+  }).join('');
   let html=`<div style="width:100%;">
   <div style="padding:12px 16px;background:linear-gradient(135deg,#1e3a5f,#0f2a52);color:#fff;display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
-    <div style="font-size:14px;font-weight:900;">🚛 THIRA — สรุปค่าขนส่งรายคัน</div>
+    <div style="font-size:14px;font-weight:900;"><span style="background:#1e40af;color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;margin-right:6px;letter-spacing:.5px;">TR</span>THIRA — สรุปค่าขนส่งรายคัน</div>
     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-left:auto;">
       <div style="text-align:center;"><div style="font-size:18px;font-weight:900;color:#4ade80;">${fmtAmt(grandPaidAmt)}</div><div style="font-size:10px;color:#94a3b8;">บาทจ่ายแล้ว (${grandPaidCtr} ตู้)</div></div>
       <div style="text-align:center;"><div style="font-size:18px;font-weight:900;color:#fbbf24;">${fmtAmt(grandExpected)}</div><div style="font-size:10px;color:#94a3b8;">บาทค้างจ่าย (${grandUnpaidCtr} ตู้)</div></div>
     </div>
   </div>
+  <!-- Factory filter tabs -->
+  <div style="padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:6px;flex-wrap:wrap;">${tabBar}</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding:14px 16px;">`;
   THIRA_TRUCKS.forEach(plate=>{
     const g=byTruck[plate];
