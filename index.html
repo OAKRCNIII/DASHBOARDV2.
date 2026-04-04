@@ -779,6 +779,8 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
         <button class="vtab active" data-v="invoice">📋 รายอินวอยซ์</button>
         <button class="vtab" data-v="month">📅 รายเดือน</button>
         <button class="vtab" data-v="transport">🚛 ข้อมูลรายขนส่ง</button>
+        <button class="vtab" data-v="unpaid">💸 ค้างจ่าย</button>
+        <button class="vtab" data-v="thira"><span style="background:#1e40af;color:#fff;border-radius:4px;padding:1px 5px;font-weight:900;font-size:10px;letter-spacing:.5px;line-height:1.4;display:inline-block;vertical-align:middle;">TR</span> THIRA</button>
       </div>
     </div>
     <!-- Prefix (factory) filter bar — populated dynamically -->
@@ -807,6 +809,8 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     </div>
     <!-- Transport company view -->
     <div id="trCoWrap" style="display:none;flex:1;overflow:auto;padding:12px 16px;"></div>
+    <div id="trUnpaidWrap" style="display:none;flex:1;overflow:auto;"></div>
+    <div id="trThiraWrap" style="display:none;flex:1;overflow:auto;"></div>
   </div><!-- end #trDash -->
 
   <!-- DEBT DASHBOARD -->
@@ -1154,6 +1158,94 @@ function parseTransportBill(sheet){
   }
   return map;
 }
+/* ===== PRICE_UPDATE PARSER ===== */
+function parsePriceUpdate(wb){
+  const sh=wb.Sheets['PRICE_UPDATE']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase().replace(/[_ ]/g,'').includes('PRICEUPDATE'))];
+  if(!sh)return[];
+  const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:true,cellDates:true});
+  const hi=rows.findIndex(r=>r.some(c=>{const s=String(c||'').trim().toUpperCase();return s==='TWI'||s==='BSW'||s==='SHL'||s==='INV';}));
+  if(hi<0)return[];
+  const hdr=rows[hi].map(c=>String(c||'').trim());
+  const table=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];
+    const dv=r[0];if(!dv&&dv!==0)continue;
+    let dateMs;
+    if(dv instanceof Date){dateMs=dv.getTime();}
+    else if(typeof dv==='number'){dateMs=new Date(Math.round((dv-25569)*86400*1000)).getTime();}
+    else{const d=new Date(String(dv).trim());if(isNaN(d))continue;dateMs=d.getTime();}
+    if(!dateMs||dateMs<1e12)continue;
+    const rates={};
+    hdr.forEach((col,ci)=>{if(ci===0||!col)return;const val=parseFloat(String(r[ci]||'').replace(/,/g,''));if(!isNaN(val)&&val>0)rates[col]=val;});
+    if(Object.keys(rates).length)table.push({dateMs,rates});
+  }
+  return table.sort((a,b)=>a.dateMs-b.dateMs);
+}
+/* แปลงค่าวันที่ (Date object / Excel serial / string) → timestamp ms
+   รองรับ: Date object, Excel serial, DD/MM/YYYY, YYYY-MM-DD, "Monday 16 Mar", "16 Mar" */
+function toDateMs(v){
+  if(!v&&v!==0)return null;
+  if(v instanceof Date)return v.getTime();
+  if(typeof v==='number')return new Date(Math.round((v-25569)*86400*1000)).getTime();
+  const s=String(v).trim();
+  if(!s||s==='-')return null;
+  /* DD/MM/YYYY */
+  if(/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)){const [d,m,y]=s.split('/').map(Number);return new Date(y,m-1,d).getTime();}
+  /* YYYY-MM-DD */
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)){const d=new Date(s);return isNaN(d)?null:d.getTime();}
+  /* "Monday 16 Mar" / "Wednesday 18 Mar" / "16 Mar" — ไม่มีปี ใช้ปีปัจจุบัน */
+  const wdm=s.match(/(?:[A-Za-z]+\s+)?(\d{1,2})\s+([A-Za-z]{3,})/);
+  if(wdm){const yr=new Date().getFullYear();const d3=new Date(wdm[2]+' '+wdm[1]+' '+yr);if(!isNaN(d3))return d3.getTime();}
+  const d2=new Date(s);return isNaN(d2)?null:d2.getTime();
+}
+/* ค้นหาอัตราค่าขนส่งจาก PRICE_UPDATE ตามวันเข้าโรงงานและ prefix/โรงงาน
+   - ถ้าไม่ทราบวันที่เข้าโรงงาน ('-') → ใช้ rates ล่าสุด (ราคาปัจจุบัน)
+   - ถ้าวันที่เก่ากว่า row แรกในตาราง → return 0 (ไม่ทราบราคา)
+   - inv (optional) ใช้ดึง prefix ยาวกว่า 3 ตัว เช่น ANTS-JM → "ANTS-JM" */
+function lookupPriceUpdate(rawDate,prefix,factory,inv){
+  if(!PRICE_UPDATE_TABLE||!PRICE_UPDATE_TABLE.length)return 0;
+  const entryMs=toDateMs(rawDate);
+  let rates=null;
+  if(entryMs){
+    for(const row of PRICE_UPDATE_TABLE){if(row.dateMs<=entryMs)rates=row.rates;else break;}
+    if(!rates)return 0; /* เก่ากว่า row แรก → ไม่มีราคาในตาราง */
+  }else{
+    /* วันที่ไม่ทราบ/ว่าง → ใช้ rates ล่าสุด (row สุดท้าย) */
+    rates=PRICE_UPDATE_TABLE[PRICE_UPDATE_TABLE.length-1].rates;
+  }
+  /* ดึง prefix ยาว: ตัวอักษร+ขีด ก่อนตัวเลขแรก เช่น "ANTS-JM007" → "ANTS-JM" */
+  const pfx3=(prefix||'').trim().toUpperCase().substring(0,3);
+  const invLong=String(inv||prefix||'').trim().toUpperCase();
+  const pfxLong=(invLong.match(/^([A-Z][A-Z0-9\-_]*?)(?=\d|\/|$)/)||['',''])[1]||pfx3;
+  /* ลอง match prefix: 3-char ก่อน แล้ว prefix ยาว */
+  for(const [key,val] of Object.entries(rates)){const ku=key.toUpperCase();if(ku===pfx3)return val;}
+  if(pfxLong&&pfxLong!==pfx3){for(const [key,val] of Object.entries(rates)){const ku=key.toUpperCase();if(ku===pfxLong||pfxLong.startsWith(ku+'-')||pfxLong.startsWith(ku+'_'))return val;}}
+  /* ลอง match ชื่อโรงงาน */
+  const fac=(factory||'').trim().toUpperCase();
+  if(fac&&fac!=='-'){for(const [key,val] of Object.entries(rates)){const ku=key.toUpperCase();if(fac.includes(ku)||ku.includes(fac))return val;}}
+  return 0;
+}
+function parseTransportUnpaid(sheet){
+  if(!sheet)return[];
+  const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true,cellDates:true});
+  const hi=findHdr(rows,['INV','PRICE','วันที่','OK']);
+  const hdr=(rows[hi]||[]).map(c=>String(c||'').trim().toUpperCase());
+  function col(kws,fb){const i=hdr.findIndex(hh=>kws.some(k=>hh===k||hh.includes(k)));return i>=0?i:fb;}
+  const iDate=col(['วันที่'],0),iInv=col(['INV','INVOICE'],2);
+  const iFactory=col(['โรงงาน','FACTORY'],5),iCtr=col(['เบอร์ตู้','CTR','CONTAINER'],6);
+  const iPrice=col(['PRICE','ราคา'],7),iBill=col(['เลขที่วางบิล','BILL'],8),iOk=col(['OK'],11);
+  const result=[];
+  for(let i=hi+1;i<rows.length;i++){
+    const r=rows[i];
+    const inv=String(r[iInv]||'').trim();if(!inv)continue;
+    const ok=String(r[iOk]||'').trim().toUpperCase();
+    if(ok&&ok!=='NAN'&&ok!=='FALSE'&&ok!=='0'&&ok!=='-'&&ok!=='')continue;
+    const dateRaw=r[iDate];
+    const price=parseFloat(String(r[iPrice]||'').replace(/,/g,''))||0;
+    result.push({dateRaw,dateStr:fmtDate(dateRaw),inv,prefix:inv.substring(0,3),factory:String(r[iFactory]||'').trim(),container:String(r[iCtr]||'').trim(),price,billNo:String(r[iBill]||'').trim()});
+  }
+  return result;
+}
 function parseAllPriceSheets(wb){
   /* คืน map { normInv: entry }
      entry.type = 'factory' → OGM (กนกทอง/นาเมืองเพชร/นาวาพารา)
@@ -1361,10 +1453,13 @@ async function loadData(){
   if(vslPath&&bufs[bi]){const vw=XLSX.read(bufs[bi],{type:'array',cellDates:true});const vs=vw.Sheets['DATABASE_VESSEL']||vw.Sheets[vw.SheetNames.find(n=>n.toUpperCase().includes('DATABASE_VESSEL'))];if(vs)vessel=parseVesselDb(vs);vesselPlan=parseInputSheets(vw);bi++;}
   if(stmPath&&bufs[bi]){const sw=XLSX.read(bufs[bi],{type:'array',cellDates:true});const ss=sw.Sheets['STATEMENT']||sw.Sheets[sw.SheetNames.find(n=>n.toUpperCase().includes('STATEMENT'))];if(ss){const p2=parseStatement(ss);fees=p2.map;stmtInfo={latestNo:p2.latestNo,latestBalance:p2.latestBalance,latestDate:p2.latestDate};}bi++;}
   const trMap={};const billInfoTr={ogm:'-',all:'-'};
+  let priceUpdateTable=[];let unpaidTr=[];
   const mergeTransportLocal=wb2=>{
     const sh=wb2.Sheets['DATA_BASE_BILL']||wb2.Sheets['DATA_BASE_BILL_ALL']||wb2.Sheets[wb2.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_BILL'))];
     if(!sh)return null;
     const m=parseTransportBill(sh);Object.keys(m).forEach(k=>{if(!trMap[k])trMap[k]=[];trMap[k]=trMap[k].concat(m[k]);});
+    if(!priceUpdateTable.length){const pu=parsePriceUpdate(wb2);if(pu.length)priceUpdateTable=pu;}
+    const newUnpaid=parseTransportUnpaid(sh);unpaidTr=unpaidTr.concat(newUnpaid);
     return sh;
   };
   if(ogmPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const sh=mergeTransportLocal(wb);if(sh)billInfoTr.ogm=extractLatestBill(sh);bi++;}
@@ -1405,7 +1500,7 @@ async function loadData(){
   if(ogmPricePath)allPaths.push(ogmPricePath);
   if(billPath)allPaths.push(billPath);
   if(paidPath)allPaths.push(paidPath);
-  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,billedAnts,paidAnts,vesselPlan,allPaths};
+  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,billedAnts,paidAnts,vesselPlan,allPaths,priceUpdateTable,unpaidTr};
 }
 /* =====================================================
    DASHBOARD STATE
@@ -1417,6 +1512,8 @@ let OGM_PRICE_MAP={}; /* normInv → { กนกทอง, นาเมือง
 function findPriceEntry(inv){const nk=normInv(inv);if(OGM_PRICE_MAP[nk])return OGM_PRICE_MAP[nk];const k=Object.keys(OGM_PRICE_MAP).find(k=>{if(k.length<3||!nk.startsWith(k))return false;const nx=nk[k.length];return nx===undefined||nx==='/';});return k?OGM_PRICE_MAP[k]:null;}
 let BILLED_ANTS=new Map(); /* normInv → amount จาก DATA_BASE_BILL_ANTS */
 let PAID_ANTS=new Map(); /* normInv → {amount,datePaid} จาก DATA_BASE_PAID_ANTS */
+let PRICE_UPDATE_TABLE=[]; /* [{dateMs, rates:{TWI,BSW,INV,SHL,...}}] sorted asc */
+let TR_UNPAID=[]; /* [{dateRaw,dateStr,inv,prefix,factory,container,price}] ตู้ค้างจ่าย */
 let BILL_ANTS_META={week:0,year:0}; /* WEEK ล่าสุดที่วางบิล */
 
 /* =====================================================
@@ -2401,6 +2498,7 @@ function renderTrTable(){
     return true;
   });
   const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  const hasPU=PRICE_UPDATE_TABLE&&PRICE_UPDATE_TABLE.length>0;
   document.getElementById('trNoInv').style.display=list.length?'none':'block';
   document.getElementById('trInvTbl').style.display=list.length?'':'none';
   let html='';
@@ -2411,6 +2509,12 @@ function renderTrTable(){
     const progHtml=d.details.length>0?
       '<span class="mini-prog"><span class="mini-bar" style="width:'+pct+'%;background:'+barColor+';display:block;height:100%;"></span></span>':'';
     const ctrTxt=d.details.length>0?(d.paidCount+'/'+d.details.length):'-';
+    /* คำนวณยอดที่ควรจ่ายต่ออินวอยซ์ */
+    let invExpected=0;
+    if(hasPU){d.details.forEach(row=>{
+      if(row.trMatch&&!row.trMatch._prePaid){invExpected+=row.trMatch.price||0;}
+      else if(!row.trMatch){invExpected+=lookupPriceUpdate(row.เข้าโรงงาน,d.prefix,row.โรงงาน,d.inv);}
+    });}
     const isOpen=TR_OPEN.has(d.inv);
     html+='<tr class="inv-row'+(isOpen?' open':'')+'" data-inv="'+h(d.inv)+'">';
     html+='<td style="color:#94a3b8;font-size:11px;">'+(idx+1)+'</td>';
@@ -2418,7 +2522,17 @@ function renderTrTable(){
     html+='<td style="color:#64748b;">'+mLabel(d.month)+'</td>';
     html+='<td style="color:#64748b;font-size:11px;">'+h(d.customer==='-'||d.customer==='- '?'':d.customer||'')+'</td>';
     html+='<td style="text-align:center;white-space:nowrap;">'+ctrTxt+progHtml+'</td>';
-    html+='<td style="text-align:right;">'+(d.totalPaid>0?'<span class="amt-paid">'+fmtAmt(d.totalPaid)+'</span>':'<span class="amt-zero">-</span>')+'</td>';
+    /* ยอดจ่าย / ยอดรวม */
+    if(hasPU&&invExpected>0){
+      const gap=invExpected-d.totalPaid;
+      html+='<td style="text-align:right;white-space:nowrap;">';
+      html+=(d.totalPaid>0?'<span class="amt-paid">'+fmtAmt(d.totalPaid)+'</span>':'<span class="amt-zero">0</span>');
+      html+='<span style="font-size:10px;color:#94a3b8;"> / '+fmtAmt(invExpected)+'</span>';
+      if(gap>0)html+='<br><span style="font-size:9px;color:#dc2626;font-weight:700;">💸 ขาด '+fmtAmt(gap)+'</span>';
+      html+='</td>';
+    }else{
+      html+='<td style="text-align:right;">'+(d.totalPaid>0?'<span class="amt-paid">'+fmtAmt(d.totalPaid)+'</span>':'<span class="amt-zero">-</span>')+'</td>';
+    }
     html+='<td style="text-align:center;">'+statusBadgeTr(d.status)+'</td>';
     html+='</tr>';
     /* Detail row */
@@ -2474,6 +2588,7 @@ function renderTrTable(){
 const TR_MONTH_ORDER=['1','2','3','4','5','6','7','8','9','10','11','12','-'];
 function renderTrMonthSummary(){
   const q=TR_SEARCH.trim().toUpperCase();
+  const hasPU=PRICE_UPDATE_TABLE&&PRICE_UPDATE_TABLE.length>0;
   const src=TR_DATA.filter(d=>{
     if(!matchTrPrefix(d))return false;
     if(q&&!d.inv.toUpperCase().includes(q)&&!(d.customer||'').toUpperCase().includes(q))return false;
@@ -2482,8 +2597,12 @@ function renderTrMonthSummary(){
   const months={};
   src.forEach(d=>{
     const m=d.month||'-';
-    if(!months[m])months[m]={inv:0,ctr:0,paid:0,amount:0,full:0,partial:0,none:0,nodata:0};
+    if(!months[m])months[m]={inv:0,ctr:0,paid:0,amount:0,expected:0,full:0,partial:0,none:0,nodata:0};
     const g=months[m];g.inv++;g.ctr+=d.details.length;g.paid+=d.paidCount;g.amount+=d.totalPaid;
+    d.details.forEach(row=>{
+      if(row.trMatch&&!row.trMatch._prePaid){g.expected+=row.trMatch.price||0;}
+      else if(!row.trMatch&&hasPU){g.expected+=lookupPriceUpdate(row.เข้าโรงงาน,d.prefix,row.โรงงาน,d.inv);}
+    });
     if(d.status==='full')g.full++;else if(d.status==='partial')g.partial++;else if(d.status==='none')g.none++;else g.nodata++;
   });
   const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
@@ -2495,6 +2614,9 @@ function renderTrMonthSummary(){
     const pct=g.ctr>0?Math.round(g.paid/g.ctr*100):0;
     const barColor=pct===100?'#16a34a':pct>0?'#f59e0b':'#f87171';
     const moLabel=mLabel(m);
+    /* isComplete = ตู้ครบทุกใบแล้ว ไม่ได้ดูจากตัวเงิน */
+    const isComplete=g.paid>=g.ctr&&g.ctr>0;
+    const gap=g.expected-g.amount;
     let badges='';
     if(g.full)badges+='<span class="mc-badge mc-full">✅ ครบ '+g.full+'</span> ';
     if(g.partial)badges+='<span class="mc-badge mc-partial">⚠️ บางส่วน '+g.partial+'</span> ';
@@ -2504,11 +2626,23 @@ function renderTrMonthSummary(){
     html+='<div class="mc-grid">';
     html+='<div class="mc-stat"><span class="mv">'+g.ctr+'</span><span class="ml">ตู้ทั้งหมด</span></div>';
     html+='<div class="mc-stat"><span class="mv">'+g.paid+' <span style="font-size:12px;color:#94a3b8;">/ '+g.ctr+'</span></span><span class="ml">ตู้จ่ายแล้ว</span></div>';
-    html+='<div class="mc-stat" style="grid-column:span 2;"><span class="mc-amt">'+fmtAmt(g.amount)+' <span style="font-size:12px;font-weight:400;color:#94a3b8;">บาท</span></span><span class="ml">ยอดรวมค่าขนส่ง</span></div>';
+    if(hasPU&&g.expected>0){
+      html+='<div class="mc-stat" style="grid-column:span 2;">';
+      html+='<span class="mc-amt" style="color:'+(isComplete?'#16a34a':'#0a1628')+';">'+fmtAmt(g.amount);
+      html+=' <span style="font-size:12px;font-weight:600;color:#94a3b8;">/ '+fmtAmt(g.expected)+' บาท</span></span>';
+      html+='<span class="ml">ยอดจ่ายแล้ว / ยอดรวม</span>';
+      if(isComplete){html+='<span style="font-size:11px;font-weight:700;color:#16a34a;margin-top:2px;display:block;">✅ ค่าขนส่งครบ</span>';}
+      else if(gap>0){html+='<span style="font-size:11px;font-weight:700;color:#dc2626;margin-top:2px;display:block;">💸 ยังขาด '+fmtAmt(gap)+' บาท</span>';}
+      else{const unpaidCtr=g.ctr-g.paid;html+='<span style="font-size:11px;font-weight:700;color:#dc2626;margin-top:2px;display:block;">❌ ยังค้างอยู่ '+unpaidCtr+' ตู้ (คำนวณราคาไม่ได้)</span>';}
+      html+='</div>';
+    }else{
+      html+='<div class="mc-stat" style="grid-column:span 2;"><span class="mc-amt">'+fmtAmt(g.amount)+' <span style="font-size:12px;font-weight:400;color:#94a3b8;">บาท</span></span><span class="ml">ยอดรวมค่าขนส่ง</span></div>';
+    }
     html+='</div>';
     html+='<div style="margin:10px 0 8px;background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden;">';
     html+='<div style="width:'+pct+'%;background:'+barColor+';height:100%;border-radius:4px;transition:width .4s;"></div></div>';
     html+='<div style="font-size:11px;">'+badges+'</div>';
+    html+='<span style="font-size:9px;color:#94a3b8;cursor:pointer;">🔍 ดูสรุปขนส่ง</span>';
     html+='</div>';
   });
   document.getElementById('trMonthGrid').innerHTML=html;
@@ -3643,13 +3777,22 @@ function trCoPrintSelectedReport(){
 function renderTrView(){
   const isTr=TR_VIEW==='transport';
   const isMonth=TR_VIEW==='month';
-  document.getElementById('trTblWrap').style.display=(!isMonth&&!isTr)?'block':'none';
+  const isUnpaid=TR_VIEW==='unpaid';
+  const isThira=TR_VIEW==='thira';
+  const hideTable=isMonth||isTr||isUnpaid||isThira;
+  document.getElementById('trTblWrap').style.display=!hideTable?'block':'none';
   document.getElementById('trMonthWrap').style.display=isMonth?'block':'none';
   document.getElementById('trCoWrap').style.display=isTr?'block':'none';
-  /* Hide status filter tabs in month/transport view */
-  document.querySelectorAll('#trFilterBar .ftab[data-f]').forEach(b=>b.style.display=(isMonth||isTr)?'none':'');
-  const sw=document.getElementById('trSearchInp');if(sw)sw.parentElement.style.marginLeft=(isMonth||isTr)?'0':'';
-  if(isMonth)renderTrMonthSummary();else if(isTr)renderTrCoView();else renderTrTable();
+  document.getElementById('trUnpaidWrap').style.display=isUnpaid?'block':'none';
+  document.getElementById('trThiraWrap').style.display=isThira?'flex':'none';
+  document.querySelectorAll('#trFilterBar .ftab[data-f]').forEach(b=>b.style.display=hideTable?'none':'');
+  const sw=document.getElementById('trSearchInp');if(sw)sw.parentElement.style.marginLeft=hideTable?'0':'';
+  const pb=document.getElementById('trPrefixBar');if(pb)pb.style.display=(isUnpaid||isThira)?'none':'';
+  if(isMonth)renderTrMonthSummary();
+  else if(isTr)renderTrCoView();
+  else if(isUnpaid)renderTrUnpaid();
+  else if(isThira)renderTrThira();
+  else renderTrTable();
 }
 
 /* ===== DUPLICATE ALERT ===== */
@@ -3689,6 +3832,184 @@ function openTrDupeModal(){
   document.getElementById('trDupeModalBg').classList.add('open');
 }
 function closeTrDupeModal(){document.getElementById('trDupeModalBg').classList.remove('open');}
+
+/* ===== UNPAID TRANSPORT VIEW ===== */
+function renderTrUnpaid(){
+  const wrap=document.getElementById('trUnpaidWrap');
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  const hasPU=PRICE_UPDATE_TABLE&&PRICE_UPDATE_TABLE.length>0;
+  /* รวบรวมตู้ที่ยังไม่มีใน DATA_BASE_BILL เลย (trMatch===null) */
+  const unpaid=[];
+  TR_DATA.forEach(d=>{
+    d.details.forEach(row=>{
+      if(row.trMatch)return; /* มีใน DATA_BASE_BILL แล้ว หรือ prePaid */
+      const entryDate=row.เข้าโรงงาน||'-';
+      const rate=hasPU?lookupPriceUpdate(entryDate,d.prefix,row.โรงงาน,d.inv):0;
+      unpaid.push({inv:d.inv,prefix:d.prefix,factory:row.โรงงาน||'-',container:row.เบอร์ตู้||'-',entryDate,calcRate:rate});
+    });
+  });
+  if(!unpaid.length){
+    wrap.innerHTML='<div style="text-align:center;padding:40px;color:#94a3b8;"><div style="font-size:32px;margin-bottom:12px;">✅</div><div style="font-weight:700;font-size:13px;">ไม่พบตู้ค้างจ่าย</div><div style="font-size:11px;margin-top:6px;">ตู้ทุกใบมีข้อมูลใน DATA_BASE_BILL ครบแล้ว</div></div>';
+    return;
+  }
+  const byPrefix={};
+  let grandTotal=0;
+  unpaid.forEach(r=>{
+    if(!byPrefix[r.prefix])byPrefix[r.prefix]={rows:[],total:0};
+    byPrefix[r.prefix].rows.push(r);
+    byPrefix[r.prefix].total+=r.calcRate;
+    grandTotal+=r.calcRate;
+  });
+  let bracketSummary='';
+  if(hasPU&&PRICE_UPDATE_TABLE.length){
+    const brackets={};
+    unpaid.forEach(r=>{
+      const ms=toDateMs(r.entryDate);if(!ms)return;
+      let label='(ไม่ทราบวันที่)';
+      for(const row of PRICE_UPDATE_TABLE){if(row.dateMs<=ms)label=new Date(row.dateMs).toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'});}
+      if(!brackets[label])brackets[label]={count:0,total:0};
+      brackets[label].count++;brackets[label].total+=r.calcRate;
+    });
+    if(Object.keys(brackets).length>1){
+      bracketSummary='<div style="padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;">';
+      Object.keys(brackets).sort().forEach(lbl=>{
+        const b=brackets[lbl];
+        bracketSummary+=`<div style="background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:6px 12px;font-size:11px;"><div style="font-weight:700;color:#0369a1;">📅 อัตรา ${h(lbl)}</div><div style="color:#64748b;">${b.count} ตู้ · <span style="font-weight:700;color:#1e40af;">${fmtAmt(b.total)} บาท</span></div></div>`;
+      });
+      bracketSummary+='</div>';
+    }
+  }
+  let html=`<div style="padding:10px 16px;background:#fef2f2;border-bottom:2px solid #fca5a5;display:flex;gap:16px;flex-wrap:wrap;align-items:center;">
+    <span style="font-size:12px;font-weight:800;color:#991b1b;">💸 ค่าขนส่งค้างจ่าย (ยังไม่ได้คีย์ใน DATA_BASE_BILL)</span>
+    <span style="font-size:13px;font-weight:700;color:#dc2626;">${unpaid.length} ตู้</span>
+    <span style="font-size:14px;font-weight:800;color:#b91c1c;">${fmtAmt(grandTotal)} บาท</span>
+    ${hasPU?'<span style="font-size:10px;color:#166534;background:#dcfce7;border:1px solid #bbf7d0;border-radius:6px;padding:2px 8px;">✓ ราคาจาก PRICE_UPDATE ตามวันเข้าโรงงาน</span>':'<span style="font-size:10px;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;">⚠ ไม่พบ PRICE_UPDATE — โหลดไฟล์ DATA ใบวางบิล ก่อน</span>'}
+  </div>`;
+  html+=bracketSummary;
+  Object.keys(byPrefix).sort().forEach(pfx=>{
+    const s=pst(pfx);const g=byPrefix[pfx];
+    html+=`<div style="margin:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;overflow:hidden;">
+      <div style="padding:8px 12px;background:${s.bg};color:${s.tx};font-weight:800;font-size:12px;display:flex;justify-content:space-between;align-items:center;">
+        <span><span style="background:white;border-radius:5px;padding:2px 8px;font-size:11px;margin-right:8px;border:1px solid ${s.bd};">${h(pfx)}</span>${g.rows.length} ตู้</span>
+        <span style="font-weight:900;">${fmtAmt(g.total)} บาท</span>
+      </div>
+      <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:11px;min-width:480px;">
+      <thead><tr style="background:#f8fafc;">
+        <th style="padding:6px 10px;text-align:left;color:#64748b;border-bottom:1px solid #e2e8f0;font-weight:700;">วันเข้าโรงงาน</th>
+        <th style="padding:6px 10px;text-align:left;color:#64748b;border-bottom:1px solid #e2e8f0;font-weight:700;">อินวอยซ์</th>
+        <th style="padding:6px 10px;text-align:left;color:#64748b;border-bottom:1px solid #e2e8f0;font-weight:700;">โรงงาน</th>
+        <th style="padding:6px 10px;text-align:left;color:#64748b;border-bottom:1px solid #e2e8f0;font-weight:700;">เบอร์ตู้</th>
+        <th style="padding:6px 10px;text-align:right;color:#64748b;border-bottom:1px solid #e2e8f0;font-weight:700;">ค่าขนส่ง (บาท)</th>
+      </tr></thead><tbody>`;
+    g.rows.forEach((r,ri)=>{
+      html+=`<tr style="background:${ri%2===1?'#f8fafc':'white'};"><td style="padding:6px 10px;color:#475569;">${h(r.entryDate)}</td><td style="padding:6px 10px;font-weight:600;color:#0a1628;">${h(r.inv)}</td><td style="padding:6px 10px;color:#64748b;">${h(r.factory)}</td><td style="padding:6px 10px;font-family:monospace;font-size:10px;color:#374141;">${h(r.container)}</td><td style="padding:6px 10px;text-align:right;font-weight:700;color:${r.calcRate>0?'#dc2626':'#94a3b8'};">${r.calcRate>0?fmtAmt(r.calcRate):'—'}</td></tr>`;
+    });
+    html+=`<tr style="background:#fef9c3;border-top:2px solid #fde68a;"><td colspan="4" style="padding:6px 10px;text-align:right;font-weight:700;font-size:11px;color:#92400e;">รวม ${h(pfx)}</td><td style="padding:6px 10px;text-align:right;font-weight:800;color:#92400e;">${fmtAmt(g.total)} บาท</td></tr>`;
+    html+=`</tbody></table></div></div>`;
+  });
+  wrap.innerHTML=html;
+}
+
+/* ===== THIRA TRUCK DASHBOARD ===== */
+const THIRA_TRUCKS=['71-9538','72-1620','72-2237','72-2420','72-2953','72-3148'];
+const normTruck=s=>String(s||'').replace(/[\s\-\.]/g,'').toUpperCase();
+const THIRA_NORM=new Set(THIRA_TRUCKS.map(normTruck));
+const isThiraTruck=truck=>THIRA_NORM.has(normTruck(truck));
+
+function renderTrThira(){
+  const wrap=document.getElementById('trThiraWrap');
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  const hasPU=PRICE_UPDATE_TABLE&&PRICE_UPDATE_TABLE.length>0;
+  const byTruck={};
+  THIRA_TRUCKS.forEach(t=>{byTruck[t]={plate:t,paid:[],unpaid:[]};});
+  TR_DATA.forEach(d=>{
+    d.details.forEach(row=>{
+      const plate=THIRA_TRUCKS.find(t=>normTruck(t)===normTruck(row.ทะเบียนรถ||''));
+      if(!plate)return;
+      const isPaid=!!(row.trMatch&&!row.trMatch._prePaid);
+      const isPrePaid=!!(row.trMatch&&row.trMatch._prePaid);
+      const price=isPaid?(row.trMatch.price||0):0;
+      const expectedPrice=hasPU&&!row.trMatch?lookupPriceUpdate(row.เข้าโรงงาน,d.prefix,row.โรงงาน,d.inv):0;
+      const entry={inv:d.inv,prefix:d.prefix,container:row.เบอร์ตู้||'-',factory:row.โรงงาน||'-',
+        entryDate:row.เข้าโรงงาน||'-',price,expectedPrice,
+        billNo:isPaid?(row.trMatch.billNo||'-'):'-',isPrePaid,isPaid};
+      if(isPaid||isPrePaid)byTruck[plate].paid.push(entry);
+      else byTruck[plate].unpaid.push(entry);
+    });
+  });
+  const grandPaidAmt=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].paid.reduce((a,r)=>a+(r.price||0),0),0);
+  const grandExpected=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].unpaid.reduce((a,r)=>a+(r.expectedPrice||0),0),0);
+  const grandPaidCtr=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].paid.length,0);
+  const grandUnpaidCtr=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].unpaid.length,0);
+  let html=`<div style="width:100%;">
+  <div style="padding:12px 16px;background:linear-gradient(135deg,#1e3a5f,#0f2a52);color:#fff;display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+    <div style="font-size:14px;font-weight:900;">🚛 THIRA — สรุปค่าขนส่งรายคัน</div>
+    <div style="display:flex;gap:20px;flex-wrap:wrap;margin-left:auto;">
+      <div style="text-align:center;"><div style="font-size:18px;font-weight:900;color:#4ade80;">${fmtAmt(grandPaidAmt)}</div><div style="font-size:10px;color:#94a3b8;">บาทจ่ายแล้ว (${grandPaidCtr} ตู้)</div></div>
+      <div style="text-align:center;"><div style="font-size:18px;font-weight:900;color:#fbbf24;">${fmtAmt(grandExpected)}</div><div style="font-size:10px;color:#94a3b8;">บาทค้างจ่าย (${grandUnpaidCtr} ตู้)</div></div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding:14px 16px;">`;
+  THIRA_TRUCKS.forEach(plate=>{
+    const g=byTruck[plate];
+    const paidAmt=g.paid.reduce((s,r)=>s+(r.price||0),0);
+    const unpaidAmt=g.unpaid.reduce((s,r)=>s+(r.expectedPrice||0),0);
+    const totalCtr=g.paid.length+g.unpaid.length;
+    const pct=totalCtr>0?Math.round(g.paid.length/totalCtr*100):0;
+    const barCol=pct===100?'#16a34a':pct>0?'#f59e0b':'#f87171';
+    html+=`<div style="border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+      <div style="padding:10px 14px;background:#f0f9ff;border-bottom:1px solid #bae6fd;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:15px;font-weight:900;color:#0369a1;">🚛 ${h(plate)}</span>
+        <span style="font-size:11px;color:#64748b;">${totalCtr} ตู้ทั้งหมด</span>
+      </div>
+      <div style="height:5px;background:#e2e8f0;"><div style="height:100%;width:${pct}%;background:${barCol};transition:width .4s;"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e2e8f0;">
+        <div style="background:#f0fdf4;padding:10px 14px;">
+          <div style="font-size:18px;font-weight:900;color:#16a34a;">${fmtAmt(paidAmt)}</div>
+          <div style="font-size:10px;color:#64748b;">บาทจ่ายแล้ว · ${g.paid.length} ตู้</div>
+        </div>
+        <div style="background:${g.unpaid.length>0?'#fef2f2':'#f0fdf4'};padding:10px 14px;">
+          <div style="font-size:18px;font-weight:900;color:${g.unpaid.length>0?'#dc2626':'#16a34a'};">${g.unpaid.length>0?fmtAmt(unpaidAmt):'✅ ครบ'}</div>
+          <div style="font-size:10px;color:#64748b;">${g.unpaid.length>0?'บาทค้างจ่าย · '+g.unpaid.length+' ตู้':'ไม่มีค้าง'}</div>
+        </div>
+      </div>`;
+    /* รายการตู้ที่ค้างจ่าย — เรียงตามวันเข้าโรงงาน เก่าสุดอยู่บน */
+    if(g.unpaid.length){
+      g.unpaid.sort((a,b)=>{
+        const da=toDateMs(a.entryDate)||Infinity,db=toDateMs(b.entryDate)||Infinity;
+        return da-db;
+      });
+      html+=`<div style="padding:8px 14px;border-top:1px solid #e2e8f0;">
+        <div style="font-size:10px;font-weight:700;color:#dc2626;margin-bottom:6px;">❌ ค้างจ่าย ${g.unpaid.length} ตู้</div>
+        <table style="width:100%;font-size:10px;border-collapse:collapse;">`;
+      g.unpaid.forEach(r=>{
+        const dateDisp=r.entryDate&&r.entryDate!=='-'?`<br><span style="font-size:9px;color:#94a3b8;font-family:sans-serif;font-weight:400;">${h(r.entryDate)}</span>`:'';
+        html+=`<tr><td style="padding:2px 4px;color:#0a1628;font-weight:600;">${h(r.inv)}</td>
+          <td style="padding:2px 4px;color:#475569;font-family:monospace;line-height:1.6;">${h(r.container)}${dateDisp}</td>
+          <td style="padding:2px 4px;color:#64748b;">${h(r.factory)}</td>
+          <td style="padding:2px 4px;text-align:right;font-weight:700;color:${r.expectedPrice>0?'#dc2626':'#94a3b8'};">${r.expectedPrice>0?fmtAmt(r.expectedPrice):'—'}</td></tr>`;
+      });
+      html+=`</table></div>`;
+    }
+    if(g.paid.length){
+      const paidRows=g.paid.map(r=>`<tr><td style="padding:2px 4px;color:#0a1628;font-weight:600;">${h(r.inv)}</td>
+        <td style="padding:2px 4px;font-family:monospace;color:#475569;">${h(r.container)}</td>
+        <td style="padding:2px 4px;color:#64748b;">${h(r.billNo)}</td>
+        <td style="padding:2px 4px;text-align:right;font-weight:700;color:#16a34a;">${r.isPrePaid?'📌':fmtAmt(r.price)}</td></tr>`).join('');
+      html+=`<details style="border-top:1px solid #e2e8f0;">
+        <summary style="padding:6px 14px;font-size:10px;font-weight:700;color:#059669;cursor:pointer;list-style:none;display:flex;justify-content:space-between;">
+          <span>✅ จ่ายแล้ว ${g.paid.length} ตู้</span><span style="font-weight:400;color:#94a3b8;">คลิกดูรายการ</span>
+        </summary>
+        <div style="padding:4px 14px 10px;">
+          <table style="width:100%;font-size:10px;border-collapse:collapse;">${paidRows}</table>
+        </div>
+      </details>`;
+    }
+    html+=`</div>`;
+  });
+  html+=`</div></div>`;
+  wrap.innerHTML=html;
+}
 
 /* ===== RENDER TRANSPORT DASHBOARD ===== */
 function renderTransport(){
@@ -3899,7 +4220,7 @@ function showSetup(err,justAuthed){
   }
 }
 function showDashboard(data){
-  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Map();PAID_ANTS=data.paidAnts||new Map();BILL_ANTS_META=(BILLED_ANTS._meta)||{week:0,year:0};VESSEL_PLAN=data.vesselPlan||{};
+  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Map();PAID_ANTS=data.paidAnts||new Map();BILL_ANTS_META=(BILLED_ANTS._meta)||{week:0,year:0};VESSEL_PLAN=data.vesselPlan||{};PRICE_UPDATE_TABLE=data.priceUpdateTable||[];TR_UNPAID=data.unpaidTr||[];
   hideLoad();document.getElementById('app').style.display='flex';
   const now=new Date();document.getElementById('lastUpd').textContent='☁️ Dropbox · '+pad(now.getHours())+':'+pad(now.getMinutes());
   renderTabs();renderStatsMain();const m=Object.keys(BY_MONTH).sort()[0];if(m)selMonth(m);
