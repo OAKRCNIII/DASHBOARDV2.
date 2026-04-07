@@ -757,7 +757,7 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
         <div style="display:flex;gap:8px;padding:8px 16px;background:#f0fdf4;border-bottom:1px solid #bbf7d0;flex-wrap:wrap;align-items:center;">
           <label style="font-size:10px;font-weight:700;color:#065f46;">📅 เดือนที่พิมพ์:</label>
           <select id="trPrintMonthSel" style="font-size:10px;padding:3px 8px;border-radius:6px;border:1px solid #86efac;background:#fff;color:#065f46;font-weight:700;cursor:pointer;"></select>
-          <button class="tr-al-print" onclick="trPrintByFactoryReport()" style="background:#065f46;border-color:rgba(255,255,255,.3);font-size:10px;padding:4px 12px;">🏭 รีพอร์ตตามโรงงาน</button>
+          <button class="tr-al-print" onclick="trPrintByFactoryReport()" style="background:#065f46;border-color:rgba(255,255,255,.3);font-size:10px;padding:4px 12px;">🏭 รีพอร์ตตามบริษัทขนส่ง</button>
           <button class="tr-al-print" onclick="trPrintAlMonthXref()" style="background:#6b21a8;border-color:rgba(255,255,255,.3);font-size:10px;padding:4px 12px;">🗓️ บริษัทขนส่งตามเดือน</button>
         </div>
         <div class="tr-al-body" id="trAlBody"></div>
@@ -1077,7 +1077,7 @@ function parseInputSheets(wb){
     const sh=wb.Sheets[sn];if(!sh)return;
     const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false,cellDates:true});
     if(rows.length<2)return;
-    const vessel=String(rows[1][0]||'').trim();if(!vessel)return;
+    const vessel=String(rows[1][1]||rows[1][0]||'').trim();if(!vessel)return;/* B2 = ชื่อเรือ (fallback A2) */
     const dv=rows[1][6];let etd='';
     if(dv instanceof Date){const d=dv;etd=(d.getDate()+'').padStart(2,'0')+'/'+((''+( d.getMonth()+1)).padStart(2,'0'))+'/'+(d.getFullYear()+'').slice(-2);}
     else if(typeof dv==='string')etd=dv.slice(0,10);
@@ -2696,48 +2696,51 @@ function trShowAlModal(month){
     '<span class="ia">'+src.length+' อินวอยซ์</span>'+
     '<span class="ia">'+totalCtr+' ตู้</span>'+
     '<span class="ia ia-amt">'+fmt(totalAmount)+' บาท</span>';
+  /* ── natural sort: เรียงตัวเลขในชื่อแบบ numeric (NR3<NR4<NR10, AL#001<AL#002) ── */
+  const natSort=(a,b)=>{const re=/(\d+)/g,ap=a.split(re),bp=b.split(re);for(let i=0;i<Math.max(ap.length,bp.length);i++){if(i>=ap.length)return-1;if(i>=bp.length)return 1;const ai=ap[i],bi2=bp[i];if(i%2===1){const d=parseInt(ai)-parseInt(bi2);if(d!==0)return d;}else{if(ai<bi2)return-1;if(ai>bi2)return 1;}}return 0;};
   /* ── build grouped rows ── */
-  let rows='';
+  let rows='';let rowNum=0;
   coList.forEach(co=>{
-    const bills=Object.values(coBills[co]).sort((a,b)=>a.ref.localeCompare(b.ref));
+    const bills=Object.values(coBills[co]).sort((a,b)=>natSort(a.ref,b.ref));
     const tot=coTot[co]||{ctr:0,amount:0};
     const coEsc=co.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     /* company header + print button */
     rows+='<tr style="background:linear-gradient(90deg,#064e3b,#065f46);">'+
-      '<td style="color:#fff;font-weight:800;font-size:11px;padding:5px 10px;border:none;">'+
+      '<td colspan="2" style="color:#fff;font-weight:800;font-size:11px;padding:5px 10px;border:none;">'+
         '<span class="tral-badge" style="margin-right:6px;">'+h(co)+'</span>'+
-      '</td>'+
-      '<td style="padding:4px 8px;border:none;text-align:right;">'+
-        '<button onclick="trPrintOneCoReport(\''+coEsc+'\')" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;white-space:nowrap;">🖨️ รีพอร์ต</button>'+
+        '<button onclick="trPrintOneCoReport(\''+coEsc+'\')" style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:5px;padding:2px 8px;cursor:pointer;font-size:10px;white-space:nowrap;margin-left:8px;">🖨️ รีพอร์ต</button>'+
       '</td>'+
       '<td class="r" style="color:#6ee7b7;font-weight:700;font-size:10px;padding:5px 10px;border:none;">'+tot.ctr+' ตู้</td>'+
       '<td class="r tral-amt" style="color:#6ee7b7;font-weight:800;font-size:11px;padding:5px 10px;border:none;">'+fmt(tot.amount)+'</td>'+
     '</tr>';
-    /* individual bill rows: เลขที่วางบิล | เลขอินวอยซ์ | ตู้ | ยอด */
+    /* individual bill rows: # | เลขที่วางบิล | เลขอินวอยซ์ | ตู้ | ยอด */
     bills.forEach((b,bi)=>{
+      rowNum++;
       const invList=[...b.invSet].sort().join(', ');
       rows+='<tr style="'+(bi%2===1?'background:#f0fdf4;':'')+' border-bottom:1px solid #e2e8f0;">'+
-        '<td style="font-size:10px;padding:3px 10px;color:#0f172a;font-weight:600;">'+h(b.ref)+'</td>'+
-        '<td style="font-size:9px;padding:3px 10px;color:#64748b;">'+h(invList)+'</td>'+
-        '<td class="r" style="color:#475569;font-size:10px;padding:3px 10px;">'+b.ctr+' ตู้</td>'+
-        '<td class="r tral-amt" style="font-size:10px;padding:3px 10px;">'+fmt(b.amount)+'</td>'+
+        '<td style="font-size:9px;padding:3px 6px;color:#94a3b8;text-align:right;width:32px;">#'+rowNum+'</td>'+
+        '<td style="font-size:10px;padding:3px 8px;color:#0f172a;font-weight:600;">'+h(b.ref)+'</td>'+
+        '<td style="font-size:9px;padding:3px 8px;color:#64748b;">'+h(invList)+'</td>'+
+        '<td class="r" style="color:#475569;font-size:10px;padding:3px 8px;">'+b.ctr+' ตู้</td>'+
+        '<td class="r tral-amt" style="font-size:10px;padding:3px 8px;">'+fmt(b.amount)+'</td>'+
       '</tr>';
     });
     /* spacer */
-    rows+='<tr style="height:5px;background:#f8fafc;"><td colspan="4" style="border:none;"></td></tr>';
+    rows+='<tr style="height:5px;background:#f8fafc;"><td colspan="5" style="border:none;"></td></tr>';
   });
   /* grand total */
   rows+='<tr class="tral-sum">'+
-    '<td colspan="2" style="text-align:right;font-size:11px;">รวมทั้งหมด</td>'+
+    '<td colspan="3" style="text-align:right;font-size:11px;">รวมทั้งหมด</td>'+
     '<td class="r">'+totalCtr+' ตู้</td>'+
     '<td class="r tral-amt">'+fmt(totalAmount)+'</td>'+
   '</tr>';
   document.getElementById('trAlBody').innerHTML=
     '<table class="tral-tbl"><thead><tr>'+
-    '<th style="width:35%">เลขที่วางบิล</th>'+
-    '<th style="width:30%">เลขอินวอยซ์</th>'+
-    '<th class="r" style="width:15%">ตู้</th>'+
-    '<th class="r" style="width:20%">ยอดรวม (บาท)</th>'+
+    '<th style="width:32px;text-align:right;">#</th>'+
+    '<th style="width:30%">เลขที่วางบิล</th>'+
+    '<th>เลขอินวอยซ์</th>'+
+    '<th class="r" style="width:12%">ตู้</th>'+
+    '<th class="r" style="width:18%">ยอดรวม (บาท)</th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table>';
   document.getElementById('trAlBg').classList.add('open');
 }
@@ -2946,6 +2949,8 @@ function trPrintAlMonthXref(){
     .grand-row td.r{text-align:right;color:#94a3b8;}
     @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.month-block{page-break-inside:avoid;}}
   `;
+  /* natural sort สำหรับ AL# */
+  const natSortAl=(a,b)=>{const re=/(\d+)/g,ap=a.split(re),bp=b.split(re);for(let i=0;i<Math.max(ap.length,bp.length);i++){if(i>=ap.length)return-1;if(i>=bp.length)return 1;const ai=ap[i],bi2=bp[i];if(i%2===1){const d=parseInt(ai)-parseInt(bi2);if(d!==0)return d;}else{if(ai<bi2)return-1;if(ai>bi2)return 1;}}return 0;};
   let grandCtr=0,grandAmt=0;
   const buildFactory=(fk)=>{
     const grp=fmap[fk];
@@ -2954,24 +2959,28 @@ function trPrintAlMonthXref(){
     grp.monthIns.forEach(mo=>{
       const mObj=grp.months[mo];
       const moName=mLabel(mo);
-      let coRows='';
+      /* flatten ทุก entry ทุกบริษัท → เรียงตาม AL# */
+      const flatEntries=[];
       mObj.coIns.forEach(co=>{
         const cObj=mObj.cos[co];
-        const alRows=cObj.alIns.map(al=>{
-          const v=cObj.als[al];
-          return `<tr>
-            <td style="color:#475569;font-size:9px;padding-left:22px;">${he2(al)}</td>
-            <td>${he2(v.billNo)}</td>
-            <td class="r">${v.ctr} ตู้</td>
-            <td class="r">${fm(v.amount)}</td>
-          </tr>`;
-        }).join('');
-        coRows+=`<tr>
-            <td colspan="2" style="background:${grp.light};color:${grp.color};font-weight:800;font-size:10px;padding:4px 8px;">🚛 ${he2(co)}</td>
-            <td class="r" style="background:${grp.light};color:${grp.color};font-size:9px;font-weight:700;">${cObj.tot.ctr} ตู้</td>
-            <td class="r" style="background:${grp.light};color:${grp.color};font-size:9px;font-weight:700;">${fm(cObj.tot.amount)}</td>
-          </tr>${alRows}`;
+        cObj.alIns.forEach(al=>{flatEntries.push({al,co,...cObj.als[al]});});
       });
+      flatEntries.sort((a,b)=>natSortAl(a.al,b.al));
+      /* company subtotal map */
+      const coTotMap={};
+      mObj.coIns.forEach(co=>{coTotMap[co]=mObj.cos[co].tot;});
+      const flatRows=flatEntries.map(e=>`<tr>
+            <td style="color:#475569;font-size:9px;">${he2(e.al)}</td>
+            <td><span style="background:${grp.light};color:${grp.color};border-radius:3px;padding:0 5px;font-size:8px;font-weight:700;margin-right:4px;">${he2(e.co)}</span>${he2(e.billNo)}</td>
+            <td class="r">${e.ctr} ตู้</td>
+            <td class="r">${fm(e.amount)}</td>
+          </tr>`).join('');
+      /* SUM row */
+      const subTotRows=`<tr class="tot-row">
+            <td colspan="2" style="text-align:right;font-size:9.5px;">รวมทั้งหมด</td>
+            <td class="r">${mObj.tot.ctr} ตู้</td>
+            <td class="r">${fm(mObj.tot.amount)}</td>
+          </tr>`;
       grandCtr+=mObj.tot.ctr; grandAmt+=mObj.tot.amount;
       moBlocks+=`<div class="month-block">
         <div class="mo-hdr" style="background:${grp.light};color:${grp.color};border-color:${grp.color};">
@@ -2980,12 +2989,13 @@ function trPrintAlMonthXref(){
         </div>
         <table>
           <thead><tr>
-            <th style="width:18%">เลขลำดับ AL</th>
-            <th style="width:37%">เลขที่วางบิล</th>
-            <th class="r" style="width:20%">จำนวนตู้</th>
+            <th style="width:15%">เลขลำดับ AL</th>
+            <th style="width:42%">บริษัท / เลขที่วางบิล</th>
+            <th class="r" style="width:18%">จำนวนตู้</th>
             <th class="r" style="width:25%">จำนวนเงิน (บาท)</th>
           </tr></thead>
-          <tbody>${coRows}</tbody>
+          <tbody>${flatRows}<tr style="height:4px;"><td colspan="4" style="border:none;background:#e2e8f0;"></td></tr>${subTotRows}
+        </tbody>
         </table>
       </div>`;
     });
@@ -3918,7 +3928,7 @@ const isThiraTruck=truck=>THIRA_NORM.has(normTruck(truck));
 let THIRA_FAC_FILTER='all'; /* 'all' | 'ogm' | 'ptn' | 'other' */
 const thiraFacTag=e=>{
   const isOgm=(e.prefix||'').toUpperCase()==='OGM'||e.inv.toUpperCase().startsWith('OGM');
-  const isPtn=(e.prefix||'').toUpperCase()==='PTN'||(e.factory||'').toUpperCase().includes('PTN')||(e.factory||'').includes('พัทลุง');
+  const isPtn=(e.prefix||'').toUpperCase()==='PTN'||e.inv.toUpperCase().startsWith('PTN');
   return isOgm?'ogm':isPtn?'ptn':'other';
 };
 const thiraFacOk=e=>THIRA_FAC_FILTER==='all'||thiraFacTag(e)===THIRA_FAC_FILTER;
