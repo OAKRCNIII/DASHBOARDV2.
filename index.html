@@ -1135,8 +1135,8 @@ function parseStatement(sheet){
   return{map,latestNo,latestBalance,latestDate};
 }
 function parseTransportBill(sheet){
-  /* Dynamic column discovery — คืน map { normInv: [{truck,container,price,date,factory,billNo,al}] } */
-  if(!sheet)return{};
+  /* Dynamic column discovery — คืน {map:{normInv:[...]}, latestAl:string} */
+  if(!sheet)return{map:{},latestAl:'-'};
   const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true,cellDates:true});
   const hi=findHdr(rows,['INV','PRICE','วันที่']);
   const hdr=(rows[hi]||[]).map(c=>String(c||'').trim().toUpperCase());
@@ -1144,7 +1144,7 @@ function parseTransportBill(sheet){
   const iDate=col(['วันที่'],0),iTruck=col(['ทะเบียนรถ','ทะเบียน','TRUCK'],1),iInv=col(['INV','โรงงาน(INV','INVOICE'],2);
   const iFactory=col(['โรงงาน','FACTORY'],5),iCtr=col(['เบอร์ตู้','CTR','CONTAINER','เบอร์'],6);
   const iPrice=col(['PRICE','ราคา'],7),iBill=col(['เลขที่วางบิล','OGM','BILL NO','BILL#','BILL'],8),iSeq=col(['AL#','AL'],9),iCo=col(['COLUMN','CO','NAME','บริษัท'],10);
-  const map={};
+  const map={};let latestAl='-';
   for(let i=hi+1;i<rows.length;i++){
     const r=rows[i];const inv=String(r[iInv]||'').trim();if(!inv)continue;
     const price=parseFloat(String(r[iPrice]||'').replace(/,/g,''))||0;
@@ -1152,11 +1152,12 @@ function parseTransportBill(sheet){
     if(!map[k])map[k]=[];
     const seq=String(r[iSeq]||'').trim();   /* AL#001, AL#002 ... */
     const co=String(r[iCo]||'').trim();     /* PIYA, VARA, PCHAI ... */
+    if(seq&&seq!=='-')latestAl=seq; /* track latest AL seen */
     map[k].push({truck:String(r[iTruck]||'').trim(),container:String(r[iCtr]||'').trim(),
       price,date:fmtDate(r[iDate]),factory:String(r[iFactory]||'').trim(),
       billNo:String(r[iBill]||'').trim(),al:seq,co:co||seq});
   }
-  return map;
+  return{map,latestAl};
 }
 /* ===== PRICE_UPDATE PARSER ===== */
 function parsePriceUpdate(wb){
@@ -1343,7 +1344,7 @@ function extractLatestBill(sheet){
   const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true});
   const hi=findHdr(rows,['INV','PRICE','วันที่']);
   const hdr=rows[hi]||[];
-  const iAL=hdr.findIndex(c=>String(c||'').trim().toUpperCase()==='AL');
+  const iAL=hdr.findIndex(c=>{const s=String(c||'').trim().toUpperCase();return s==='AL'||s==='AL#'||s.startsWith('AL');});
   if(iAL<0)return'-';
   let last='-';
   for(let i=hi+1;i<rows.length;i++){const v=String(rows[i]&&rows[i][iAL]||'').trim();if(v&&v!=='-')last=v;}
@@ -1457,13 +1458,13 @@ async function loadData(){
   const mergeTransportLocal=wb2=>{
     const sh=wb2.Sheets['DATA_BASE_BILL']||wb2.Sheets['DATA_BASE_BILL_ALL']||wb2.Sheets[wb2.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_BILL'))];
     if(!sh)return null;
-    const m=parseTransportBill(sh);Object.keys(m).forEach(k=>{if(!trMap[k])trMap[k]=[];trMap[k]=trMap[k].concat(m[k]);});
+    const {map:m,latestAl}=parseTransportBill(sh);Object.keys(m).forEach(k=>{if(!trMap[k])trMap[k]=[];trMap[k]=trMap[k].concat(m[k]);});
     if(!priceUpdateTable.length){const pu=parsePriceUpdate(wb2);if(pu.length)priceUpdateTable=pu;}
     const newUnpaid=parseTransportUnpaid(sh);unpaidTr=unpaidTr.concat(newUnpaid);
-    return sh;
+    return latestAl; /* คืน AL ล่าสุดที่เจอในไฟล์ */
   };
-  if(ogmPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const sh=mergeTransportLocal(wb);if(sh)billInfoTr.ogm=extractLatestBill(sh);bi++;}
-  if(othPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const sh=mergeTransportLocal(wb);if(sh)billInfoTr.all=extractLatestBill(sh);bi++;}
+  if(ogmPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const al=mergeTransportLocal(wb);if(al&&al!=='-')billInfoTr.ogm=al;bi++;}
+  if(othPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const al=mergeTransportLocal(wb);if(al&&al!=='-')billInfoTr.all=al;bi++;}
   const dupesTr=detectDuplicatesTr(trMap);
   const trMatched=matchContainersTr(allInv,dbMap,trMap);
   /* optional: OGM price file */
@@ -1563,6 +1564,10 @@ function applyRoleRestrictions(){
       document.getElementById('mainDash').style.display='none';
       document.getElementById('trDash').style.display='flex';
       document.getElementById('debtDash').style.display='none';}
+    /* render transport dashboard (prefix bar, bill info bar, etc.) */
+    TR_FILTER='all';TR_PREFIX='all';TR_VIEW='month';TR_OPEN.clear();
+    document.querySelectorAll('#trDash .vtab').forEach(b=>b.classList.toggle('active',b.dataset.v==='month'));
+    renderTransport();
   } else if(USER_ROLE==='manager'){
     if(dashBtn)dashBtn.style.display='none';
     if(debtBtn)debtBtn.style.display='none';
@@ -2889,6 +2894,22 @@ function trPrintAlMonthXref(){
     ogm:{label:'OGM',sublabel:'(เลขลำดับ AL)',color:'#065f46',light:'#d1fae5',months:{},monthIns:[]},
     other:{label:'โรงงานอื่นๆ',sublabel:'(ไม่รวม OGM)',color:'#1e3a5f',light:'#dbeafe',months:{},monthIns:[]}
   };
+  /* สร้าง global map: al → month สำหรับทุกเดือน (เพื่อเติมช่องว่าง) */
+  const globalAlMonthMap={ogm:{},other:{}};
+  TR_DATA.forEach(d=>{
+    if(!matchTrPrefix(d))return;
+    const fk2=(d.prefix||'').trim().toUpperCase()==='OGM'?'ogm':'other';
+    d.details.forEach(row=>{
+      if(!row.trMatch||row.trMatch._prePaid)return;
+      const al=(row.trMatch.al||row.trMatch.seq||'').trim();
+      if(al&&!globalAlMonthMap[fk2][al]){
+        const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
+        const xm=bill.match(/[A-Za-z]+/g);
+        const co=row.trMatch.co||(xm&&xm.length?xm.join('-').toUpperCase():'?');
+        globalAlMonthMap[fk2][al]={month:d.month,co,billNo:bill};
+      }
+    });
+  });
   TR_DATA.forEach(d=>{
     if(d.month!==printMonth)return;
     if(!matchTrPrefix(d))return;
@@ -2952,6 +2973,11 @@ function trPrintAlMonthXref(){
   /* natural sort สำหรับ AL# */
   const natSortAl=(a,b)=>{const re=/(\d+)/g,ap=a.split(re),bp=b.split(re);for(let i=0;i<Math.max(ap.length,bp.length);i++){if(i>=ap.length)return-1;if(i>=bp.length)return 1;const ai=ap[i],bi2=bp[i];if(i%2===1){const d=parseInt(ai)-parseInt(bi2);if(d!==0)return d;}else{if(ai<bi2)return-1;if(ai>bi2)return 1;}}return 0;};
   let grandCtr=0,grandAmt=0;
+  /* AL ทั้งหมดในแต่ละ fk เรียงลำดับ (สำหรับเติมช่องว่าง) */
+  const allAlsSorted={
+    ogm:Object.keys(globalAlMonthMap.ogm).sort(natSortAl),
+    other:Object.keys(globalAlMonthMap.other).sort(natSortAl)
+  };
   const buildFactory=(fk)=>{
     const grp=fmap[fk];
     if(grp.monthIns.length===0)return '';
@@ -2966,16 +2992,34 @@ function trPrintAlMonthXref(){
         cObj.alIns.forEach(al=>{flatEntries.push({al,co,...cObj.als[al]});});
       });
       flatEntries.sort((a,b)=>natSortAl(a.al,b.al));
-      /* company subtotal map */
-      const coTotMap={};
-      mObj.coIns.forEach(co=>{coTotMap[co]=mObj.cos[co].tot;});
-      const flatRows=flatEntries.map(e=>`<tr>
+      /* เติมช่องว่าง: หา AL ที่อยู่ในช่วงแต่เป็นของเดือนอื่น */
+      let mergedEntries=flatEntries;
+      if(flatEntries.length>0){
+        const curSet=new Set(flatEntries.map(e=>e.al));
+        const byAl={};flatEntries.forEach(e=>byAl[e.al]=e);
+        const firstAl=flatEntries[0].al,lastAl=flatEntries[flatEntries.length-1].al;
+        const inRange=allAlsSorted[fk].filter(al=>natSortAl(al,firstAl)>=0&&natSortAl(al,lastAl)<=0);
+        mergedEntries=inRange.map(al=>{
+          if(curSet.has(al))return byAl[al];
+          const info=globalAlMonthMap[fk][al]||{};
+          return{al,_ph:true,_fromMonth:mLabel(info.month||''),_co:info.co||'',_billNo:info.billNo||''};
+        });
+      }
+      const flatRows=mergedEntries.map(e=>{
+        if(e._ph)return `<tr style="background:#fafafa;">
+            <td style="color:#94a3b8;font-size:9px;font-style:italic;">${he2(e.al)}</td>
+            <td style="color:#94a3b8;font-size:9px;font-style:italic;">${e._co?`<span style="background:#e2e8f0;color:#64748b;border-radius:3px;padding:0 4px;font-size:8px;font-weight:700;margin-right:4px;">${he2(e._co)}</span>`:''}${he2(e._billNo)}</td>
+            <td class="r" style="color:#94a3b8;font-size:9px;font-style:italic;">(${he2(e._fromMonth)})</td>
+            <td class="r" style="color:#cbd5e0;">—</td>
+          </tr>`;
+        return `<tr>
             <td style="color:#475569;font-size:9px;">${he2(e.al)}</td>
             <td><span style="background:${grp.light};color:${grp.color};border-radius:3px;padding:0 5px;font-size:8px;font-weight:700;margin-right:4px;">${he2(e.co)}</span>${he2(e.billNo)}</td>
             <td class="r">${e.ctr} ตู้</td>
             <td class="r">${fm(e.amount)}</td>
-          </tr>`).join('');
-      /* SUM row */
+          </tr>`;
+      }).join('');
+      /* SUM row (นับเฉพาะ row จริง ไม่รวม placeholder) */
       const subTotRows=`<tr class="tot-row">
             <td colspan="2" style="text-align:right;font-size:9.5px;">รวมทั้งหมด</td>
             <td class="r">${mObj.tot.ctr} ตู้</td>
@@ -3925,13 +3969,13 @@ const THIRA_TRUCKS=['71-9538','72-1620','72-2237','72-2420','72-2953','72-3148']
 const normTruck=s=>String(s||'').replace(/[\s\-\.]/g,'').toUpperCase();
 const THIRA_NORM=new Set(THIRA_TRUCKS.map(normTruck));
 const isThiraTruck=truck=>THIRA_NORM.has(normTruck(truck));
-let THIRA_FAC_FILTER='all'; /* 'all' | 'ogm' | 'ptn' | 'other' */
-const thiraFacTag=e=>{
-  const isOgm=(e.prefix||'').toUpperCase()==='OGM'||e.inv.toUpperCase().startsWith('OGM');
-  const isPtn=(e.prefix||'').toUpperCase()==='PTN'||e.inv.toUpperCase().startsWith('PTN');
-  return isOgm?'ogm':isPtn?'ptn':'other';
+let THIRA_FAC_FILTER='all'; /* 'all' | 'no-ogm-ptn' | {prefix string} */
+const thiraFacOk=e=>{
+  if(THIRA_FAC_FILTER==='all')return true;
+  const pfx=(e.prefix||'').toUpperCase();
+  if(THIRA_FAC_FILTER==='no-ogm-ptn')return pfx!=='OGM'&&pfx!=='PTN';
+  return(e.prefix||'')===THIRA_FAC_FILTER;
 };
-const thiraFacOk=e=>THIRA_FAC_FILTER==='all'||thiraFacTag(e)===THIRA_FAC_FILTER;
 
 function renderTrThira(){
   const wrap=document.getElementById('trThiraWrap');
@@ -3954,6 +3998,21 @@ function renderTrThira(){
       else byTruck[plate].unpaid.push(entry);
     });
   });
+  /* คำนวณ prefix counts ก่อน filter (เพื่อแสดงจำนวนในแท็บ) */
+  const thPfxMap={};
+  THIRA_TRUCKS.forEach(t=>{
+    [...byTruck[t].paid,...byTruck[t].unpaid].forEach(e=>{
+      const pfx=e.prefix||'';
+      if(!thPfxMap[pfx])thPfxMap[pfx]={total:0,hasUnpaid:false};
+      thPfxMap[pfx].total++;
+      if(!e.isPaid&&!e.isPrePaid)thPfxMap[pfx].hasUnpaid=true;
+    });
+  });
+  const thAllTotal=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].paid.length+byTruck[t].unpaid.length,0);
+  const thAllUnpaid=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].unpaid.length,0);
+  const thNoOgmPtnAll=THIRA_TRUCKS.reduce((s,t)=>s+[...byTruck[t].paid,...byTruck[t].unpaid].filter(e=>(e.prefix||'').toUpperCase()!=='OGM'&&(e.prefix||'').toUpperCase()!=='PTN').length,0);
+  const thNoOgmPtnUnpaid=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].unpaid.filter(e=>(e.prefix||'').toUpperCase()!=='OGM'&&(e.prefix||'').toUpperCase()!=='PTN').length,0);
+  const hasOgmOrPtn=Object.keys(thPfxMap).some(p=>p==='OGM'||p==='PTN');
   /* กรองตาม THIRA_FAC_FILTER */
   THIRA_TRUCKS.forEach(t=>{
     byTruck[t].paid=byTruck[t].paid.filter(thiraFacOk);
@@ -3963,11 +4022,25 @@ function renderTrThira(){
   const grandExpected=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].unpaid.reduce((a,r)=>a+(r.expectedPrice||0),0),0);
   const grandPaidCtr=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].paid.length,0);
   const grandUnpaidCtr=THIRA_TRUCKS.reduce((s,t)=>s+byTruck[t].unpaid.length,0);
-  const facTabs=[{v:'all',lbl:'🔍 ทั้งหมด'},{v:'other',lbl:'🏭 โรงงานอื่นๆ'},{v:'ogm',lbl:'🟢 OGM'},{v:'ptn',lbl:'🔵 PTN'}];
-  const tabBar=facTabs.map(t=>{
-    const active=THIRA_FAC_FILTER===t.v;
-    return `<button onclick="THIRA_FAC_FILTER='${t.v}';renderTrThira();" style="padding:5px 13px;border-radius:20px;border:1.5px solid ${active?'#1e40af':'#cbd5e0'};background:${active?'#1e40af':'#fff'};color:${active?'#fff':'#475569'};font-size:11px;font-weight:${active?'800':'600'};cursor:pointer;transition:all .15s;">${t.lbl}</button>`;
-  }).join('');
+  /* สร้าง dynamic prefix tab bar (เหมือน main dashboard) */
+  const mkThTab=(v,label,count,hasUnpaid,customStyle)=>{
+    const active=THIRA_FAC_FILTER===v;
+    const redDot=hasUnpaid?'<span style="display:inline-block;width:6px;height:6px;background:#ef4444;border-radius:50%;margin-left:3px;vertical-align:middle;"></span>':'';
+    const s=customStyle||pst(v);
+    const bg=active?(customStyle?'#0f172a':s.bd):'#fff';
+    const tx=active?'#fff':s.tx;
+    const bd=active?(customStyle?'#0f172a':s.bd):s.bd;
+    return `<button onclick="THIRA_FAC_FILTER='${h(v)}';renderTrThira();" class="pfx-tab${active?' active':''}" style="background:${bg};color:${tx};border-color:${bd};font-weight:${active?'800':'600'};">` +
+      `${label} <span style="font-weight:400;font-size:10px;">(${count})</span>${redDot}</button>`;
+  };
+  let tabBar=mkThTab('all','🏭 ทุกโรงงาน',thAllTotal,thAllUnpaid>0,{bg:'#fff',tx:'#1a202c',bd:'#cbd5e0'});
+  if(hasOgmOrPtn){
+    tabBar+=mkThTab('no-ogm-ptn','🚫 ยกเว้น OGM & PTN',thNoOgmPtnAll,thNoOgmPtnUnpaid>0,null);
+  }
+  Object.keys(thPfxMap).sort().forEach(pfx=>{
+    const info=thPfxMap[pfx];
+    tabBar+=mkThTab(pfx,pfx,info.total,info.hasUnpaid,null);
+  });
   let html=`<div style="width:100%;">
   <div style="padding:12px 16px;background:linear-gradient(135deg,#1e3a5f,#0f2a52);color:#fff;display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
     <div style="font-size:14px;font-weight:900;"><span style="background:#1e40af;color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;margin-right:6px;letter-spacing:.5px;">TR</span>THIRA — สรุปค่าขนส่งรายคัน</div>
@@ -3977,7 +4050,7 @@ function renderTrThira(){
     </div>
   </div>
   <!-- Factory filter tabs -->
-  <div style="padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;gap:6px;flex-wrap:wrap;">${tabBar}</div>
+  <div class="prefix-bar" style="padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">${tabBar}</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding:14px 16px;">`;
   THIRA_TRUCKS.forEach(plate=>{
     const g=byTruck[plate];
@@ -4042,6 +4115,20 @@ function renderTrThira(){
 
 /* ===== RENDER TRANSPORT DASHBOARD ===== */
 function renderTransport(){
+  /* Fallback: ถ้า parse-time ไม่ได้ค่า AL ให้ดึงจาก TR_DATA ที่มีอยู่แล้ว */
+  if((BILL_INFO_TR.ogm==='-'&&BILL_INFO_TR.all==='-')&&TR_DATA.length){
+    const alNums=[];
+    TR_DATA.forEach(d=>{d.details.forEach(row=>{if(row.trMatch){const v=String(row.trMatch.al||'').trim();if(v&&v!=='-')alNums.push(v);}});});
+    if(alNums.length){
+      /* หา AL ที่มีเลขท้ายสูงสุด */
+      const maxAl=alNums.reduce((best,v)=>{
+        const nb=parseInt((best.match(/(\d+)$/)||[0,0])[1]||0);
+        const nv=parseInt((v.match(/(\d+)$/)||[0,0])[1]||0);
+        return nv>nb?v:best;
+      },alNums[0]);
+      BILL_INFO_TR={ogm:'-',all:maxAl};
+    }
+  }
   const hasBill=BILL_INFO_TR.ogm!=='-'||BILL_INFO_TR.all!=='-';
   document.getElementById('trBillInfoBar').style.display=hasBill?'flex':'none';
   document.getElementById('trBillOgm').style.display=BILL_INFO_TR.ogm!=='-'?'inline-flex':'none';
