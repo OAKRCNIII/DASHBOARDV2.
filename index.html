@@ -2132,7 +2132,7 @@ td{padding:6px 9px;vertical-align:middle;font-size:10px;}
 .rl{text-align:right;font-weight:700;font-size:9px;color:#1e40af;padding-right:14px;}
 .tr2{background:#dbeafe !important;}
 .tr2 td{padding:6px 9px;}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+@page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style></head><body>${pages}</body></html>`;
   closeVPdfModal();
   /* open window, write HTML, then trigger print from parent — more reliable than onload script */
@@ -2287,7 +2287,7 @@ body{font-family:'Segoe UI',Tahoma,'Noto Sans Thai',sans-serif;font-size:9pt;col
 .hd p{font-size:8pt;color:#64748b;margin-top:3px;}
 table{width:100%;border-collapse:collapse;}
 .ft{margin-top:4mm;font-size:7pt;color:#94a3b8;text-align:right;}
-@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+@page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
 </style></head><body>${pages}
 <script>window.onload=function(){window.print();};<\/script>
 </body></html>`;
@@ -2735,7 +2735,7 @@ function trPrintUnpaidMonth(month,evt){
     tr:nth-child(even) td{background:#fff5f5;}
     .pfx-hdr td{background:#fef2f2;color:#991b1b;font-weight:800;font-size:11px;padding:6px 10px;border-top:2px solid #fca5a5;border-bottom:1px solid #fca5a5;}
     .mono{font-family:monospace;font-weight:700;}.total-row td{background:#fef2f2;font-weight:900;border-top:2px solid #dc2626;font-size:13px;}
-    @media print{body{padding:12px;}}</style></head><body>
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{padding:12px;}}</style></head><body>
   <h2>🚛 รายการค้างจ่ายค่าขนส่ง</h2>
   <div class="sub">เดือน ${moName} &nbsp;·&nbsp; พิมพ์เมื่อ ${dateStr}</div>
   <table><thead><tr><th class="c">#</th><th>เบอร์ตู้</th><th>ทะเบียนรถ</th><th>อินวอยซ์</th><th>วันที่เข้า</th>${hasPU?'<th class="r">อัตราค่าขนส่ง</th>':''}</tr></thead>
@@ -2905,7 +2905,7 @@ function trPrintByFactoryReport(){
     .sub-row td.r{text-align:right;}
     .grand-row td{background:#1e293b;color:#fff;font-weight:800;border:none;padding:6px 10px;border-radius:4px;margin-top:8px;}
     .grand-row .r{text-align:right;color:#94a3b8;}
-    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
   `;
   /* ── build each section ── */
   const buildSection=(grp)=>{
@@ -3060,7 +3060,7 @@ function trPrintAlMonthXref(){
     .grand-box table{margin:0;}
     .grand-row td{background:#1e293b;color:#fff;font-weight:800;border:none;padding:7px 10px;}
     .grand-row td.r{text-align:right;color:#94a3b8;}
-    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.month-block{page-break-inside:avoid;}}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.month-block{page-break-inside:avoid;}}
   `;
   /* natural sort สำหรับ AL# */
   const natSortAl=(a,b)=>{const re=/(\d+)/g,ap=a.split(re),bp=b.split(re);for(let i=0;i<Math.max(ap.length,bp.length);i++){if(i>=ap.length)return-1;if(i>=bp.length)return 1;const ai=ap[i],bi2=bp[i];if(i%2===1){const d=parseInt(ai)-parseInt(bi2);if(d!==0)return d;}else{if(ai<bi2)return-1;if(ai>bi2)return 1;}}return 0;};
@@ -3217,7 +3217,7 @@ function trPrintByBillReport(){
     .b-amt{text-align:right;font-weight:700;color:#059669;width:25%;}
     .grand-row td{background:#7c3aed;color:#fff;font-weight:800;border:none;padding:5px 8px;border-radius:4px;}
     .grand-row .r{text-align:right;color:#ddd6fe;}
-    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
   `;
   let groupsHtml='';
   coList.forEach(co=>{
@@ -3306,7 +3306,7 @@ function trPrintBillListReport(){
     .b-ref{font-weight:600;color:#0f172a;flex:1;}
     .b-ctr{color:#64748b;margin:0 6px;white-space:nowrap;}
     .b-amt{color:#059669;font-weight:700;white-space:nowrap;}
-    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
   `;
   /* ── build groups ── */
   let groupsHtml='';
@@ -3395,7 +3395,7 @@ function trPrintOneCoReport(co){
     .f-lbl{text-align:right;font-size:10px;padding-right:10px;}
     .f-ctr{text-align:center;font-size:10px;}
     .f-amt{text-align:right;font-size:11px;}
-    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
   `;
   let tbody='';
   billArr.forEach((b,i)=>{
@@ -3518,7 +3518,7 @@ function trPrintAlReport(){
     .grand .gr-lbl{font-size:10px;}
     .grand .gr-ctr{text-align:center;font-size:10px;}
     .grand .gr-amt{text-align:right;font-size:11px;font-weight:900;}
-    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
   `;
   /* ── build tbody rows (all groups) ── */
   let allRows='';
@@ -3912,7 +3912,7 @@ function trCoPrintSelectedReport(){
     td{border-bottom:1px solid #e2e8f0;padding:4px 8px;font-size:9.5px;vertical-align:middle;}
     tr:nth-child(even) td{background:#faf5ff;}
     .tot-row td{font-weight:800;background:#ede9fe;border-top:2px solid #7c3aed;font-size:11px;}
-    @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}`;
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}`;
   const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8"><title>Report ค่าขนส่ง</title><style>${css}</style></head><body>${pages}</body></html>`;
   const win=window.open('','_blank','width=1060,height=720');
   if(!win){alert('⚠️ กรุณาอนุญาต Pop-up ก่อนนะครับ');return;}
@@ -4354,7 +4354,7 @@ function printDebtReport(pfxFilter,showDetail){
     .sub-total td{border-top:2px solid #f59e0b;background:#fef3c7;font-weight:800;font-size:12px;padding:7px 12px;}
     .grand-bar{margin:16px 24px 0;padding:12px 16px;background:#fef3c7;border-top:2px solid #f59e0b;font-size:14px;font-weight:900;color:#92400e;text-align:right;}
     .page-break{page-break-after:always;break-after:page;}
-    @media print{.pfx-page{padding:12px 16px;}@page{margin:12mm;}}
+    @media print{.pfx-page{padding:12px 16px;}@page{margin:12mm;@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}}
   </style></head><body>
   ${showDetail
     ?`<div class="doc-hdr"><h2 style="margin:0 0 2px;">🏦 ${title}</h2><div style="font-size:11px;color:#6b7280;">วันที่พิมพ์: ${dateStr} · ${totalInvs} อินวอยซ์ · ${pfxs.length} โรงงาน</div></div>${detailContent}`
