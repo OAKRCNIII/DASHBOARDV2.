@@ -2600,16 +2600,23 @@ function renderTrMonthSummary(){
     return true;
   });
   const months={};
+  const unpaidByMonth={};
   src.forEach(d=>{
     const m=d.month||'-';
     if(!months[m])months[m]={inv:0,ctr:0,paid:0,amount:0,expected:0,full:0,partial:0,none:0,nodata:0};
     const g=months[m];g.inv++;g.ctr+=d.details.length;g.paid+=d.paidCount;g.amount+=d.totalPaid;
+    if(!unpaidByMonth[m])unpaidByMonth[m]=[];
     d.details.forEach(row=>{
       if(row.trMatch&&!row.trMatch._prePaid){g.expected+=row.trMatch.price||0;}
       else if(!row.trMatch&&hasPU){g.expected+=lookupPriceUpdate(row.เข้าโรงงาน,d.prefix,row.โรงงาน,d.inv);}
+      if(!row.trMatch){
+        const rate=hasPU?lookupPriceUpdate(row.เข้าโรงงาน,d.prefix,row.โรงงาน,d.inv):0;
+        unpaidByMonth[m].push({inv:d.inv,prefix:d.prefix,container:row['เบอร์ตู้']||'-',truck:row['ทะเบียนรถ']||'-',factory:row['โรงงาน']||'-',date:row['เข้าโรงงาน']||'-',rate});
+      }
     });
     if(d.status==='full')g.full++;else if(d.status==='partial')g.partial++;else if(d.status==='none')g.none++;else g.nodata++;
   });
+  window._TR_UNPAID_BY_MONTH=unpaidByMonth;
   const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
   const keys=Object.keys(months).sort(mSort);
   if(!keys.length){document.getElementById('trMonthGrid').innerHTML='<div style="color:#94a3b8;padding:20px;">ไม่พบข้อมูล</div>';return;}
@@ -2619,14 +2626,15 @@ function renderTrMonthSummary(){
     const pct=g.ctr>0?Math.round(g.paid/g.ctr*100):0;
     const barColor=pct===100?'#16a34a':pct>0?'#f59e0b':'#f87171';
     const moLabel=mLabel(m);
-    /* isComplete = ตู้ครบทุกใบแล้ว ไม่ได้ดูจากตัวเงิน */
     const isComplete=g.paid>=g.ctr&&g.ctr>0;
     const gap=g.expected-g.amount;
     let badges='';
     if(g.full)badges+='<span class="mc-badge mc-full">✅ ครบ '+g.full+'</span> ';
     if(g.partial)badges+='<span class="mc-badge mc-partial">⚠️ บางส่วน '+g.partial+'</span> ';
     if(g.none)badges+='<span class="mc-badge mc-none">❌ ค้าง '+g.none+'</span> ';
-    html+='<div class="month-card" onclick="trShowAlModal(\'' + m + '\')" title="คลิกเพื่อดูสรุปตามบริษัทขนส่ง">';
+    const uList=unpaidByMonth[m]||[];
+    const sid='tmd_'+m.replace(/[^a-z0-9]/gi,'_');
+    html+='<div class="month-card" onclick="trShowAlModal(\''+m+'\')" title="คลิกเพื่อดูสรุปตามบริษัทขนส่ง">';
     html+='<div class="mc-hdr"><span>📅 '+moLabel+'</span><span style="font-size:11px;font-weight:400;color:#64748b;">'+g.inv+' อินวอยซ์</span></div>';
     html+='<div class="mc-grid">';
     html+='<div class="mc-stat"><span class="mv">'+g.ctr+'</span><span class="ml">ตู้ทั้งหมด</span></div>';
@@ -2647,10 +2655,94 @@ function renderTrMonthSummary(){
     html+='<div style="margin:10px 0 8px;background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden;">';
     html+='<div style="width:'+pct+'%;background:'+barColor+';height:100%;border-radius:4px;transition:width .4s;"></div></div>';
     html+='<div style="font-size:11px;">'+badges+'</div>';
-    html+='<span style="font-size:9px;color:#94a3b8;cursor:pointer;">🔍 ดูสรุปขนส่ง</span>';
+    if(uList.length>0){
+      const totalRate=uList.reduce((s,u)=>s+u.rate,0);
+      const rateHint=totalRate>0?' · ~'+fmtAmt(totalRate)+' บาท':'';
+      html+='<button id="'+sid+'btn" onclick="trToggleMD(\''+sid+'\',this,event)" style="margin-top:8px;width:100%;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;color:#dc2626;font-size:10px;font-weight:700;padding:5px 10px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;">'
+        +'<span>📋 ดูตู้ค้างจ่าย '+uList.length+' ตู้'+rateHint+'</span><span style="font-size:11px;">▼</span>'
+        +'</button>';
+      html+='<div id="'+sid+'" style="display:none;margin-top:4px;border:1px solid #fecaca;border-radius:6px;background:#fff;overflow:hidden;">';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:#fef2f2;border-bottom:1px solid #fecaca;">'
+        +'<span style="font-size:10px;font-weight:700;color:#991b1b;">🚛 รายการค้างจ่าย — '+moLabel+'</span>'
+        +'<button onclick="trPrintUnpaidMonth(\''+m+'\',event)" style="background:#dc2626;color:#fff;border:none;border-radius:5px;font-size:9px;font-weight:700;padding:3px 9px;cursor:pointer;">🖨 Report</button>'
+        +'</div>';
+      html+='<div style="max-height:200px;overflow-y:auto;">';
+      html+='<table style="width:100%;border-collapse:collapse;font-size:9.5px;">';
+      html+='<thead><tr style="background:#fff7f7;position:sticky;top:0;">'
+        +'<th style="padding:4px 6px;text-align:left;color:#991b1b;font-weight:700;">เบอร์ตู้</th>'
+        +'<th style="padding:4px 6px;text-align:left;color:#991b1b;font-weight:700;">ทะเบียนรถ</th>'
+        +'<th style="padding:4px 6px;text-align:left;color:#991b1b;font-weight:700;">อินวอยซ์</th>'
+        +'<th style="padding:4px 6px;text-align:left;color:#991b1b;font-weight:700;">วันที่เข้า</th>'
+        +(hasPU?'<th style="padding:4px 6px;text-align:right;color:#991b1b;font-weight:700;">อัตรา</th>':'')
+        +'</tr></thead><tbody>';
+      uList.forEach((u,i)=>{
+        const bg=i%2===0?'':'background:#fff5f5;';
+        const pfxStyle=pst(u.prefix);
+        html+='<tr style="'+bg+'">'
+          +'<td style="padding:3px 6px;font-weight:600;font-family:monospace;">'+h(u.container)+'</td>'
+          +'<td style="padding:3px 6px;font-weight:600;color:#1e40af;">'+h(u.truck)+'</td>'
+          +'<td style="padding:3px 6px;"><span style="background:'+pfxStyle.bg+';color:'+pfxStyle.tx+';border-radius:3px;padding:0 4px;font-size:8px;font-weight:700;margin-right:3px;">'+h(u.prefix)+'</span>'+h(u.inv)+'</td>'
+          +'<td style="padding:3px 6px;color:#64748b;">'+h(u.date)+'</td>'
+          +(hasPU?'<td style="padding:3px 6px;text-align:right;color:#dc2626;font-weight:600;">'+(u.rate>0?fmtAmt(u.rate):'—')+'</td>':'')
+          +'</tr>';
+      });
+      html+='</tbody></table></div></div>';
+    }else{
+      html+='<span style="font-size:9px;color:#94a3b8;cursor:pointer;">🔍 ดูสรุปขนส่ง</span>';
+    }
     html+='</div>';
   });
   document.getElementById('trMonthGrid').innerHTML=html;
+}
+function trToggleMD(sid,btn,evt){
+  if(evt)evt.stopPropagation();
+  const panel=document.getElementById(sid);
+  if(!panel)return;
+  const open=panel.style.display!=='none';
+  panel.style.display=open?'none':'block';
+  const arrow=btn.querySelector('span:last-child');
+  if(arrow)arrow.textContent=open?'▼':'▲';
+}
+function trPrintUnpaidMonth(month,evt){
+  if(evt)evt.stopPropagation();
+  const uList=(window._TR_UNPAID_BY_MONTH||{})[month]||[];
+  if(!uList.length){alert('ไม่พบรายการค้างจ่ายในเดือนนี้');return;}
+  const hasPU=PRICE_UPDATE_TABLE&&PRICE_UPDATE_TABLE.length>0;
+  const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const moName=mLabel(month);
+  const totalRate=uList.reduce((s,u)=>s+u.rate,0);
+  const dateStr=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  const byPfx={};
+  uList.forEach(u=>{if(!byPfx[u.prefix])byPfx[u.prefix]=[];byPfx[u.prefix].push(u);});
+  let rows='';let rowIdx=0;
+  Object.keys(byPfx).sort().forEach(pfx=>{
+    const list=byPfx[pfx];
+    const pfxTotal=list.reduce((s,u)=>s+u.rate,0);
+    rows+=`<tr class="pfx-hdr"><td colspan="${hasPU?6:5}">📦 ${esc(pfx)} &nbsp;·&nbsp; ${list.length} ตู้${pfxTotal>0?' &nbsp;·&nbsp; ~'+fmtAmt(pfxTotal)+' บาท':''}</td></tr>`;
+    list.forEach(u=>{
+      rowIdx++;
+      rows+=`<tr><td class="c">${rowIdx}</td><td class="mono">${esc(u.container)}</td><td style="color:#1e40af;font-weight:700;">${esc(u.truck)}</td><td>${esc(u.inv)}</td><td>${esc(u.date)}</td>${hasPU?`<td class="r">${u.rate>0?fmtAmt(u.rate):'—'}</td>`:''}</tr>`;
+    });
+  });
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>รายการค้างจ่าย — ${moName}</title><style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap');
+    *{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Sarabun',sans-serif;font-size:12px;color:#1f2937;padding:24px;}
+    h2{color:#991b1b;font-size:17px;margin-bottom:2px;}.sub{font-size:11px;color:#6b7280;margin-bottom:16px;}
+    table{width:100%;border-collapse:collapse;}th{background:#dc2626;color:#fff;padding:7px 10px;text-align:left;font-size:11px;}
+    th.r,td.r{text-align:right;}th.c,td.c{text-align:center;width:30px;}
+    td{border-bottom:1px solid #fee2e2;padding:6px 10px;vertical-align:middle;}
+    tr:nth-child(even) td{background:#fff5f5;}
+    .pfx-hdr td{background:#fef2f2;color:#991b1b;font-weight:800;font-size:11px;padding:6px 10px;border-top:2px solid #fca5a5;border-bottom:1px solid #fca5a5;}
+    .mono{font-family:monospace;font-weight:700;}.total-row td{background:#fef2f2;font-weight:900;border-top:2px solid #dc2626;font-size:13px;}
+    @media print{body{padding:12px;}}</style></head><body>
+  <h2>🚛 รายการค้างจ่ายค่าขนส่ง</h2>
+  <div class="sub">เดือน ${moName} &nbsp;·&nbsp; พิมพ์เมื่อ ${dateStr}</div>
+  <table><thead><tr><th class="c">#</th><th>เบอร์ตู้</th><th>ทะเบียนรถ</th><th>อินวอยซ์</th><th>วันที่เข้า</th>${hasPU?'<th class="r">อัตราค่าขนส่ง</th>':''}</tr></thead>
+  <tbody>${rows}</tbody>${hasPU&&totalRate>0?`<tfoot><tr class="total-row"><td colspan="5" style="text-align:right;padding-right:12px;">💰 ยอดรวมโดยประมาณ</td><td class="r">${fmtAmt(totalRate)} บาท</td></tr></tfoot>`:''}</table>
+  <script>window.onload=()=>window.print();<\/script></body></html>`;
+  const w=window.open('','_blank','width=800,height=600');
+  if(w){w.document.write(html);w.document.close();}
 }
 
 
@@ -2905,7 +2997,7 @@ function trPrintAlMonthXref(){
       if(al&&!globalAlMonthMap[fk2][al]){
         const bill=(row.trMatch.billNo||'').trim()||'(ไม่มีเลข)';
         const xm=bill.match(/[A-Za-z]+/g);
-        const co=row.trMatch.co||(xm&&xm.length?xm.join('-').toUpperCase():'?');
+        const co=xm&&xm.length?xm.join('-').toUpperCase():'?';
         globalAlMonthMap[fk2][al]={month:d.month,co,billNo:bill};
       }
     });
