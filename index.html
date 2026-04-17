@@ -469,7 +469,8 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
   .factory-topbar{flex-direction:column;}
   .fdate-bar{width:100%;}
 }
-/* LOGIN */
+/* ===== LOGIN ===== */
+#loginScreen{position:fixed;inset:0;background:linear-gradient(135deg,#1e3a5f 0%,#0f2a52 100%);display:none;align-items:center;justify-content:center;z-index:99999;}
 .login-card{background:#fff;border-radius:20px;padding:36px 32px;width:320px;box-shadow:0 20px 60px rgba(0,0,0,.35);text-align:center;}
 .login-logo{font-size:40px;margin-bottom:8px;}
 .login-title{font-size:18px;font-weight:900;color:#0f2a52;margin-bottom:4px;}
@@ -503,66 +504,54 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
   <div class="setup-card">
     <div class="setup-logo">🚢</div>
     <div class="setup-title">Logistics Dashboard</div>
-    <div class="setup-sub">📦 นำเข้า-ส่งออก · ดึงข้อมูลจาก Dropbox</div>
-    <!-- App Key section -->
-    <div class="fgrp">
-      <div class="lbl">🔑 Dropbox App Key</div>
-      <div style="display:flex;gap:8px;align-items:stretch;">
-        <input class="inp" id="fAppKey" placeholder="xxxxxxxxxxxxxxxxxxxx" style="flex:1;margin:0;">
-        <button id="connectDropboxBtn" style="padding:0 16px;background:linear-gradient(135deg,#0061fe,#0078ff);color:white;border:none;border-radius:10px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;letter-spacing:.2px;transition:opacity .15s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🔗 เชื่อมต่อ</button>
-      </div>
-      <div class="hint">ใส่ App Key จาก Dropbox App Console แล้วกด "เชื่อมต่อ" — ระบบจะพา authorize ให้อัตโนมัติ</div>
+    <div class="setup-sub">📦 นำเข้า-ส่งออก · อ่านไฟล์จากเครื่อง</div>
+    <div class="folder-box" id="folderBox" onclick="pickFolder()">
+      <div class="fi-icon">📁</div>
+      <div class="fi-name" id="folderName" style="display:none;"></div>
+      <div class="fi-sub" id="folderSub" style="display:none;"></div>
+      <div class="fi-empty" id="folderEmpty">คลิกเพื่อเลือก Folder</div>
+      <div class="fi-hint" id="folderHint">เลือกโฟลเดอร์หลักที่เก็บไฟล์ Excel ทั้งหมด</div>
     </div>
-    <!-- Token status badge -->
-    <div id="tokenStatusBox" style="display:none;padding:8px 12px;border-radius:10px;font-size:11px;font-weight:700;margin-bottom:10px;"></div>
-    <!-- Manual token (collapsible) -->
-    <details id="manualTokenDetails" style="margin-bottom:12px;">
-      <summary style="font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.6px;cursor:pointer;user-select:none;padding:4px 0;">🔧 หรือกรอก Access Token โดยตรง</summary>
-      <div style="margin-top:8px;">
-        <input class="inp" id="fToken" type="password" placeholder="sl.xxxxxxxxxxxxxxxxxxxxx">
-        <div class="hint">Token ยาวจาก Dropbox App Console → Generate Access Token</div>
-      </div>
-    </details>
-    <div class="divider"><hr><span>พาธไฟล์ใน Dropbox (ขึ้นต้นด้วย /)</span><hr></div>
+    <div class="divider"><hr><span>พาธไฟล์ (relative จาก Folder ที่เลือก)</span><hr></div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ ใบยกตู้ (.xlsm) <span style="color:#dc2626;">*</span></div>
-      <input class="inp" id="fInv" placeholder="/LOGISTICS/ใบยกตู้V4TEST.xlsm">
-      <div class="hint">พาธเต็มใน Dropbox เช่น /FOLDER/ใบยกตู้V4TEST.xlsm</div>
+      <input class="inp" id="fInv" placeholder="ใบยกตู้/ใบยกตู้V4TEST.xlsm">
+      <div class="hint">พาธในโฟลเดอร์ที่เลือก เช่น FOLDER/file.xlsm</div>
     </div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ BKG (.xlsx) <span style="color:#dc2626;">*</span></div>
-      <input class="inp" id="fBkg" placeholder="/LOGISTICS/BKG.xlsx">
+      <input class="inp" id="fBkg" placeholder="ใบยกตู้/BKG.xlsx">
     </div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ VESSEL MANAGE (.xlsm)</div>
-      <input class="inp" id="fVsl" placeholder="/LOGISTICS/VESSEL_MANAGE.xlsm">
+      <input class="inp" id="fVsl" placeholder="RCN CHECK/VESSEL_SU/VESSEL_MANAGE.xlsm">
     </div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ STATEMENT (.xlsm)</div>
-      <input class="inp" id="fStm" placeholder="/LOGISTICS/SU_STATEMENT.xlsm">
+      <input class="inp" id="fStm" placeholder="RCN CHECK/VESSEL_SU/SU_STATEMENT.xlsm">
     </div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ค่าขนส่ง OGM (.xlsm)</div>
-      <input class="inp" id="fOgm" placeholder="/LOGISTICS/DATA ใบวางบิล.xlsm">
+      <input class="inp" id="fOgm" placeholder="ใบยกตู้/DATA ใบวางบิล.xlsm">
     </div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ค่าขนส่ง โรงงานอื่น (.xlsm)</div>
-      <input class="inp" id="fOth" placeholder="/LOGISTICS/DATA ค่าขนส่ง.xlsm">
+      <input class="inp" id="fOth" placeholder="RCN CHECK/สรุปขนส่ง/DATA ใบวางบิล ALL.xlsm">
     </div>
     <div class="fgrp">
       <div class="lbl">ราคา OGM (A) ต่อโรงงาน (.xlsx)</div>
-      <input class="inp" id="fOgmPrice" placeholder="/LOGISTICS/OGM (A).xlsx">
+      <input class="inp" id="fOgmPrice" placeholder="RCN CHECK/ABCD/ตารางตามเงิน/OGM (A).xlsx">
       <div class="hint">ไฟล์ราคาค่าขนส่ง OGM(A) แยกโรงงาน ใช้แสดง วางบิลโรงงาน ในดีเทลอินวอยซ์</div>
     </div>
     <div class="fgrp">
       <div class="lbl">วางบิลแล้ว — BILL_ANTS (.xlsm)</div>
-      <input class="inp" id="fBill" placeholder="/LOGISTICS/BILL_ANTS.xlsm">
+      <input class="inp" id="fBill" placeholder="RCN CHECK/BILL_ANTS.xlsm">
       <div class="hint">ไฟล์รายการอินวอยซ์ที่วางบิลไปแล้ว (ชีท DATA_BASE_BILL_ANTS) ใช้แสดงสถานะ ✓ วางบิลแล้ว</div>
     </div>
     <div class="fgrp">
       <div class="lbl">รับเงินแล้ว — PAID_ANTS (.xlsm)</div>
-      <input class="inp" id="fPaid" placeholder="/LOGISTICS/PAID_ANTS.xlsm">
-      <div class="hint">ไฟล์รายการอินวอยซ์ที่ได้รับชำระแล้ว (ชีท DATA_BASE_PAID_ANTS)</div>
+      <input class="inp" id="fPaid" placeholder="RCN CHECK/PAID_ANTS.xlsm">
+      <div class="hint">ไฟล์รายการอินวอยซ์ที่ได้รับชำระแล้ว (ชีท DATA_BASE_PAID_ANTS) ใช้แสดงสถานะ 💰 PAID และ Dashboard หนี้โรงงาน</div>
     </div>
     <button class="save-btn" id="saveBtn">✅ บันทึกและโหลดข้อมูล</button>
     <div class="err-box" id="setupErr"></div>
@@ -582,7 +571,6 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
   </div>
   <div id="errBox">
     <div id="errMsg"></div>
-    <button id="reconnectBtn" onclick="connectDropbox()" style="display:none;width:100%;padding:11px;background:linear-gradient(135deg,#0061fe,#0078ff);color:white;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;margin-bottom:8px;">🔗 เชื่อมต่อ Dropbox อีกครั้ง</button>
     <button class="retry-btn" id="retryBtn">🔄 ลองใหม่</button>
     <button class="reset-btn" id="resetBtn">⚙️ ตั้งค่าใหม่</button>
   </div>
@@ -612,6 +600,7 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     <button class="htab" id="htab-stock" onclick="switchTab('stock')">📦 STOCK ตู้</button>
     <button class="htab" id="htab-factory" onclick="switchTab('factory')">🏭 เข้าโรงงาน</button>
     <button class="htab" id="htab-vessel" onclick="switchTab('vessel')">🚢 เรือ</button>
+    <button class="htab" id="htab-price" onclick="switchTab('price')" style="display:none;">💰 PRICE UPDATE</button>
   </div>
   <div class="stats-bar" id="sBar"></div>
   <!-- BKG modal -->
@@ -707,6 +696,10 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
         <div class="ftbl-wrap"><div id="factoryTable"></div></div>
       </div>
     </div>
+    <!-- PRICE UPDATE -->
+    <div class="view" id="priceView" style="flex-direction:column;overflow-y:auto;background:#f8fafc;">
+      <div id="priceWrap" style="max-width:900px;margin:0 auto;padding:16px;width:100%;box-sizing:border-box;"></div>
+    </div>
   </div>
   <!-- Mobile tabs -->
   <div class="mob-tabs">
@@ -715,6 +708,7 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     <div class="mob-tab" id="mtab-stock" onclick="switchTab('stock')"><div class="mob-tab-icon">📦</div>STOCK</div>
     <div class="mob-tab" id="mtab-factory" onclick="switchTab('factory')"><div class="mob-tab-icon">🏭</div>โรงงาน</div>
     <div class="mob-tab" id="mtab-vessel" onclick="switchTab('vessel')"><div class="mob-tab-icon">🚢</div>เรือ</div>
+    <div class="mob-tab" id="mtab-price" onclick="switchTab('price')" style="display:none;"><div class="mob-tab-icon">💰</div>ราคา</div>
   </div>
   </div><!-- end #mainDash -->
 
@@ -809,7 +803,9 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     </div>
     <!-- Transport company view -->
     <div id="trCoWrap" style="display:none;flex:1;overflow:auto;padding:12px 16px;"></div>
+    <!-- Unpaid containers view -->
     <div id="trUnpaidWrap" style="display:none;flex:1;overflow:auto;"></div>
+    <!-- THIRA truck view -->
     <div id="trThiraWrap" style="display:none;flex:1;overflow:auto;"></div>
   </div><!-- end #trDash -->
 
@@ -819,7 +815,7 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
       <span class="debt-title">🏦 ยอดค้างชำระ — วางบิลแล้วแต่ยังไม่รับเงิน</span>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <span id="debtSummaryChip" style="font-size:11px;color:#92400e;font-weight:700;background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:4px 12px;"></span>
-        <button onclick="printDebtReport(null)" style="padding:5px 14px;border-radius:8px;border:1px solid #fde68a;background:#92400e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;">🖨️ พิมพ์รวม</button>
+        <button onclick="printDebtReport(null,false,Object.keys(_buildShippingDebtMap()).filter(p=>_buildShippingDebtMap()[p].total>0))" style="padding:5px 14px;border-radius:8px;border:1px solid #fde68a;background:#92400e;color:#fff;font-size:11px;font-weight:700;cursor:pointer;">🖨️ พิมพ์รวม</button>
         <button onclick="debtPrintSelectModal()" style="padding:5px 14px;border-radius:8px;border:1px solid #fde68a;background:#b45309;color:#fff;font-size:11px;font-weight:700;cursor:pointer;">🖨️ เลือกโรงงาน</button>
         <button onclick="toggleDebtDash()" style="padding:5px 14px;border-radius:8px;border:1px solid #fde68a;background:#fff;color:#92400e;font-size:11px;font-weight:700;cursor:pointer;">✕ ปิด</button>
       </div>
@@ -827,7 +823,23 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
     <div class="debt-body"><div id="debtDashBody"></div></div>
   </div><!-- end #debtDash -->
   <!-- Debt print select modal -->
-  <div id="debtPrintBg" onclick="if(event.target===this)document.getElementById('debtPrintBg').style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;">
+  <!-- SHIP PAID MODAL -->
+  <div id="shipPaidModalBg" onclick="if(event.target===this)closeShipPaidModal()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9100;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:24px;min-width:300px;max-width:360px;width:90vw;box-shadow:0 8px 40px rgba(0,0,0,.25);">
+      <div style="font-size:15px;font-weight:900;color:#1e40af;margin-bottom:4px;">🚛 บันทึกการชำระค่าขนส่ง</div>
+      <div id="shipPaidModalInfo" style="font-size:12px;color:#64748b;margin-bottom:18px;"></div>
+      <label style="font-size:12px;font-weight:700;color:#374151;display:block;margin-bottom:6px;">📅 วันที่โรงงานจ่าย</label>
+      <input type="date" id="shipPaidDateInput" style="width:100%;box-sizing:border-box;padding:9px 12px;border:1.5px solid #bfdbfe;border-radius:8px;font-size:13px;font-family:inherit;color:#1e40af;outline:none;">
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:18px;">
+        <button onclick="closeShipPaidModal()" style="padding:8px 18px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:12px;font-weight:700;cursor:pointer;">ยกเลิก</button>
+        <button onclick="confirmShipPaid()" style="padding:8px 18px;border-radius:8px;border:none;background:#1e40af;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">✅ บันทึก</button>
+      </div>
+      <div id="shipPaidUnpaidWrap" style="margin-top:12px;padding-top:12px;border-top:1px solid #e2e8f0;display:none;">
+        <button onclick="markShipUnpaid()" style="width:100%;padding:7px;border-radius:8px;border:1.5px solid #fca5a5;background:#fff1f2;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer;">🔴 ยกเลิก — โรงงานยังไม่ได้จ่าย</button>
+      </div>
+    </div>
+  </div>
+  <div id="debtPrintBg" onclick="if(event.target===this)document.getElementById('debtPrintBg').style.display='none'" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:none;align-items:center;justify-content:center;">
     <div style="background:#fff;border-radius:16px;padding:24px;min-width:280px;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.2);">
       <div style="font-size:14px;font-weight:900;color:#92400e;margin-bottom:14px;">🖨️ เลือกโรงงานที่ต้องการพิมพ์</div>
       <div id="debtPrintSelList" style="display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto;margin-bottom:16px;"></div>
@@ -915,91 +927,23 @@ const cachePut=async(k,buf)=>{
 /* =====================================================
    DROPBOX FILE READER
 ===================================================== */
-let _forceReload=false;
-/* escape non-ASCII chars to \uXXXX so the header stays ISO-8859-1 safe */
-function dbxArg(obj){
-  return JSON.stringify(obj).replace(/[^\x00-\x7F]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));
-}
-async function readDropboxFile(dropboxPath){
-  const token=ls('dropbox_token');
-  if(!token)throw new Error('ไม่พบ Access Token กรุณาตั้งค่าใหม่');
-  const path=dropboxPath.startsWith('/')?dropboxPath:'/'+dropboxPath;
-  const fileName=path.split('/').pop();
-  const dataKey='dbx_data:'+path;
-
-  /* ดาวน์โหลดจาก Dropbox เสมอ — ได้ข้อมูลล่าสุดแน่นอน */
-  setLoad('☁️ ดาวน์โหลด: '+fileName);
-  try{
-    const res=await fetch('https://content.dropboxapi.com/2/files/download',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':dbxArg({path})}
-    });
-    if(!res.ok){
-      if(res.status===401)throw new Error('Access Token ไม่ถูกต้องหรือหมดอายุ กรุณาตั้งค่าใหม่');
-      if(res.status===409)throw new Error('ไม่พบไฟล์: "'+path+'" — ตรวจสอบพาธ Dropbox');
-      throw new Error('Dropbox error '+res.status+': '+fileName);
-    }
-    const buf=await res.arrayBuffer();
-    cachePut(dataKey,buf.slice(0)).catch(()=>{}); /* อัพเดตแคชสำรองกรณีออฟไลน์ */
-    return buf;
-  }catch(e){
-    /* ถ้า download ไม่ได้ (ออฟไลน์/network error) — ใช้แคชเดิมแทน */
-    if(e.message.includes('Access Token')||e.message.includes('ไม่พบไฟล์'))throw e;
-    setLoad('✅ ใช้แคช (offline): '+fileName);
-    const cached=await cacheGet(dataKey);
-    if(cached)return cached;
-    throw e;
+/* อ่านไฟล์จาก local โฟลเดอร์ที่เลือก รองรับ subfolder */
+async function readLocalFile(relativePath){
+  const dir=await getHandle('dir');
+  if(!dir)throw new Error('ไม่พบโฟลเดอร์ กรุณาเลือกโฟลเดอร์ใหม่');
+  const parts=relativePath.replace(/\\/g,'/').replace(/^\/+/,'').split('/');
+  const fileName=parts.pop();
+  let cur=dir;
+  for(const part of parts){
+    try{cur=await cur.getDirectoryHandle(part);}
+    catch{throw new Error('ไม่พบโฟลเดอร์: "'+part+'" — ตรวจสอบพาธ');}
   }
-}
-
-/* เช็คอัพเดตใน background หลัง dashboard โหลดเสร็จแล้ว */
-async function checkBgUpdates(paths){
-  const token=ls('dropbox_token');
-  if(!token)return;
-  try{
-    const metas=await Promise.all(paths.map(p=>{
-      const path=p.startsWith('/')?p:'/'+p;
-      return fetch('https://api.dropboxapi.com/2/files/get_metadata',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-        body:JSON.stringify({path})
-      }).then(r=>r.ok?r.json():null).catch(()=>null);
-    }));
-    const changed=[];
-    metas.forEach((meta,i)=>{
-      if(!meta)return;
-      const path=paths[i].startsWith('/')?paths[i]:'/'+paths[i];
-      const revKey='dbx_rev:'+path;
-      const rev=meta.rev||meta.server_modified||'';
-      const cachedRev=ls(revKey);
-      if(rev&&rev!==cachedRev)changed.push({path,rev,revKey});
-      else if(rev)ls(revKey,rev);
-    });
-    if(changed.length>0){
-      /* download ไฟล์ที่เปลี่ยนแปลงใน background แล้วอัพเดตแคช */
-      await Promise.all(changed.map(async({path,rev,revKey})=>{
-        const dataKey='dbx_data:'+path;
-        try{
-          const r=await fetch('https://content.dropboxapi.com/2/files/download',{
-            method:'POST',
-            headers:{'Authorization':'Bearer '+token,'Dropbox-API-Arg':dbxArg({path})}
-          });
-          if(r.ok){const buf=await r.arrayBuffer();ls(revKey,rev);await cachePut(dataKey,buf.slice(0));}
-        }catch{}
-      }));
-      showUpdateToast();
-    }
-  }catch{}
-}
-
-function showUpdateToast(){
-  if(document.getElementById('updateToast'))return;
-  const el=document.createElement('div');
-  el.id='updateToast';
-  el.style='position:fixed;bottom:24px;right:24px;background:#7c3aed;color:white;padding:12px 18px;border-radius:12px;cursor:pointer;font-size:13px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.25);display:flex;align-items:center;gap:10px;animation:fadeIn .3s ease;';
-  el.innerHTML='🔄 <span>Dropbox มีข้อมูลใหม่ — คลิกเพื่อรีโหลด</span>';
-  el.onclick=()=>{el.remove();_forceReload=false;initApp();};
-  document.body.appendChild(el);
+  let fh;
+  try{fh=await cur.getFileHandle(fileName);}
+  catch{throw new Error('ไม่พบไฟล์: "'+fileName+'"');}
+  const file=await fh.getFile();
+  setLoad('📂 อ่านไฟล์: '+fileName);
+  return await file.arrayBuffer();
 }
 
 /* =====================================================
@@ -1033,7 +977,7 @@ function parseAllInv(sheet){
     const rawY=iY>=0?String(r[iY]||'').trim():'';
     const yr=rawY&&!isNaN(parseInt(rawY))?parseInt(rawY):0;
     const monthKey=(yr>0&&rawM!=='-')?(yr+'_'+rawM):rawM;
-    out.push({inv,prefix:inv.substring(0,3),total_expected:parseInt(r[iC])||0,
+    out.push({inv,prefix:getPfx(inv),total_expected:parseInt(r[iC])||0,
       doc_status:String(r[iD]||'').trim()||'-',month:monthKey,
       customer:String(r[iCu]||'').trim()||'-',destination:String(r[iDe]||'').trim()||'-'});
   }
@@ -1074,15 +1018,19 @@ function parseInputSheets(wb){
   /* อ่าน INPUT_1 ถึง INPUT_6 → map ของ invoice → {vessel, etd, bkg} */
   const map={};
   ['INPUT_1','INPUT_2','INPUT_3','INPUT_4','INPUT_5','INPUT_6'].forEach(sn=>{
-    const sh=wb.Sheets[sn];if(!sh)return;
+    const sh=wb.Sheets[sn];
+    if(!sh)return;
     const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false,cellDates:true});
     if(rows.length<2)return;
-    const vessel=String(rows[1][1]||rows[1][0]||'').trim();if(!vessel)return;/* B2 = ชื่อเรือ (fallback A2) */
-    const dv=rows[1][6];let etd='';
-    if(dv instanceof Date){const d=dv;etd=(d.getDate()+'').padStart(2,'0')+'/'+((''+( d.getMonth()+1)).padStart(2,'0'))+'/'+(d.getFullYear()+'').slice(-2);}
+    const vessel=String(rows[1][1]||rows[1][0]||'').trim();  /* B2 = ชื่อเรือ (fallback A2) */
+    if(!vessel)return;
+    const dv=rows[1][6];                          /* G2 = ETD */
+    let etd='';
+    if(dv instanceof Date){const d=dv;etd=(d.getDate()+'').padStart(2,'0')+'/'+((''+d.getMonth()+1).padStart(2,'0'))+'/'+(d.getFullYear()+'').slice(-2);}
     else if(typeof dv==='string')etd=dv.slice(0,10);
     for(let i=3;i<rows.length;i++){
-      const inv=String(rows[i][1]||'').trim();if(!inv)continue;
+      const inv=String(rows[i][1]||'').trim();
+      if(!inv)continue;
       const bkg=String(rows[i][3]||'').trim();
       map[inv.toUpperCase()]={vessel,etd,bkg};
     }
@@ -1164,6 +1112,7 @@ function parsePriceUpdate(wb){
   const sh=wb.Sheets['PRICE_UPDATE']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase().replace(/[_ ]/g,'').includes('PRICEUPDATE'))];
   if(!sh)return[];
   const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:true,cellDates:true});
+  /* หา header row: มี TWI หรือ BSW */
   const hi=rows.findIndex(r=>r.some(c=>{const s=String(c||'').trim().toUpperCase();return s==='TWI'||s==='BSW'||s==='SHL'||s==='INV';}));
   if(hi<0)return[];
   const hdr=rows[hi].map(c=>String(c||'').trim());
@@ -1226,6 +1175,7 @@ function lookupPriceUpdate(rawDate,prefix,factory,inv){
   if(fac&&fac!=='-'){for(const [key,val] of Object.entries(rates)){const ku=key.toUpperCase();if(fac.includes(ku)||ku.includes(fac))return val;}}
   return 0;
 }
+/* ===== TRANSPORT UNPAID PARSER (DATA_BASE_BILL — OK=NaN) ===== */
 function parseTransportUnpaid(sheet){
   if(!sheet)return[];
   const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true,cellDates:true});
@@ -1239,20 +1189,28 @@ function parseTransportUnpaid(sheet){
   for(let i=hi+1;i<rows.length;i++){
     const r=rows[i];
     const inv=String(r[iInv]||'').trim();if(!inv)continue;
+    /* ถ้า OK มีค่า (จ่ายแล้ว) → ข้าม */
     const ok=String(r[iOk]||'').trim().toUpperCase();
     if(ok&&ok!=='NAN'&&ok!=='FALSE'&&ok!=='0'&&ok!=='-'&&ok!=='')continue;
     const dateRaw=r[iDate];
     const price=parseFloat(String(r[iPrice]||'').replace(/,/g,''))||0;
-    result.push({dateRaw,dateStr:fmtDate(dateRaw),inv,prefix:inv.substring(0,3),factory:String(r[iFactory]||'').trim(),container:String(r[iCtr]||'').trim(),price,billNo:String(r[iBill]||'').trim()});
+    result.push({
+      dateRaw,dateStr:fmtDate(dateRaw),
+      inv,prefix:getPfx(inv),
+      factory:String(r[iFactory]||'').trim(),
+      container:String(r[iCtr]||'').trim(),
+      price,
+      billNo:String(r[iBill]||'').trim(),
+    });
   }
   return result;
 }
 function parseAllPriceSheets(wb){
-  /* คืน map { normInv: entry }
-     entry.type = 'factory' → OGM (กนกทอง/นาเมืองเพชร/นาวาพารา)
-     entry.type = 'simple'  → SHL/TWI/INV ราคาเดียว
-     entry.type = 'tiered'  → INV มีช่วงตู้ (N-M) หลายราคา */
-  const map={};
+  /* คืน {map, latest}
+     map   = { normInv: entry }
+     latest = { prefix: {inv, entry} }  ← row ล่างสุดของแต่ละ sheet */
+  const map={};const latest={};
+  const fmNum=s=>parseFloat(String(s||'').replace(/,/g,''))||0;
   /* --- OGM factory sheet --- */
   const ogmSh=wb.Sheets['OGM_PRICE(NEW)']||wb.Sheets[wb.SheetNames.find(n=>n.includes('OGM_PRICE')||n.toUpperCase().includes('PRICE'))];
   if(ogmSh){
@@ -1268,15 +1226,17 @@ function parseAllPriceSheets(wb){
       const r=rows[i];
       const inv=String(r[iInv>=0?iInv:1]||'').trim();
       if(!inv||inv.toLowerCase()==='nan'||inv==='INVOICE NUMBER')continue;
-      map[normInv(inv)]={type:'factory',
-        กนกทอง:parseFloat(String(r[iKanok>=0?iKanok:6]||'').replace(/,/g,''))||0,
-        นาเมืองเพชร:parseFloat(String(r[iNamuang>=0?iNamuang:5]||'').replace(/,/g,''))||0,
-        นาวาพารา:parseFloat(String(r[iNawa>=0?iNawa:4]||'').replace(/,/g,''))||0,
+      const entry={type:'factory',
+        กนกทอง:fmNum(r[iKanok>=0?iKanok:6]),
+        นาเมืองเพชร:fmNum(r[iNamuang>=0?iNamuang:5]),
+        นาวาพารา:fmNum(r[iNawa>=0?iNawa:4]),
       };
+      map[normInv(inv)]=entry;
+      latest['OGM']={inv,entry};
     }
   }
-  /* --- Simple+Tiered sheets: SHL, TWI, BSW --- */
-  ['SHL','TWI','BSW'].forEach(shName=>{
+  /* --- Simple+Tiered sheets: SHL, TWI, BSW, AD --- */
+  ['SHL','TWI','BSW','AD'].forEach(shName=>{
     const sh=wb.Sheets[shName]||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()===shName)];
     if(!sh)return;
     const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false});
@@ -1285,13 +1245,12 @@ function parseAllPriceSheets(wb){
     const hdrU=hdr.map(h=>h.toUpperCase());
     const iInv=hdrU.findIndex(h=>h.includes('INVOICE NUMBER')||h.includes('INVOICE'));
     const iPrice=hdr.findIndex(h=>h.includes('ราคา')||h.toUpperCase().includes('PRICE'));
-    const tieredTmp={};
+    const tieredTmp={};let lastSimpleInv='';let lastSimpleEntry=null;
     for(let i=hi+1;i<rows.length;i++){
       const r=rows[i];
       const inv=String(r[iInv>=0?iInv:1]||'').trim();
       if(!inv)continue;
-      const price=parseFloat(String(r[iPrice>=0?iPrice:4]||'').replace(/,/g,''))||0;
-      /* ถ้ามี suffix (N-M) = tiered ช่วงตู้ */
+      const price=fmNum(r[iPrice>=0?iPrice:4]);
       const tm=inv.match(/^(.+?)\((\d+)-(\d+)\)$/);
       if(tm){
         const baseKey=normInv(tm[1].trim());
@@ -1300,16 +1259,21 @@ function parseAllPriceSheets(wb){
       }else{
         const entry={type:'simple',price,sheetPrefix:shName};
         map[normInv(inv)]=entry;
-        /* ถ้าชื่ออินวอยซ์มีรูปแบบ TWI02(TWI63) ให้ index ด้วย key ข้างใน () ด้วย */
         const alias=inv.match(/\(([^)]+)\)$/);
         if(alias&&!/^\d+-\d+$/.test(alias[1].trim())){const ak=normInv(alias[1].trim());if(ak&&ak!==normInv(inv))map[ak]=entry;}
+        lastSimpleInv=inv;lastSimpleEntry=entry;
       }
     }
+    let lastTieredInv='';let lastTieredEntry=null;
     Object.keys(tieredTmp).forEach(baseKey=>{
-      map[baseKey]={type:'tiered',tiers:tieredTmp[baseKey].sort((a,b)=>a.from-b.from),sheetPrefix:shName};
+      const e={type:'tiered',tiers:tieredTmp[baseKey].sort((a,b)=>a.from-b.from),sheetPrefix:shName};
+      map[baseKey]=e;lastTieredInv=baseKey;lastTieredEntry=e;
     });
+    /* latest = tiered row ถ้ามี หรือ simple row ล่าสุด */
+    if(lastTieredEntry)latest[shName]={inv:lastTieredInv,entry:lastTieredEntry};
+    else if(lastSimpleEntry)latest[shName]={inv:lastSimpleInv,entry:lastSimpleEntry};
   });
-  /* --- INV sheet (simple + tiered ช่วงตู้) --- */
+  /* --- INV sheet (simple + tiered) --- */
   const invSh=wb.Sheets['INV']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()==='INV')];
   if(invSh){
     const rows=XLSX.utils.sheet_to_json(invSh,{header:1,defval:'',raw:false});
@@ -1318,26 +1282,58 @@ function parseAllPriceSheets(wb){
     const hdrU=hdr.map(h=>h.toUpperCase());
     const iInv=hdrU.findIndex(h=>h.includes('INVOICE NUMBER')||h.includes('INVOICE'));
     const iPrice=hdr.findIndex(h=>h.includes('ราคา')||h.toUpperCase().includes('PRICE'));
-    const tieredTmp={};
+    const tieredTmp={};let lastSimpleInv='';let lastSimpleEntry=null;
     for(let i=hi+1;i<rows.length;i++){
       const r=rows[i];
       const inv=String(r[iInv>=0?iInv:1]||'').trim();
       if(!inv)continue;
-      const price=parseFloat(String(r[iPrice>=0?iPrice:4]||'').replace(/,/g,''))||0;
+      const price=fmNum(r[iPrice>=0?iPrice:4]);
       const tm=inv.match(/^(.+?)\((\d+)-(\d+)\)$/);
       if(tm){
         const baseKey=normInv(tm[1].trim());
         if(!tieredTmp[baseKey])tieredTmp[baseKey]=[];
         tieredTmp[baseKey].push({from:parseInt(tm[2]),to:parseInt(tm[3]),price});
       }else{
-        map[normInv(inv)]={type:'simple',price,sheetPrefix:'INV'};
+        const entry={type:'simple',price,sheetPrefix:'INV'};
+        map[normInv(inv)]=entry;
+        lastSimpleInv=inv;lastSimpleEntry=entry;
       }
     }
+    let lastTieredInv='';let lastTieredEntry=null;
     Object.keys(tieredTmp).forEach(baseKey=>{
-      map[baseKey]={type:'tiered',tiers:tieredTmp[baseKey].sort((a,b)=>a.from-b.from),sheetPrefix:'INV'};
+      const e={type:'tiered',tiers:tieredTmp[baseKey].sort((a,b)=>a.from-b.from),sheetPrefix:'INV'};
+      map[baseKey]=e;lastTieredInv=baseKey;lastTieredEntry=e;
     });
+    if(lastTieredEntry)latest['INV']={inv:lastTieredInv,entry:lastTieredEntry};
+    else if(lastSimpleEntry)latest['INV']={inv:lastSimpleInv,entry:lastSimpleEntry};
   }
-  return map;
+  /* --- ID + JM factory sheets: dynamic column detection --- */
+  const NON_PRICE=/^(NO\.?$|INVOICE|NUMBER|VOL\.?|PORT|หมาย)/;
+  ['ID','JM'].forEach(shName=>{
+    const sh=wb.Sheets[shName]||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase()===shName)];
+    if(!sh)return;
+    const rows=XLSX.utils.sheet_to_json(sh,{header:1,defval:'',raw:false});
+    const hi=findHdr(rows,['INVOICE NUMBER','INVOICE','NO.']);
+    const hdr=rows[hi].map(c=>String(c||'').trim());
+    const hdrU=hdr.map(h=>h.toUpperCase());
+    const iInv=hdrU.findIndex(h=>h.includes('INVOICE NUMBER')||h.includes('INVOICE'));
+    const factCols=hdr.map((name,idx)=>({idx,name})).filter(({idx,name})=>
+      name&&idx!==iInv&&!NON_PRICE.test(name.toUpperCase())
+    );
+    for(let i=hi+1;i<rows.length;i++){
+      const r=rows[i];
+      const inv=String(r[iInv>=0?iInv:1]||'').trim();
+      if(!inv||inv.toLowerCase()==='nan'||inv==='INVOICE NUMBER')continue;
+      const entry={type:'factory',sheetPrefix:shName};
+      factCols.forEach(fc=>{
+        const v=fmNum(r[fc.idx]);
+        if(v>0)entry[fc.name]=v;
+      });
+      map[normInv(inv)]=entry;
+      latest[shName]={inv,entry};
+    }
+  });
+  return {map,latest};
 }
 function extractLatestBill(sheet){
   if(!sheet)return'-';
@@ -1407,6 +1403,7 @@ function parseBilledAnts(wb){
     if(!key)continue;
     const amount=parseFloat(String(r[7]||'').replace(/,/g,''))||0;
     map.set(normInv(key),amount);
+    /* track latest WEEK */
     const wk=parseInt(String(r[1]||'').replace(/\D/g,''))||0;
     const yr=parseInt(String(r[2]||'').replace(/\D/g,''))||0;
     const score=yr*100+wk;
@@ -1416,7 +1413,7 @@ function parseBilledAnts(wb){
   return map;
 }
 function parsePaidAnts(wb){
-  /* อ่าน DATA_BASE_PAID_ANTS: col D (idx 3)=INV_RAW, col H (idx 7)=AMOUNT, col I (idx 8)=DATE_PAID */
+  /* อ่าน DATA_BASE_PAID_ANTS: col D=INV, col H=AMOUNT, col I=DATE_PAID */
   const s=wb.Sheets['DATA_BASE_PAID_ANTS']||wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_PAID_ANTS'))];
   if(!s)return new Map();
   const rows=XLSX.utils.sheet_to_json(s,{header:1,defval:'',raw:false});
@@ -1438,7 +1435,7 @@ async function loadData(){
   const paths=[invPath,bkgPath];
   const vslPath=p('f_vsl'),stmPath=p('f_stm'),ogmPath=p('f_ogm'),othPath=p('f_oth');
   if(vslPath)paths.push(vslPath);if(stmPath)paths.push(stmPath);if(ogmPath)paths.push(ogmPath);if(othPath)paths.push(othPath);
-  const bufs=await Promise.all(paths.map(readDropboxFile));
+  const bufs=await Promise.all(paths.map(readLocalFile));
   setLoad('ประมวลผลข้อมูล...');
   const invWb=XLSX.read(bufs[0],{type:'array',cellDates:true});
   const invSh=invWb.SheetNames.find(n=>n.includes('ALL_INV')||n.includes('INV'))||invWb.SheetNames[0];
@@ -1449,8 +1446,9 @@ async function loadData(){
   const pendCtrs=parseInputSheet(invWb);
   const bkgWb=XLSX.read(bufs[1],{type:'array'});
   const stock=parseBkg(bkgWb);
-  let vessel=[],fees={},stmtInfo={latestNo:'',latestBalance:0,latestDate:''},vesselPlan={};
+  let vessel=[],fees={},stmtInfo={latestNo:'',latestBalance:0,latestDate:''};
   let bi=2;
+  let vesselPlan={};
   if(vslPath&&bufs[bi]){const vw=XLSX.read(bufs[bi],{type:'array',cellDates:true});const vs=vw.Sheets['DATABASE_VESSEL']||vw.Sheets[vw.SheetNames.find(n=>n.toUpperCase().includes('DATABASE_VESSEL'))];if(vs)vessel=parseVesselDb(vs);vesselPlan=parseInputSheets(vw);bi++;}
   if(stmPath&&bufs[bi]){const sw=XLSX.read(bufs[bi],{type:'array',cellDates:true});const ss=sw.Sheets['STATEMENT']||sw.Sheets[sw.SheetNames.find(n=>n.toUpperCase().includes('STATEMENT'))];if(ss){const p2=parseStatement(ss);fees=p2.map;stmtInfo={latestNo:p2.latestNo,latestBalance:p2.latestBalance,latestDate:p2.latestDate};}bi++;}
   const trMap={};const billInfoTr={ogm:'-',all:'-'};
@@ -1459,7 +1457,9 @@ async function loadData(){
     const sh=wb2.Sheets['DATA_BASE_BILL']||wb2.Sheets['DATA_BASE_BILL_ALL']||wb2.Sheets[wb2.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_BILL'))];
     if(!sh)return null;
     const {map:m,latestAl}=parseTransportBill(sh);Object.keys(m).forEach(k=>{if(!trMap[k])trMap[k]=[];trMap[k]=trMap[k].concat(m[k]);});
+    /* อ่าน PRICE_UPDATE sheet (ถ้ายังไม่มี) */
     if(!priceUpdateTable.length){const pu=parsePriceUpdate(wb2);if(pu.length)priceUpdateTable=pu;}
+    /* อ่าน unpaid containers */
     const newUnpaid=parseTransportUnpaid(sh);unpaidTr=unpaidTr.concat(newUnpaid);
     return latestAl; /* คืน AL ล่าสุดที่เจอในไฟล์ */
   };
@@ -1472,9 +1472,9 @@ async function loadData(){
   const ogmPricePath=p('f_ogm_price');
   if(ogmPricePath){
     try{
-      const priceBuf=await readDropboxFile(ogmPricePath);
+      const priceBuf=await readLocalFile(ogmPricePath);
       const priceWb=XLSX.read(priceBuf,{type:'array'});
-      ogmPriceMap=parseAllPriceSheets(priceWb);
+      const {map:_pm,latest:_pl}=parseAllPriceSheets(priceWb);ogmPriceMap=_pm;OGM_PRICE_LATEST=_pl;
     }catch(e){console.warn('OGM price file error:',e.message);}
   }
   /* optional: BILL_ANTS วางบิลแล้ว */
@@ -1482,7 +1482,7 @@ async function loadData(){
   const billPath=p('f_bill');
   if(billPath){
     try{
-      const billBuf=await readDropboxFile(billPath);
+      const billBuf=await readLocalFile(billPath);
       const billWb=XLSX.read(billBuf,{type:'array',cellDates:false});
       billedAnts=parseBilledAnts(billWb);
     }catch(e){console.warn('BILL_ANTS file error:',e.message);}
@@ -1492,29 +1492,37 @@ async function loadData(){
   const paidPath=p('f_paid');
   if(paidPath){
     try{
-      const paidBuf=await readDropboxFile(paidPath);
+      const paidBuf=await readLocalFile(paidPath);
       const paidWb=XLSX.read(paidBuf,{type:'array',cellDates:false});
       paidAnts=parsePaidAnts(paidWb);
     }catch(e){console.warn('PAID_ANTS file error:',e.message);}
   }
-  const allPaths=[...paths];
-  if(ogmPricePath)allPaths.push(ogmPricePath);
-  if(billPath)allPaths.push(billPath);
-  if(paidPath)allPaths.push(paidPath);
-  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,billedAnts,paidAnts,vesselPlan,allPaths,priceUpdateTable,unpaidTr};
+  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,ogmPriceLatest:OGM_PRICE_LATEST,vesselPlan,billedAnts,paidAnts,priceUpdateTable,unpaidTr};
 }
 /* =====================================================
    DASHBOARD STATE
 ===================================================== */
-let FLAT=[],BY_MONTH={},STOCK={groups:[],stats:{}},VESSEL=[],FEES={},STMT={latestNo:'',latestBalance:0,latestDate:''},TRANSPORT={},PEND_CTRS=[],VESSEL_PLAN={};
+let FLAT=[],BY_MONTH={},STOCK={groups:[],stats:{}},VESSEL=[],FEES={},STMT={latestNo:'',latestBalance:0,latestDate:''},TRANSPORT={},PEND_CTRS=[];
 let DB_MAP={}; /* raw database map — ใช้สำหรับ transport matching */
 let OGM_PRICE_MAP={}; /* normInv → { กนกทอง, นาเมืองเพชร, นาวาพารา } prices */
-/* lookup ด้วย exact match ก่อน ถ้าไม่เจอลอง prefix match (TWI63 → TWI63/060/11/25) */
-function findPriceEntry(inv){const nk=normInv(inv);if(OGM_PRICE_MAP[nk])return OGM_PRICE_MAP[nk];const k=Object.keys(OGM_PRICE_MAP).find(k=>{if(k.length<3||!nk.startsWith(k))return false;const nx=nk[k.length];return nx===undefined||nx==='/';});return k?OGM_PRICE_MAP[k]:null;}
-let BILLED_ANTS=new Map(); /* normInv → amount จาก DATA_BASE_BILL_ANTS */
-let PAID_ANTS=new Map(); /* normInv → {amount,datePaid} จาก DATA_BASE_PAID_ANTS */
+let OGM_PRICE_LATEST={}; /* prefix → {inv, entry} ราคาล่าสุด (row ล่างสุด) ต่อ sheet */
+/* lookup: 1) exact  2) prefix match (TWI63→TWI63/...)  3) dash-insensitive (ID-MK-09-2026≈ID-MK09-2026) */
+function findPriceEntry(inv){
+  const nk=normInv(inv);
+  if(OGM_PRICE_MAP[nk])return OGM_PRICE_MAP[nk];
+  /* prefix match: key เป็น substring นำหน้าของ invoice (/ หรือ - คั่น) */
+  const k1=Object.keys(OGM_PRICE_MAP).find(k=>{if(k.length<3||!nk.startsWith(k))return false;const nx=nk[k.length];return nx===undefined||nx==='/'||nx==='-';});
+  if(k1)return OGM_PRICE_MAP[k1];
+  /* dash-insensitive: ถอด -/_ ออกแล้วเทียบ (รองรับ ID-MK-09-2026 vs ID-MK09-2026) */
+  const nkFlat=nk.replace(/[-_\/]/g,'');
+  const k2=Object.keys(OGM_PRICE_MAP).find(k=>k.replace(/[-_\/]/g,'')===nkFlat);
+  return k2?OGM_PRICE_MAP[k2]:null;
+}
+let VESSEL_PLAN={}; /* inv.toUpperCase() → {vessel, etd, bkg} จาก INPUT_1-6 */
 let PRICE_UPDATE_TABLE=[]; /* [{dateMs, rates:{TWI,BSW,INV,SHL,...}}] sorted asc */
 let TR_UNPAID=[]; /* [{dateRaw,dateStr,inv,prefix,factory,container,price}] ตู้ค้างจ่าย */
+let BILLED_ANTS=new Map(); /* normInv → amount วางบิลแล้ว จาก DATA_BASE_BILL_ANTS */
+let PAID_ANTS=new Map(); /* normInv → {amount,datePaid} รับเงินแล้ว จาก DATA_BASE_PAID_ANTS */
 let BILL_ANTS_META={week:0,year:0}; /* WEEK ล่าสุดที่วางบิล */
 
 /* =====================================================
@@ -1560,6 +1568,7 @@ function applyRoleRestrictions(){
     if(dashBtn)dashBtn.style.display='none';
     if(debtBtn)debtBtn.style.display='none';
     if(setBtn)setBtn.style.display='none';
+    /* force transport view */
     if(!_showTransport){_showTransport=true;
       document.getElementById('mainDash').style.display='none';
       document.getElementById('trDash').style.display='flex';
@@ -1573,15 +1582,36 @@ function applyRoleRestrictions(){
     if(debtBtn)debtBtn.style.display='none';
     if(setBtn)setBtn.style.display='none';
   }
+  /* PRICE UPDATE tab: admin only */
+  const priceTabVisible=_canSeeFees()&&Object.keys(OGM_PRICE_LATEST).length>0;
+  ['htab-price','mtab-price'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=priceTabVisible?'':'none';});
 }
-
+let MANUAL_PAID=new Set(JSON.parse(localStorage.getItem('manual_paid_ocf')||'[]'));
+function toggleManualPaid(invKey){
+  const k=invKey.toUpperCase();
+  if(MANUAL_PAID.has(k))MANUAL_PAID.delete(k);else MANUAL_PAID.add(k);
+  localStorage.setItem('manual_paid_ocf',JSON.stringify([...MANUAL_PAID]));
+  renderVessel();
+}
 let curTab='main',SM=null,SP=null,SI=null,activePV=null,midMode='group',mainMode='month',SF=null,YEAR_FILTER=null;
 const MF={'1':'ม.ค.','2':'ก.พ.','3':'มี.ค.','4':'เม.ย.','5':'พ.ค.','6':'มิ.ย.','7':'ก.ค.','8':'ส.ค.','9':'ก.ย.','10':'ต.ค.','11':'พ.ย.','12':'ธ.ค.','-':'ไม่ระบุ'};
 const mNum=k=>{if(!k||k==='-')return 99;const p=k.includes('_')?k.split('_')[1]:k;return parseInt(p)||99;};
 const mYear=k=>{if(!k||k==='-'||!k.includes('_'))return 0;return parseInt(k.split('_')[0])||0;};
 const mSort=(a,b)=>{const ya=mYear(a),yb=mYear(b);if(ya!==yb)return ya-yb;return mNum(a)-mNum(b);};
 const mLabel=k=>{if(!k||k==='-')return MF['-']||'ไม่ระบุ';const p=k.includes('_')?k.split('_'):[null,k];const m=p[1];const y=p[0]?parseInt(p[0]):0;return(MF[m]||'เดือน '+m)+(y?' '+y:'');};
-const PFXC={BSW:{bg:'#dbeafe',tx:'#1e40af',bd:'#bfdbfe'},OGM:{bg:'#dcfce7',tx:'#166534',bd:'#bbf7d0'},TWI:{bg:'#fef3c7',tx:'#92400e',bd:'#fde68a'},INV:{bg:'#f3e8ff',tx:'#6b21a8',bd:'#e9d5ff'},DEF:{bg:'#f1f5f9',tx:'#475569',bd:'#e2e8f0'}};
+/* ดึง prefix จาก invoice number: letters ก่อนตัวเลขแรก (ANTS-JM → "JM" สำหรับแสดงผล) */
+function getPfx(inv){const s=String(inv||'').trim().toUpperCase();if(s.startsWith('ANTS-JM'))return 'JM';const m=s.match(/^([A-Z]+)/);return m?m[1]:s.substring(0,3);}
+const PFXC={
+  BSW:{bg:'#dbeafe',tx:'#1e40af',bd:'#bfdbfe'},
+  OGM:{bg:'#dcfce7',tx:'#166534',bd:'#bbf7d0'},
+  TWI:{bg:'#fef3c7',tx:'#92400e',bd:'#fde68a'},
+  INV:{bg:'#f3e8ff',tx:'#6b21a8',bd:'#e9d5ff'},
+  SHL:{bg:'#e0f2fe',tx:'#0c4a6e',bd:'#bae6fd'},
+  AD:{bg:'#ccfbf1',tx:'#0f766e',bd:'#99f6e4'},
+  ID:{bg:'#ffe4e6',tx:'#be123c',bd:'#fecdd3'},
+  JM:{bg:'#ffedd5',tx:'#c2410c',bd:'#fed7aa'},
+  DEF:{bg:'#f1f5f9',tx:'#475569',bd:'#e2e8f0'}
+};
 const pst=pfx=>PFXC[pfx]||PFXC.DEF;
 const PRE_PAID=['MONICA 019N','OOCL ZHOUSHAN 291N'];
 const PRE_INV=new Set(['INV001/015/2025(B)','BSW-J-01/2026','BSW-T-01/2026','OGM(A)001/2026','BSW-L-01/2026','INV002/001/2026(A)','TWI60/060/10/25','OGM(A)002/2026','BSW-L-02/2026','SHL-250904-1','INV002/001/2026(B)','OGM(A)003/2026','ANTS-JM001/2026','ANTS-JM002/2026','TWI57/059/23/25','BSW-T-02/2026','OGM(A)004/2026','BSW-L-03/2026','INV001/001/2026','TWI01/049/01/26','OGM(A)005/2026','BSW-L-04/2026','TWI63/060/11/25','OGM(A)006/2026','SHL-251203','ANTS-JM003/2026','TWI61/025/01/26','BSW-J-02/2026','SJ-SN6901002-2026','OGM(A)007/2026','OGM(A)008/2026'].map(normInv));
@@ -1593,7 +1623,7 @@ const isLoaded=inv=>{
 
 function switchTab(tab){
   curTab=tab;
-  ['main','pending','stock','factory','vessel'].forEach(t=>{
+  ['main','pending','stock','factory','vessel','price'].forEach(t=>{
     document.getElementById(t+'View').classList.toggle('active',t===tab);
     const h2=document.getElementById('htab-'+t);if(h2)h2.classList.toggle('active',t===tab);
     const m2=document.getElementById('mtab-'+t);if(m2)m2.classList.toggle('active',t===tab);
@@ -1603,6 +1633,7 @@ function switchTab(tab){
   if(tab==='main'){renderTabs();renderStatsMain();}
   if(tab==='factory'){renderFactory();renderStatsMain();}
   if(tab==='vessel'){renderVessel();renderStatsVessel();}
+  if(tab==='price'){renderPriceLatest();}
 }
 const kc=(l,v,s,c,f)=>`<div class="sc${f?' sc-click':''}"${f?` data-filter="${f}"`:''}><div class="lbl2">${l}</div><div class="val" style="color:${c}">${v}</div><div class="sub2">${s}${f?' · คลิกดูรายการ':''}</div></div>`;
 function renderStatsMain(){
@@ -1751,17 +1782,21 @@ function showInvDetail(id,panelId){
   if(VESSEL.length){const vr=VESSEL.find(r=>normInv(r.inv)===normInv(d.inv));if(vr)out+=`<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="font-size:20px;">🚢</span><div><div style="font-size:12px;font-weight:700;color:#1e40af;">${h(vr.vessel)}</div><div style="font-size:10px;color:#64748b;margin-top:2px;">ETD: <b>${h(vr.date)}</b> · BKG: <b>${h(vr.bkg)}</b> · <b>${h(vr.des)}</b></div></div></div>`;}
   const tr=TRANSPORT[normInv(d.inv)];
   if(Object.keys(TRANSPORT).length>0){if(tr&&tr.total>0){out+=`<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:10px;"><div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;"><span style="font-size:12px;font-weight:700;color:#166534;">🚛 ค่าขนส่ง — จ่ายแล้ว</span><span style="font-size:13px;font-weight:800;color:#16a34a;">${fm(tr.total)} บาท</span></div><div style="font-size:10px;color:#4ade80;margin-top:2px;">${tr.count} ตู้ · ${[...new Set(tr.records.map(r=>r.billNo).filter(Boolean))].join(', ')}</div><details style="margin-top:6px;"><summary style="font-size:10px;color:#16a34a;cursor:pointer;">ดูรายละเอียด (${tr.count})</summary><table class="det-tbl" style="margin-top:4px;"><thead><tr><th>วันที่</th><th>โรงงาน</th><th>เบอร์ตู้</th><th>ราคา</th><th>AL</th></tr></thead><tbody>`;tr.records.forEach(r=>{out+=`<tr><td>${h(r.date)}</td><td>${h(r.factory)}</td><td style="font-family:monospace;font-size:10px;">${h(r.container)}</td><td style="text-align:right;font-weight:600;">${fm(r.price)}</td><td style="color:#94a3b8;font-size:10px;">${h(r.al)}</td></tr>`;});out+='</tbody></table></details></div>';}else{out+='<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;"><span style="font-size:18px;">🚛</span><span style="font-size:12px;font-weight:700;color:#dc2626;">ค่าขนส่ง — ยังไม่มีข้อมูล</span></div>';}}
-  /* === วางบิลโรงงาน (OGM(A) — factory type) === */
+  /* === วางบิลโรงงาน (OGM(A) / ID / JM — factory type) === */
   const isOgmA=d.prefix==='OGM'&&normInv(d.inv).includes('(A)');
-  if(isOgmA){
+  const isFactoryPrefix=['ID','JM'].includes(d.prefix);
+  if(isOgmA||isFactoryPrefix){try{
     const showPrice=_canSeeFees();
-    const priceKey=normInv(d.inv);
-    const prices=showPrice&&(OGM_PRICE_MAP[priceKey]&&OGM_PRICE_MAP[priceKey].type==='factory')?OGM_PRICE_MAP[priceKey]:{};
-    const hasPrice=showPrice&&(prices.กนกทอง>0||prices.นาเมืองเพชร>0||prices.นาวาพารา>0);
-    const factCounts={};
-    if(d.details&&d.details.length)d.details.forEach(r=>{const f=r.โรงงาน||'-';factCounts[f]=(factCounts[f]||0)+1;});
+    const pe0=findPriceEntry(d.inv);
+    const priceEntry=pe0&&pe0.type==='factory'?pe0:null;
+    const prices=showPrice&&priceEntry?priceEntry:{};
+    /* รวม factory keys จาก price entry + fixed list */
+    const FIXED_FACTORIES=['นาวาพารา','นาเมืองเพชร','กนกทอง','ชะอวด','พัทลุง'];
+    const priceFactories=priceEntry?Object.keys(priceEntry).filter(k=>k!=='type'&&k!=='sheetPrefix'):[];
+    const FACTORIES=[...new Set([...FIXED_FACTORIES,...priceFactories])];
+    const hasPrice=showPrice&&priceFactories.some(k=>priceEntry[k]>0);
     const fm2=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
-    const FACTORIES=['นาวาพารา','นาเมืองเพชร','กนกทอง','ชะอวด','พัทลุง'];
+    const factCounts={};(d.details||[]).forEach(r=>{const f=r.โรงงาน||'-';factCounts[f]=(factCounts[f]||0)+1;});
     let totalBill=0;let billRows='';
     FACTORIES.forEach(f=>{
       const cnt=factCounts[f]||0;const price=showPrice?(prices[f]||0):0;const subtotal=cnt*price;totalBill+=subtotal;
@@ -1783,12 +1818,12 @@ function showInvDetail(id,panelId){
       out+=`<table class="det-tbl"><thead><tr><th>โรงงาน</th><th style="text-align:center;">ตู้</th><th style="text-align:right;">ราคา/ตู้ (฿)</th><th style="text-align:right;">รวม (฿)</th></tr></thead><tbody>${billRows}</tbody>`;
       if(totalBill>0)out+=`<tfoot><tr style="font-weight:700;background:#dcfce7;"><td colspan="3" style="text-align:right;padding:5px 8px;">ยอดรวม</td><td style="text-align:right;padding:5px 8px;color:#15803d;">${fm2(totalBill)}</td></tr></tfoot>`;
       out+=`</table>`;
-      if(!hasPrice)out+=`<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ ไม่พบข้อมูลราคาสำหรับอินวอยซ์นี้ — กรุณาตั้งค่าไฟล์ราคา OGM (A)</div>`;
+      if(!hasPrice)out+=`<div style="font-size:10px;color:#b45309;margin-top:4px;">⚠️ ไม่พบข้อมูลราคาสำหรับอินวอยซ์นี้ — กรุณาตั้งค่าไฟล์ราคา (OGM A / ID / JM)</div>`;
     }else{
       out+=`<table class="det-tbl"><thead><tr><th>โรงงาน</th><th style="text-align:center;">จำนวนตู้</th></tr></thead><tbody>${billRows}</tbody></table>`;
     }
     out+=`</div>`;
-  }
+  }catch(e){console.error('factory-bill-display',e);}}
   /* === ราคาเรียกเก็บลูกค้า (SHL / TWI / INV — simple & tiered) === */
   const priceEntry2=_canSeeFees()?findPriceEntry(d.inv):null;
   if(priceEntry2&&priceEntry2.type!=='factory'){
@@ -1848,9 +1883,11 @@ function renderPendingList(){
       if(tot===0)ctr='<div style="margin:4px 0;font-size:10px;color:#64748b;">ไม่ระบุจำนวนตู้</div>';
       else if(dn>=tot)ctr=`<div style="margin:4px 0 5px;display:flex;align-items:center;gap:5px;"><span style="background:#dcfce7;color:#166534;border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;">✔ ตู้ครบ ${dn}/${tot}</span><span style="font-size:10px;color:#7c3aed;font-weight:600;">รอปล่อยเอกสาร</span></div>`;
       else{const left=tot-dn,pct=Math.round(dn/tot*100),bc=dn===0?'#ef4444':(pct<50?'#f97316':pct<80?'#eab308':'#22c55e');const pndCnt=PEND_CTRS.filter(c=>c.inv&&normInv(c.inv)===normInv(d.inv)).length;const pendPct=pndCnt>0?Math.min(Math.round(pndCnt/tot*100),100-pct):0;const pendBar=pendPct>0?`<div style="position:absolute;top:0;left:${pct}%;width:${pendPct}%;height:100%;background:${s.tx};opacity:0.55;"></div>`:'';const pendLabel=pndCnt>0?`<span style="font-size:9px;color:${s.tx};background:${s.bg};border:1px solid ${s.bd};border-radius:3px;padding:0 4px;margin-right:2px;">⏳+${pndCnt}</span>`:'';ctr=`<div style="margin:4px 0 2px"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span style="font-size:11px;font-weight:800;color:${s.tx}">${dn}/${tot}</span><span style="font-size:10px;color:#a0aec0">${pct}%</span></div><div class="prog-bg" style="position:relative;"><div class="prog-bar" style="width:${pct}%;background:${bc}"></div>${pendBar}</div><div class="prog-labels"><span class="prog-done">✔ ${dn}</span><span style="display:flex;align-items:center;">${pendLabel}<span class="prog-left">ขาด ${left}</span></span></div></div>`;}
+      const vp=VESSEL_PLAN[d.inv.toUpperCase()];
+      const vpTag=vp?`<div style="margin-top:5px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;"><span style="background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">🚢 ${h(vp.vessel)}</span>${vp.bkg?`<span style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">${h(vp.bkg)}</span>`:''}${vp.etd?`<span style="font-size:9px;color:#94a3b8;">ETD ${h(vp.etd)}</span>`:''}</div>`:'';
       const bb2=_canSeeBilledPaid()&&BILLED_ANTS.has(normInv(d.inv))?'<span class="pv-badge" style="background:#fdf2f8;color:#9d174d;border:1px solid #f9a8d4;">🧾 BILLED</span>':'';
       const pb2=_canSeeBilledPaid()&&PAID_ANTS.has(normInv(d.inv))?'<span class="pv-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">💰 PAID</span>':'';
-      out+=`<div class="pv-card${act}" data-id="${d.id}"><div class="pv-inv">${h(d.inv)}</div>${d.customer!=='-'?`<div class="pv-cust">🏭 ${h(d.customer)}</div>`:''}${ctr}<div class="pv-meta"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span>${bb2}${pb2}</div></div>`;
+      out+=`<div class="pv-card${act}" data-id="${d.id}"><div class="pv-inv">${h(d.inv)}</div>${d.customer!=='-'?`<div class="pv-cust">🏭 ${h(d.customer)}</div>`:''}${ctr}${vpTag}<div class="pv-meta"><span class="pv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(d.prefix)}</span><span class="pv-badge" style="background:#fee2e2;color:#991b1b">⏳ รอเอกสาร</span>${bb2}${pb2}</div></div>`;
     });
   });
   document.getElementById('pvList').innerHTML=out;
@@ -1916,6 +1953,135 @@ function selBkg(no){
 /* =====================================================
    VESSEL VIEW
 ===================================================== */
+/* =====================================================
+   PRICE UPDATE TAB
+===================================================== */
+function goToPriceInv(nk){
+  /* หา invoice ใน FLAT แล้ว navigate ไปหน้า เดือน (main tab) → เลือก invoice นั้น */
+  const d=FLAT.find(x=>normInv(x.inv)===nk);
+  if(!d){alert('ไม่พบอินวอยซ์นี้ในข้อมูล');return;}
+  /* ไปหน้า main tab โหมด month */
+  mainMode='month';
+  switchTab('main');
+  setTimeout(()=>{
+    /* เลือกเดือนของ invoice นี้ แล้วสลับ list mode เพื่อเห็นรายการ invoice */
+    midMode='list';
+    selMonth(d.month);
+    /* เปิด midPanel ก่อน */
+    const mid=document.getElementById('midPanel');if(mid)mid.classList.add('open');
+    setTimeout(()=>{
+      /* เลือก invoice + เปิด detail panel ทันที */
+      SI=d.id;
+      document.querySelectorAll('#mBody .ir').forEach(el=>el.classList.toggle('active',parseInt(el.dataset.id)===d.id));
+      showInvDetail(d.id,'dPanel');
+      const dp=document.getElementById('dPanel');if(dp)dp.classList.add('open');
+      /* scroll to the invoice row in the list */
+      const el=document.querySelector(`#mBody .ir[data-id="${d.id}"]`);
+      if(el)el.scrollIntoView({block:'center',behavior:'smooth'});
+    },80);
+  },60);
+}
+function renderPriceLatest(){
+  const wrap=document.getElementById('priceWrap');
+  if(!_canSeeFees()){wrap.innerHTML='<div class="placeholder"><div class="ico">🔒</div><p>เฉพาะ Admin</p></div>';return;}
+  if(!Object.keys(OGM_PRICE_LATEST).length){wrap.innerHTML='<div class="placeholder"><div class="ico">📄</div><p>ยังไม่โหลดไฟล์ราคา — กรุณาตั้งค่าไฟล์ราคา OGM/ID/JM</p></div>';return;}
+  const fm=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  const s=pst;
+  /* helper: หาช่วงวันที่เข้าโรงงานจาก FLAT สำหรับ invoice นี้ */
+  function getDateRange(inv){
+    const nk=normInv(inv);
+    const rec=FLAT.find(d=>normInv(d.inv)===nk);
+    if(!rec||!rec.details||!rec.details.length)return null;
+    const MONTHS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    /* parse date string → Date (รองรับทุก format ที่ XLSX อาจส่งมา) */
+    function parseDt(s){
+      if(!s)return null;
+      s=String(s).trim();
+      /* dd/mm/yyyy หรือ dd-mm-yyyy */
+      const p=s.split(/[\/\-]/);
+      if(p.length>=3){
+        const d=parseInt(p[0]),m=parseInt(p[1]),y=parseInt(p[2]);
+        if(!isNaN(d)&&!isNaN(m)&&!isNaN(y)&&m>=1&&m<=12&&d>=1&&d<=31)
+          return new Date(y<100?2000+y:y,m-1,d);
+        /* yyyy-mm-dd (ISO) */
+        const y2=parseInt(p[0]),m2=parseInt(p[1]),d2=parseInt(p[2]);
+        if(y2>1000&&!isNaN(m2)&&!isNaN(d2))return new Date(y2,m2-1,d2);
+      }
+      /* fallback: ให้ JS parse เอง (รองรับ "Tue Mar 10 2026", "10 Mar 2026" ฯลฯ) */
+      const dt=new Date(s);return isNaN(dt.getTime())?null:dt;
+    }
+    const fmtDt=dt=>dt.getDate()+' '+MONTHS[dt.getMonth()];
+    const dates=rec.details.map(r=>parseDt(r.เข้าโรงงาน)).filter(Boolean).sort((a,b)=>a-b);
+    if(!dates.length)return null;
+    const first=dates[0],last=dates[dates.length-1];
+    if(first.getTime()===last.getTime())return fmtDt(first);
+    if(first.getMonth()===last.getMonth()&&first.getFullYear()===last.getFullYear())
+      return first.getDate()+'-'+last.getDate()+' '+MONTHS[first.getMonth()];
+    return fmtDt(first)+' – '+fmtDt(last);
+  }
+  /* badge color helper */
+  function pfxBadge(pfx){const c=pst(pfx);return `<span style="background:${c.bg};color:${c.tx};border:1px solid ${c.bd};border-radius:6px;padding:2px 10px;font-size:13px;font-weight:800;">${h(pfx)}</span>`;}
+  const SIMPLE_ORDER=['SHL','TWI','BSW','AD','INV'];
+  const FACTORY_ORDER=['OGM','ID','JM'];
+  let out='';
+  out+=`<div style="font-size:15px;font-weight:800;color:#0f2a52;margin-bottom:14px;display:flex;align-items:center;gap:8px;">💰 PRICE UPDATE <span style="font-size:11px;font-weight:400;color:#64748b;">ราคาล่าสุดที่แจ้งโรงงาน</span></div>`;
+  /* ===== Simple / Tiered section ===== */
+  const simpleKeys=SIMPLE_ORDER.filter(k=>OGM_PRICE_LATEST[k]);
+  if(simpleKeys.length){
+    out+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px;">`;
+    simpleKeys.forEach(pfx=>{
+      const {inv,entry}=OGM_PRICE_LATEST[pfx];
+      const dr=getDateRange(inv);
+      const c=pst(pfx);
+      const nk=normInv(inv);
+      const hasData=FLAT.some(x=>normInv(x.inv)===nk);
+      const clickStyle=hasData?`cursor:pointer;transition:box-shadow .15s,transform .15s;`:``;
+      const clickAttr=hasData?`onclick="goToPriceInv('${nk.replace(/'/g,"\\'")}')" onmouseenter="this.style.boxShadow='0 4px 14px rgba(0,0,0,.12)';this.style.transform='translateY(-2px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''"`:`` ;
+      out+=`<div style="background:#fff;border:1px solid ${c.bd};border-radius:10px;padding:12px 14px;${clickStyle}" ${clickAttr}>`;
+      out+=`<div style="margin-bottom:6px;">${pfxBadge(pfx)}${hasData?`<span style="float:right;font-size:10px;color:#94a3b8;margin-top:2px;" title="คลิกดูอินวอยซ์">🔍</span>`:``}</div>`;
+      out+=`<div style="font-size:11px;font-weight:700;color:#1a202c;margin-bottom:4px;word-break:break-all;">${h(inv)}</div>`;
+      if(entry.type==='simple'){
+        out+=`<div style="font-size:18px;font-weight:800;color:#16a34a;">${fm(entry.price)} <span style="font-size:10px;font-weight:400;color:#64748b;">฿/ตู้</span></div>`;
+      }else if(entry.type==='tiered'){
+        out+=`<table style="width:100%;border-collapse:collapse;font-size:10px;margin-top:4px;">`;
+        entry.tiers.forEach(t=>{out+=`<tr><td style="color:#64748b;padding:1px 0;">ตู้ ${t.from}–${t.to}</td><td style="text-align:right;font-weight:700;color:#16a34a;">${fm(t.price)}</td></tr>`;});
+        out+=`</table>`;
+      }
+      if(dr)out+=`<div style="margin-top:6px;font-size:10px;color:#7c3aed;background:#f5f3ff;border-radius:4px;padding:2px 6px;display:inline-block;">📅 ${h(dr)}</div>`;
+      out+=`</div>`;
+    });
+    out+=`</div>`;
+  }
+  /* ===== Factory section (OGM / ID / JM) ===== */
+  const factKeys=FACTORY_ORDER.filter(k=>OGM_PRICE_LATEST[k]);
+  factKeys.forEach(pfx=>{
+    const {inv,entry}=OGM_PRICE_LATEST[pfx];
+    const dr=getDateRange(inv);
+    const c=pst(pfx);
+    const factories=Object.keys(entry).filter(k=>k!=='type'&&k!=='sheetPrefix');
+    const nk=normInv(inv);
+    const hasData=FLAT.some(x=>normInv(x.inv)===nk);
+    const clickAttr=hasData?`onclick="goToPriceInv('${nk.replace(/'/g,"\\'")}')" style="background:#fff;border:1px solid ${c.bd};border-radius:10px;padding:14px 16px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s,transform .15s;" onmouseenter="this.style.boxShadow='0 4px 14px rgba(0,0,0,.12)';this.style.transform='translateY(-2px)'" onmouseleave="this.style.boxShadow='';this.style.transform=''"`:`style="background:#fff;border:1px solid ${c.bd};border-radius:10px;padding:14px 16px;margin-bottom:10px;"`;
+    out+=`<div ${clickAttr}>`;
+    out+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">`;
+    out+=pfxBadge(pfx);
+    out+=`<span style="font-size:12px;font-weight:700;color:#1a202c;">${h(inv)}</span>`;
+    if(dr)out+=`<span style="font-size:10px;color:#7c3aed;background:#f5f3ff;border-radius:4px;padding:2px 8px;">📅 ${h(dr)}</span>`;
+    if(hasData)out+=`<span style="margin-left:auto;font-size:10px;color:#64748b;" title="คลิกดูอินวอยซ์">🔍 ดูอินวอยซ์</span>`;
+    out+=`</div>`;
+    out+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;">`;
+    factories.forEach(fac=>{
+      const price=entry[fac];
+      out+=`<div style="background:${c.bg};border-radius:8px;padding:10px 12px;">`;
+      out+=`<div style="font-size:10px;color:${c.tx};font-weight:700;margin-bottom:4px;">${h(fac)}</div>`;
+      out+=`<div style="font-size:17px;font-weight:800;color:#15803d;">${fm(price)} <span style="font-size:10px;font-weight:400;color:#64748b;">฿/ตู้</span></div>`;
+      out+=`</div>`;
+    });
+    out+=`</div></div>`;
+  });
+  if(!simpleKeys.length&&!factKeys.length){out='<div class="placeholder"><div class="ico">📭</div><p>ยังไม่มีข้อมูลราคา</p></div>';}
+  wrap.innerHTML=out;
+}
 let _vslFilter='';let _VSL_GROUPS=[];
 function renderVessel(){
   if(!VESSEL.length){document.getElementById('vesselWrap').innerHTML='<div class="placeholder"><div class="ico">🚢</div><p>ยังไม่มีข้อมูลเรือ — ใส่พาธ VESSEL_MANAGE.xlsm ในหน้าตั้งค่า</p></div>';return;}
@@ -1930,9 +2096,9 @@ function renderVessel(){
   sorted.forEach(g=>{
     let oc=0,tl=0;g.rows.forEach(r=>{const f=FEES[normInv(r.inv)];if(f){oc+=f.ocf||0;tl+=f.tlx||0;}});const tot=oc+tl;
     out+=`<div class="vessel-card"><div class="vessel-head"><span class="vessel-name">🚢 ${h(g.vessel)}</span><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;"><span class="vessel-badge">📅 ${h(g.date)}</span><span class="vessel-badge">${g.rows.length} INV · ${g.vol} ตู้</span>${hasFees&&tot>0?`<span class="vessel-badge">💰 ${fm(tot)} RM</span>`:''}</div></div>`;
-    const fh=hasFees?'<th style="text-align:right;">OCF (RM)</th><th style="text-align:right;">TLX (RM)</th>':'';
+    const fh=hasFees?'<th style="text-align:right;">OCF (RM)</th><th style="text-align:right;">TLX (RM)</th><th style="text-align:right;color:#7c3aed;">ตู้ละ (RM)</th>':'';
     out+=`<table class="vtbl"><thead><tr><th>#</th><th>อินวอยซ์</th><th>ปลายทาง</th><th>BKG</th><th style="text-align:center;">ตู้</th>${fh}</tr></thead><tbody>`;
-    g.rows.forEach((r,i)=>{const s=pst(r.inv.substring(0,3));out+=`<tr><td style="color:#94a3b8;font-size:11px;">${i+1}</td><td><span class="finv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(r.inv.substring(0,3))}</span>${h(r.inv)}</td><td style="color:#64748b;font-size:11px;">${h(r.des)}</td><td style="font-family:monospace;font-weight:600;color:#475569;">${h(r.bkg)}</td><td style="font-weight:700;color:#16a34a;text-align:center;">${r.vol}</td>`;
+    g.rows.forEach((r,i)=>{const s=pst(getPfx(r.inv));out+=`<tr><td style="color:#94a3b8;font-size:11px;">${i+1}</td><td><span class="finv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(getPfx(r.inv))}</span>${h(r.inv)}</td><td style="color:#64748b;font-size:11px;">${h(r.des)}</td><td style="font-family:monospace;font-weight:600;color:#475569;">${h(r.bkg)}</td><td style="font-weight:700;color:#16a34a;text-align:center;">${r.vol}</td>`;
       if(hasFees){
         const f=FEES[normInv(r.inv)]||{};const oa=f.ocf||0,ta=f.tlx||0;
         const iP=PRE_PAID.some(v=>g.vessel.trim().toUpperCase()===v.toUpperCase());
@@ -1947,17 +2113,22 @@ function renderVessel(){
         };
         const ocfBd=mkBd(f.ocfEntries);
         const tlxBd=mkBd(f.tlxEntries);
+        const isManualPaid=MANUAL_PAID.has(normInv(r.inv).toUpperCase())||MANUAL_PAID.has(r.inv.toUpperCase());
         const ocfCell=oa>0
           ?`<span style="color:#16a34a;font-weight:700;">${fm(oa)}</span>${!ocfBd&&f.ocfNo?`<br><span style="font-size:9px;color:#94a3b8;">#${h(f.ocfNo)}</span>`:''}${ocfBd}`
-          :iP?'<span style="color:#7c3aed;font-size:10px;">✓ จ่ายแล้ว</span>':'<span style="color:#dc2626;font-size:10px;">ยังไม่จ่าย</span>';
+          :iP?'<span style="color:#7c3aed;font-size:10px;">✓ จ่ายแล้ว</span>'
+          :isManualPaid?`<span style="color:#059669;font-size:10px;cursor:pointer;" onclick="toggleManualPaid('${r.inv.replace(/'/g,"\\'")}')">✓ จ่ายแล้ว <span style="font-size:8px;opacity:.6;">(manual)</span></span>`
+          :`<span style="color:#dc2626;font-size:10px;cursor:pointer;text-decoration:underline dotted;" title="คลิกเพื่อทำเครื่องหมายว่าจ่ายแล้ว" onclick="toggleManualPaid('${r.inv.replace(/'/g,"\\'")}')">ยังไม่จ่าย</span>`;
         const tlxCell=ta>0
           ?`<span style="color:#2563eb;font-weight:700;">${fm(ta)}</span>${!tlxBd&&f.tlxNo?`<br><span style="font-size:9px;color:#94a3b8;">#${h(f.tlxNo)}</span>`:''}${tlxBd}`
           :iP?'<span style="color:#7c3aed;font-size:10px;">✓</span>':'<span style="color:#94a3b8;font-size:10px;">-</span>';
-        out+=`<td style="text-align:right;">${ocfCell}</td><td style="text-align:right;">${tlxCell}</td>`;
+        const perCtr=oa>0&&r.vol>0?oa/r.vol:0;
+        const perCtrCell=perCtr>0?`<span style="color:#7c3aed;font-weight:700;">${fm(perCtr)}</span>`:'<span style="color:#94a3b8;font-size:10px;">-</span>';
+        out+=`<td style="text-align:right;">${ocfCell}</td><td style="text-align:right;">${tlxCell}</td><td style="text-align:right;">${perCtrCell}</td>`;
       }
       out+='</tr>';
     });
-    if(hasFees){out+=`<tr style="background:#f0f9ff;border-top:2px solid #bfdbfe;"><td colspan="5" style="text-align:right;font-weight:700;font-size:11px;color:#1e40af;padding:8px 12px;">รวมเรือลำนี้</td><td style="text-align:right;padding:8px 12px;"><span style="font-weight:800;color:#16a34a;">${fm(oc)}</span></td><td style="text-align:right;padding:8px 12px;"><span style="font-weight:800;color:#2563eb;">${fm(tl)}</span></td></tr><tr style="background:#dbeafe;"><td colspan="5" style="text-align:right;font-weight:700;font-size:11px;color:#1e40af;padding:6px 12px;">รวม OCF+TLX</td><td colspan="2" style="text-align:right;padding:6px 12px;font-weight:800;font-size:13px;color:#1e3a8a;">${fm(tot)} RM</td></tr>`;}
+    if(hasFees){const perCtrAvg=oc>0&&g.vol>0?oc/g.vol:0;out+=`<tr style="background:#f0f9ff;border-top:2px solid #bfdbfe;"><td colspan="5" style="text-align:right;font-weight:700;font-size:11px;color:#1e40af;padding:8px 12px;">รวมเรือลำนี้</td><td style="text-align:right;padding:8px 12px;"><span style="font-weight:800;color:#16a34a;">${fm(oc)}</span></td><td style="text-align:right;padding:8px 12px;"><span style="font-weight:800;color:#2563eb;">${fm(tl)}</span></td><td style="text-align:right;padding:8px 12px;"><span style="font-weight:700;color:#7c3aed;font-size:10px;">${perCtrAvg>0?fm(perCtrAvg)+' avg':'-'}</span></td></tr><tr style="background:#dbeafe;"><td colspan="5" style="text-align:right;font-weight:700;font-size:11px;color:#1e40af;padding:6px 12px;">รวม OCF+TLX</td><td colspan="3" style="text-align:right;padding:6px 12px;font-weight:800;font-size:13px;color:#1e3a8a;">${fm(tot)} RM</td></tr>`;}
     out+='</tbody></table></div>';
   });
   document.getElementById('vesselWrap').innerHTML=out;
@@ -2015,7 +2186,7 @@ function printVesselPdf(){
     const fh=hasFees?'<th class="r">OCF (RM)</th><th class="r">TLX (RM)</th>':'';
     let trows='';
     g.rows.forEach((r,ri)=>{
-      const pfx=r.inv.substring(0,3);
+      const pfx=getPfx(r.inv);
       const f=hasFees?(FEES[normInv(r.inv)]||{}):{};
       const oa=f.ocf||0,ta=f.tlx||0;
       const iP=PRE_PAID.some(v=>g.vessel.trim().toUpperCase()===v.toUpperCase());
@@ -2195,7 +2366,7 @@ function renderFactory(){
     sh+=`</tr>`;rows+=sh;
     /* Invoice rows */
     ins.forEach((inv,ii)=>{
-      const pfx=inv.substring(0,3);const s=pst(pfx);const bg=ii%2===0?'':'background:#fafafa;';
+      const pfx=getPfx(inv);const s=pst(pfx);const bg=ii%2===0?'':'background:#fafafa;';
       rows+=`<tr style="${bg}"><td class="finv-cell" style="border-left:3px solid ${s.tx};${bg}vertical-align:top;"><span class="finv-badge" style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd}">${h(pfx)}</span>${h(inv)}</td>`;
       facCols.forEach(fd=>{
         const trucks=im[inv][fd]||[];
@@ -2242,7 +2413,9 @@ function closeFacPrintModal(){
 }
 
 function doFacPrint(dates){
+  /* dates = array of DATE_PICKUP strings */
   const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  /* สร้าง 1 หน้าต่อวัน, page-break-after ระหว่างหน้า */
   let pages='';
   dates.forEach((dt,pi)=>{
     const im={};
@@ -2261,7 +2434,7 @@ function doFacPrint(dates){
     let ttl=0;ins.forEach(inv=>facCols.forEach(fd=>ttl+=(im[inv][fd]||[]).length));
     let tbRows='';
     ins.forEach((inv,ii)=>{
-      const pfx=inv.substring(0,3);const s=pst(pfx);const bg=ii%2===1?'background:#f8fafc;':'';
+      const pfx=getPfx(inv);const s=pst(pfx);const bg=ii%2===1?'background:#f8fafc;':'';
       tbRows+=`<tr style="${bg}"><td style="border:1px solid #e2e8f0;padding:4px 8px;white-space:nowrap;vertical-align:top;${bg}"><span style="font-size:7pt;font-weight:700;padding:1px 5px;border-radius:3px;margin-right:5px;background:${s.bg};color:${s.tx};border:1px solid ${s.bd};">${esc(pfx)}</span>${esc(inv)}</td>`;
       facCols.forEach(fd=>{
         const trucks=im[inv][fd]||[];
@@ -2312,8 +2485,10 @@ function showStatModal(filter){
       if(!byV[vk])byV[vk]={etd:vp?.etd||'',etdRaw:vp?.etd||'9999',items:[]};
       byV[vk].items.push(d);
     });
+    /* เรียง ETD จากน้อยไปมาก (เรือที่มาก่อนอยู่บน) */
     const sortedVessels=Object.keys(byV).sort((a,b)=>{
       const ea=byV[a].etdRaw,eb=byV[b].etdRaw;
+      /* ETD format dd/mm/yy → แปลงเป็น yymmdd เพื่อ sort */
       const toSort=s=>{const p=s.split('/');return p.length===3?p[2]+p[1]+p[0]:s;};
       return toSort(ea).localeCompare(toSort(eb));
     });
@@ -2600,6 +2775,7 @@ function renderTrMonthSummary(){
     return true;
   });
   const months={};
+  /* รวบรวมตู้ค้างจ่าย (trMatch===null) แยกตามเดือน */
   const unpaidByMonth={};
   src.forEach(d=>{
     const m=d.month||'-';
@@ -2609,6 +2785,7 @@ function renderTrMonthSummary(){
     d.details.forEach(row=>{
       if(row.trMatch&&!row.trMatch._prePaid){g.expected+=row.trMatch.price||0;}
       else if(!row.trMatch&&hasPU){g.expected+=lookupPriceUpdate(row.เข้าโรงงาน,d.prefix,row.โรงงาน,d.inv);}
+      /* เก็บตู้ที่ยังไม่มีใน DATA_BASE_BILL */
       if(!row.trMatch){
         const rate=hasPU?lookupPriceUpdate(row.เข้าโรงงาน,d.prefix,row.โรงงาน,d.inv):0;
         unpaidByMonth[m].push({inv:d.inv,prefix:d.prefix,container:row['เบอร์ตู้']||'-',truck:row['ทะเบียนรถ']||'-',factory:row['โรงงาน']||'-',date:row['เข้าโรงงาน']||'-',rate});
@@ -2616,6 +2793,7 @@ function renderTrMonthSummary(){
     });
     if(d.status==='full')g.full++;else if(d.status==='partial')g.partial++;else if(d.status==='none')g.none++;else g.nodata++;
   });
+  /* เก็บ global ไว้ให้ฟังก์ชัน print ใช้ */
   window._TR_UNPAID_BY_MONTH=unpaidByMonth;
   const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
   const keys=Object.keys(months).sort(mSort);
@@ -2634,8 +2812,24 @@ function renderTrMonthSummary(){
     if(g.none)badges+='<span class="mc-badge mc-none">❌ ค้าง '+g.none+'</span> ';
     const uList=unpaidByMonth[m]||[];
     const sid='tmd_'+m.replace(/[^a-z0-9]/gi,'_');
-    html+='<div class="month-card" onclick="trShowAlModal(\''+m+'\')" title="คลิกเพื่อดูสรุปตามบริษัทขนส่ง">';
-    html+='<div class="mc-hdr"><span>📅 '+moLabel+'</span><span style="font-size:11px;font-weight:400;color:#64748b;">'+g.inv+' อินวอยซ์</span></div>';
+    const showShipTick=TR_SHIP_PFXS.includes(TR_PREFIX);
+    const shipState=showShipTick?getTrPfxPaid(TR_PREFIX,m):{paid:false,date:null};
+    const shipIsPaid=shipState.paid;
+    const cardBorderColor=showShipTick?(shipIsPaid?'#1d4ed8':'#dc2626'):'#059669';
+    /* compute total for this month (for modal) */
+    const monthTotal=hasPU?g.expected:g.amount;
+    html+='<div class="month-card" onclick="trShowAlModal(\''+m+'\')" title="คลิกเพื่อดูสรุปตามบริษัทขนส่ง" style="border-left-color:'+cardBorderColor+';">';
+    html+='<div class="mc-hdr"><span>📅 '+moLabel+'</span>';
+    if(showShipTick){
+      html+='<button onclick="openShipPaidModal(\''+TR_PREFIX+'\',\''+m+'\',event,\''+moLabel.replace(/'/g,"\\'")+'\','+monthTotal+')" style="padding:3px 10px;border-radius:6px;font-size:10px;font-weight:800;cursor:pointer;transition:all .15s;'+(shipIsPaid?'background:#dcfce7;color:#166534;border:1.5px solid #86efac;':'background:#fff7ed;color:#c2410c;border:1.5px solid #fdba74;')+'">'+(shipIsPaid?'✅ โรงงานจ่ายแล้ว':'○ โรงงานยังค้าง')+'</button>';
+    }
+    html+='<span style="font-size:11px;font-weight:400;color:#64748b;">'+g.inv+' อินวอยซ์</span></div>';
+    /* แสดงวันที่จ่าย */
+    if(showShipTick&&shipIsPaid&&shipState.date){
+      const dt=new Date(shipState.date);const MONTHS=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      const dtTh=dt.getDate()+' '+MONTHS[dt.getMonth()]+' '+(dt.getFullYear()+543);
+      html+='<div style="font-size:10px;color:#1d4ed8;font-weight:700;margin-bottom:6px;background:#eff6ff;border-radius:5px;padding:2px 8px;display:inline-block;">📅 โรงงานจ่าย '+dtTh+'</div>';
+    }
     html+='<div class="mc-grid">';
     html+='<div class="mc-stat"><span class="mv">'+g.ctr+'</span><span class="ml">ตู้ทั้งหมด</span></div>';
     html+='<div class="mc-stat"><span class="mv">'+g.paid+' <span style="font-size:12px;color:#94a3b8;">/ '+g.ctr+'</span></span><span class="ml">ตู้จ่ายแล้ว</span></div>';
@@ -2647,6 +2841,8 @@ function renderTrMonthSummary(){
       if(isComplete){html+='<span style="font-size:11px;font-weight:700;color:#16a34a;margin-top:2px;display:block;">✅ ค่าขนส่งครบ</span>';}
       else if(gap>0){html+='<span style="font-size:11px;font-weight:700;color:#dc2626;margin-top:2px;display:block;">💸 ยังขาด '+fmtAmt(gap)+' บาท</span>';}
       else{const unpaidCtr=g.ctr-g.paid;html+='<span style="font-size:11px;font-weight:700;color:#dc2626;margin-top:2px;display:block;">❌ ยังค้างอยู่ '+unpaidCtr+' ตู้ (คำนวณราคาไม่ได้)</span>';}
+      /* แสดงสถานะโรงงานจ่ายค่าขนส่งกลับ */
+      if(showShipTick){html+='<span style="font-size:10px;margin-top:4px;display:block;font-weight:700;color:'+(shipIsPaid?'#1d4ed8':'#c2410c')+'">'+(shipIsPaid?'🏦 โรงงานโอนค่าขนส่งคืนแล้ว':'🏦 รอโรงงานโอนค่าขนส่งคืน')+'</span>';}
       html+='</div>';
     }else{
       html+='<div class="mc-stat" style="grid-column:span 2;"><span class="mc-amt">'+fmtAmt(g.amount)+' <span style="font-size:12px;font-weight:400;color:#94a3b8;">บาท</span></span><span class="ml">ยอดรวมค่าขนส่ง</span></div>';
@@ -2655,17 +2851,21 @@ function renderTrMonthSummary(){
     html+='<div style="margin:10px 0 8px;background:#e2e8f0;border-radius:4px;height:6px;overflow:hidden;">';
     html+='<div style="width:'+pct+'%;background:'+barColor+';height:100%;border-radius:4px;transition:width .4s;"></div></div>';
     html+='<div style="font-size:11px;">'+badges+'</div>';
+    /* ── ปุ่มดูตู้ค้างจ่าย (มีเฉพาะเดือนที่มีค้าง) ── */
     if(uList.length>0){
       const totalRate=uList.reduce((s,u)=>s+u.rate,0);
       const rateHint=totalRate>0?' · ~'+fmtAmt(totalRate)+' บาท':'';
       html+='<button id="'+sid+'btn" onclick="trToggleMD(\''+sid+'\',this,event)" style="margin-top:8px;width:100%;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;color:#dc2626;font-size:10px;font-weight:700;padding:5px 10px;cursor:pointer;text-align:left;display:flex;justify-content:space-between;align-items:center;">'
         +'<span>📋 ดูตู้ค้างจ่าย '+uList.length+' ตู้'+rateHint+'</span><span style="font-size:11px;">▼</span>'
         +'</button>';
+      /* ── panel detail ── */
       html+='<div id="'+sid+'" style="display:none;margin-top:4px;border:1px solid #fecaca;border-radius:6px;background:#fff;overflow:hidden;">';
+      /* header bar: title + Report button */
       html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:#fef2f2;border-bottom:1px solid #fecaca;">'
         +'<span style="font-size:10px;font-weight:700;color:#991b1b;">🚛 รายการค้างจ่าย — '+moLabel+'</span>'
         +'<button onclick="trPrintUnpaidMonth(\''+m+'\',event)" style="background:#dc2626;color:#fff;border:none;border-radius:5px;font-size:9px;font-weight:700;padding:3px 9px;cursor:pointer;">🖨 Report</button>'
         +'</div>';
+      /* scrollable table */
       html+='<div style="max-height:200px;overflow-y:auto;">';
       html+='<table style="width:100%;border-collapse:collapse;font-size:9.5px;">';
       html+='<thead><tr style="background:#fff7f7;position:sticky;top:0;">'
@@ -2713,34 +2913,65 @@ function trPrintUnpaidMonth(month,evt){
   const moName=mLabel(month);
   const totalRate=uList.reduce((s,u)=>s+u.rate,0);
   const dateStr=new Date().toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
+  /* จัดกลุ่มตาม prefix */
   const byPfx={};
-  uList.forEach(u=>{if(!byPfx[u.prefix])byPfx[u.prefix]=[];byPfx[u.prefix].push(u);});
+  uList.forEach(u=>{
+    if(!byPfx[u.prefix])byPfx[u.prefix]=[];
+    byPfx[u.prefix].push(u);
+  });
   let rows='';let rowIdx=0;
   Object.keys(byPfx).sort().forEach(pfx=>{
     const list=byPfx[pfx];
     const pfxTotal=list.reduce((s,u)=>s+u.rate,0);
-    rows+=`<tr class="pfx-hdr"><td colspan="${hasPU?6:5}">📦 ${esc(pfx)} &nbsp;·&nbsp; ${list.length} ตู้${pfxTotal>0?' &nbsp;·&nbsp; ~'+fmtAmt(pfxTotal)+' บาท':''}</td></tr>`;
+    rows+=`<tr class="pfx-hdr"><td colspan="${hasPU?5:4}">📦 ${esc(pfx)} &nbsp;·&nbsp; ${list.length} ตู้${pfxTotal>0?' &nbsp;·&nbsp; ~'+fmtAmt(pfxTotal)+' บาท':''}</td></tr>`;
     list.forEach(u=>{
       rowIdx++;
-      rows+=`<tr><td class="c">${rowIdx}</td><td class="mono">${esc(u.container)}</td><td style="color:#1e40af;font-weight:700;">${esc(u.truck)}</td><td>${esc(u.inv)}</td><td>${esc(u.date)}</td>${hasPU?`<td class="r">${u.rate>0?fmtAmt(u.rate):'—'}</td>`:''}</tr>`;
+      rows+=`<tr>
+        <td class="c">${rowIdx}</td>
+        <td class="mono">${esc(u.container)}</td>
+        <td style="color:#1e40af;font-weight:700;">${esc(u.truck)}</td>
+        <td>${esc(u.inv)}</td>
+        <td>${esc(u.date)}</td>
+        ${hasPU?`<td class="r">${u.rate>0?fmtAmt(u.rate):'—'}</td>`:''}
+      </tr>`;
     });
   });
-  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>รายการค้างจ่าย — ${moName}</title><style>
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>รายการค้างจ่าย — ${moName}</title>
+  <style>
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;800&display=swap');
-    *{box-sizing:border-box;margin:0;padding:0;}body{font-family:'Sarabun',sans-serif;font-size:12px;color:#1f2937;padding:24px;}
-    h2{color:#991b1b;font-size:17px;margin-bottom:2px;}.sub{font-size:11px;color:#6b7280;margin-bottom:16px;}
-    table{width:100%;border-collapse:collapse;}th{background:#dc2626;color:#fff;padding:7px 10px;text-align:left;font-size:11px;}
-    th.r,td.r{text-align:right;}th.c,td.c{text-align:center;width:30px;}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Sarabun',sans-serif;font-size:12px;color:#1f2937;padding:24px;}
+    h2{color:#991b1b;font-size:17px;margin-bottom:2px;}
+    .sub{font-size:11px;color:#6b7280;margin-bottom:16px;}
+    table{width:100%;border-collapse:collapse;}
+    th{background:#dc2626;color:#fff;padding:7px 10px;text-align:left;font-size:11px;}
+    th.r,td.r{text-align:right;}
+    th.c,td.c{text-align:center;width:30px;}
     td{border-bottom:1px solid #fee2e2;padding:6px 10px;vertical-align:middle;}
     tr:nth-child(even) td{background:#fff5f5;}
     .pfx-hdr td{background:#fef2f2;color:#991b1b;font-weight:800;font-size:11px;padding:6px 10px;border-top:2px solid #fca5a5;border-bottom:1px solid #fca5a5;}
-    .mono{font-family:monospace;font-weight:700;}.total-row td{background:#fef2f2;font-weight:900;border-top:2px solid #dc2626;font-size:13px;}
-    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{padding:12px;}}</style></head><body>
+    .mono{font-family:monospace;font-weight:700;}
+    .total-row td{background:#fef2f2;font-weight:900;border-top:2px solid #dc2626;font-size:13px;}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{padding:12px;}button{display:none;}}
+  </style>
+  </head><body>
   <h2>🚛 รายการค้างจ่ายค่าขนส่ง</h2>
   <div class="sub">เดือน ${moName} &nbsp;·&nbsp; พิมพ์เมื่อ ${dateStr}</div>
-  <table><thead><tr><th class="c">#</th><th>เบอร์ตู้</th><th>ทะเบียนรถ</th><th>อินวอยซ์</th><th>วันที่เข้า</th>${hasPU?'<th class="r">อัตราค่าขนส่ง</th>':''}</tr></thead>
-  <tbody>${rows}</tbody>${hasPU&&totalRate>0?`<tfoot><tr class="total-row"><td colspan="5" style="text-align:right;padding-right:12px;">💰 ยอดรวมโดยประมาณ</td><td class="r">${fmtAmt(totalRate)} บาท</td></tr></tfoot>`:''}</table>
-  <script>window.onload=()=>window.print();<\/script></body></html>`;
+  <table>
+    <thead><tr>
+      <th class="c">#</th>
+      <th>เบอร์ตู้</th>
+      <th>ทะเบียนรถ</th>
+      <th>อินวอยซ์</th>
+      <th>วันที่เข้า</th>
+      ${hasPU?'<th class="r">อัตราค่าขนส่ง</th>':''}
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    ${hasPU&&totalRate>0?`<tfoot><tr class="total-row"><td colspan="5" style="text-align:right;padding-right:12px;">💰 ยอดรวมโดยประมาณ</td><td class="r">${fmtAmt(totalRate)} บาท</td></tr></tfoot>`:''}
+  </table>
+  <script>window.onload=()=>window.print();<\/script>
+  </body></html>`;
   const w=window.open('','_blank','width=800,height=600');
   if(w){w.document.write(html);w.document.close();}
 }
@@ -2798,6 +3029,8 @@ function trShowAlModal(month){
   /* ── build grouped rows ── */
   let rows='';let rowNum=0;
   coList.forEach(co=>{
+    /* OGM: เรียงตาม AL# | อื่นๆ: natural sort ตาม ref */
+    const isOgmCo=co.toUpperCase().startsWith('AL')||co.toUpperCase()==='OGM';
     const bills=Object.values(coBills[co]).sort((a,b)=>natSort(a.ref,b.ref));
     const tot=coTot[co]||{ctr:0,amount:0};
     const coEsc=co.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
@@ -2884,28 +3117,46 @@ function trPrintByFactoryReport(){
   const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
   const css=`
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
-    @page{size:A4 portrait;margin:12mm 15mm;}
+    @page{size:A4 portrait;margin:14mm 16mm 18mm;}
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .doc-hdr{text-align:center;margin-bottom:14px;}
-    .doc-title{font-size:15px;font-weight:800;}
-    .doc-meta{font-size:8.5px;color:#555;margin-top:3px;}
-    .section{margin-bottom:20px;page-break-inside:avoid;}
-    .sec-hdr{padding:7px 10px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:baseline;}
-    .sec-name{font-size:13px;font-weight:800;color:#fff;}
-    .sec-sub{font-size:9px;color:rgba(255,255,255,.7);margin-left:6px;}
-    .sec-tot{font-size:9.5px;font-weight:700;color:rgba(255,255,255,.85);}
+    body{font-family:'Sarabun',sans-serif;font-size:13px;line-height:1.55;background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-hdr{text-align:center;margin-bottom:18px;}
+    .doc-title{font-size:22px;font-weight:800;letter-spacing:.01em;}
+    .doc-meta{font-size:12px;color:#555;margin-top:4px;}
+    .section{margin-bottom:22px;page-break-inside:avoid;}
+    .sec-hdr{padding:10px 14px;border-radius:7px 7px 0 0;display:flex;justify-content:space-between;align-items:center;}
+    .sec-name{font-size:17px;font-weight:800;color:#fff;}
+    .sec-sub{font-size:12px;color:rgba(255,255,255,.75);margin-left:8px;}
+    .sec-tot{font-size:13px;font-weight:700;color:rgba(255,255,255,.9);}
     table{width:100%;border-collapse:collapse;}
-    th{font-size:8.5px;font-weight:700;padding:4px 8px;text-align:left;border:1px solid #ccc;}
+    th{font-size:12px;font-weight:700;padding:7px 10px;text-align:left;border:1px solid #ccc;background:#f1f5f9;}
     th.r{text-align:right;}
-    td{border:1px solid #e2e8f0;padding:4px 8px;font-size:9.5px;vertical-align:middle;}
+    td{border:1px solid #dde3ea;padding:7px 10px;font-size:13px;vertical-align:middle;line-height:1.4;}
     td.r{text-align:right;}
     tbody tr:nth-child(even) td{background:#f8fafc;}
-    .sub-row td{font-weight:800;border-top:2px solid #aaa;}
+    .co-hdr-row td{font-weight:800;font-size:14px;padding:8px 10px;}
+    .sub-row td{font-weight:800;font-size:13px;background:#f1f5f9;border-top:2px solid #94a3b8;}
     .sub-row td.r{text-align:right;}
-    .grand-row td{background:#1e293b;color:#fff;font-weight:800;border:none;padding:6px 10px;border-radius:4px;margin-top:8px;}
+    .tot-sum-row td{font-weight:700;font-size:12px;background:#f8fafc;color:#64748b;border-top:1px solid #dde3ea;}
+    .tot-sum-row td.r{text-align:right;}
+    .grand-row td{background:#1e293b;color:#fff;font-weight:800;font-size:14px;border:none;padding:9px 12px;}
     .grand-row .r{text-align:right;color:#94a3b8;}
-    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}
+    .running-hdr{display:none;}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:10pt;color:#94a3b8;}}
+    @media print{
+      body{padding-top:13mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .section{page-break-inside:avoid;}
+      .running-hdr{
+        display:flex;position:fixed;top:0;left:0;right:0;
+        background:#fff;border-bottom:2.5px solid #334155;
+        padding:4px 2px 5px;
+        justify-content:space-between;align-items:center;
+        font-family:'Sarabun',sans-serif;z-index:9999;
+      }
+      .rh-title{font-size:11px;color:#64748b;font-weight:600;}
+      .rh-month{font-size:16px;font-weight:800;color:#1e293b;letter-spacing:.01em;}
+      .rh-date{font-size:11px;color:#94a3b8;}
+    }
   `;
   /* ── build each section ── */
   const buildSection=(grp)=>{
@@ -2916,21 +3167,21 @@ function trPrintByFactoryReport(){
       const bills=Object.entries(coData.bills).sort((a,b)=>a[0].localeCompare(b[0]));
       const rows=bills.map(([ref,v])=>
         `<tr>
-          <td style="color:#475569;font-size:9px;">${he2(v.al)}</td>
+          <td style="color:#334155;font-weight:600;">${he2(v.al)}</td>
           <td>${he2(ref)}</td>
           <td class="r">${v.ctr} ตู้</td>
           <td class="r">${fm(v.amount)}</td>
         </tr>`
       ).join('');
-      coSections+=`<tr>
-          <td colspan="2" style="background:${grp.light};font-weight:800;font-size:11px;padding:5px 8px;color:${grp.color};">🚛 ${he2(co)}</td>
-          <td class="r" style="background:${grp.light};font-size:9px;font-weight:700;color:${grp.color};">${coData.tot.ctr} ตู้</td>
-          <td class="r" style="background:${grp.light};font-size:9.5px;font-weight:700;color:${grp.color};">${fm(coData.tot.amount)}</td>
+      coSections+=`<tr class="co-hdr-row">
+          <td colspan="2" style="background:${grp.light};color:${grp.color};">🚛 ${he2(co)}</td>
+          <td class="r" style="background:${grp.light};color:${grp.color};">${coData.tot.ctr} ตู้</td>
+          <td class="r" style="background:${grp.light};color:${grp.color};">${fm(coData.tot.amount)}</td>
         </tr>${rows}
-        <tr>
-          <td colspan="2" style="background:#f1f5f9;text-align:right;font-size:8.5px;color:#64748b;padding:3px 8px;">รวม ${he2(co)}</td>
-          <td class="r" style="background:#f1f5f9;font-size:8.5px;color:#64748b;">${coData.tot.ctr} ตู้</td>
-          <td class="r" style="background:#f1f5f9;font-size:8.5px;color:#64748b;">${fm(coData.tot.amount)}</td>
+        <tr class="tot-sum-row">
+          <td colspan="2" style="text-align:right;">รวม ${he2(co)}</td>
+          <td class="r">${coData.tot.ctr} ตู้</td>
+          <td class="r">${fm(coData.tot.amount)}</td>
         </tr>`;
     });
     return `<div class="section">
@@ -2941,16 +3192,16 @@ function trPrintByFactoryReport(){
       <table>
         <thead style="background:${grp.color};">
           <tr>
-            <th style="width:18%;color:#fff;">เลขลำดับ (AL)</th>
-            <th style="width:37%;color:#fff;">เลขที่วางบิล</th>
-            <th class="r" style="width:20%;color:#fff;">จำนวนตู้</th>
+            <th style="width:18%;color:#fff;">เลขลำดับ AL</th>
+            <th style="width:38%;color:#fff;">เลขที่วางบิล</th>
+            <th class="r" style="width:19%;color:#fff;">จำนวนตู้</th>
             <th class="r" style="width:25%;color:#fff;">จำนวนเงิน (บาท)</th>
           </tr>
         </thead>
         <tbody>${coSections}</tbody>
         <tfoot>
           <tr class="sub-row" style="background:${grp.light};">
-            <td colspan="2" style="text-align:right;font-weight:800;">รวม ${he2(grp.label)}</td>
+            <td colspan="2" style="text-align:right;">รวม ${he2(grp.label)}</td>
             <td class="r">${grp.tot.ctr} ตู้</td>
             <td class="r">${fm(grp.tot.amount)}</td>
           </tr>
@@ -2959,14 +3210,19 @@ function trPrintByFactoryReport(){
     </div>`;
   };
   const body=buildSection(groups.ogm)+buildSection(groups.other)+
-    `<table style="margin-top:10px;"><tbody><tr class="grand-row">
+    `<table style="margin-top:12px;"><tbody><tr class="grand-row">
       <td colspan="2">รวมทั้งหมด</td><td class="r">${grandCtr} ตู้</td><td class="r">${fm(grandAmt)}</td>
     </tr></tbody></table>`;
   const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
-    <title>รีพอร์ตตามโรงงาน — ${he2(monthName)}</title>
+    <title>ค่าขนส่งตามบริษัท — ${he2(monthName)}</title>
     <style>${css}</style></head><body>
+    <div class="running-hdr">
+      <span class="rh-title">ค่าขนส่งตามบริษัท</span>
+      <span class="rh-month">📅 ${he2(monthName)}</span>
+      <span class="rh-date">พิมพ์: ${nowDate}</span>
+    </div>
     <div class="doc-hdr">
-      <div class="doc-title">รีพอร์ตค่าขนส่ง แบ่งตามโรงงาน เดือน ${he2(monthName)}</div>
+      <div class="doc-title">ค่าขนส่งตามบริษัท — ${he2(monthName)}</div>
       <div class="doc-meta">พิมพ์: ${nowDate}</div>
     </div>${body}</body></html>`;
   const win=window.open('','_blank','width=860,height=720');
@@ -3038,29 +3294,49 @@ function trPrintAlMonthXref(){
   const nowDate=(()=>{const d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();})();
   const css=`
     @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700;800&display=swap');
-    @page{size:A4 portrait;margin:12mm 15mm;}
+    @page{size:A4 portrait;margin:14mm 16mm 18mm;}
     *{box-sizing:border-box;margin:0;padding:0;}
-    body{font-family:'Sarabun',sans-serif;font-size:10px;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-    .doc-hdr{text-align:center;margin-bottom:14px;}
-    .doc-title{font-size:15px;font-weight:800;}
-    .doc-meta{font-size:8.5px;color:#555;margin-top:3px;}
-    .fac-hdr{padding:8px 12px;border-radius:6px 6px 0 0;display:flex;justify-content:space-between;align-items:center;margin-top:20px;}
-    .fac-name{font-size:13px;font-weight:800;color:#fff;}
-    .fac-sub{font-size:9px;color:rgba(255,255,255,.7);margin-left:6px;}
-    .month-block{margin-bottom:12px;}
-    .mo-hdr{padding:5px 10px 5px 14px;display:flex;justify-content:space-between;align-items:baseline;font-size:10.5px;font-weight:800;border-left:4px solid;}
-    table{width:100%;border-collapse:collapse;margin-bottom:6px;}
-    th{font-size:8px;font-weight:700;padding:3px 7px;text-align:left;border:1px solid #ccc;background:#f8fafc;}
+    body{font-family:'Sarabun',sans-serif;font-size:13px;line-height:1.55;background:#fff;color:#111;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .doc-hdr{text-align:center;margin-bottom:18px;}
+    .doc-title{font-size:22px;font-weight:800;letter-spacing:.01em;}
+    .doc-meta{font-size:12px;color:#555;margin-top:4px;}
+    .fac-hdr{padding:10px 14px;border-radius:7px 7px 0 0;display:flex;justify-content:space-between;align-items:center;margin-top:22px;}
+    .fac-name{font-size:17px;font-weight:800;color:#fff;}
+    .fac-sub{font-size:12px;color:rgba(255,255,255,.75);margin-left:8px;}
+    .month-block{margin-bottom:14px;}
+    .mo-hdr{padding:7px 12px 7px 16px;display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:800;border-left:5px solid;}
+    table{width:100%;border-collapse:collapse;margin-bottom:8px;}
+    th{font-size:12px;font-weight:700;padding:7px 10px;text-align:left;border:1px solid #ccc;background:#f1f5f9;}
     th.r{text-align:right;}
-    td{border:1px solid #e2e8f0;padding:3px 7px;font-size:9.5px;vertical-align:middle;}
+    td{border:1px solid #dde3ea;padding:7px 10px;font-size:13px;vertical-align:middle;line-height:1.4;}
     td.r{text-align:right;}
     tbody tr:nth-child(even) td{background:#f8fafc;}
-    .tot-row td{font-weight:800;background:#f1f5f9;border-top:2px solid #aaa;}
-    .grand-box{margin-top:16px;border-top:3px solid #334155;padding-top:8px;}
+    tbody tr:hover td{background:#f0f7ff;}
+    .tot-row td{font-weight:800;font-size:13px;background:#f1f5f9;border-top:2px solid #94a3b8;}
+    .grand-box{margin-top:18px;border-top:3px solid #334155;padding-top:10px;}
     .grand-box table{margin:0;}
-    .grand-row td{background:#1e293b;color:#fff;font-weight:800;border:none;padding:7px 10px;}
+    .grand-row td{background:#1e293b;color:#fff;font-weight:800;font-size:14px;border:none;padding:9px 12px;}
     .grand-row td.r{text-align:right;color:#94a3b8;}
-    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}.month-block{page-break-inside:avoid;}}
+    .ph-badge{background:#e2e8f0;color:#64748b;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;margin-right:5px;}
+    .co-badge{border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700;margin-right:5px;}
+    /* ── Running header (ซ่อนบนจอ แสดงทุกหน้าตอนพิมพ์) ── */
+    .running-hdr{display:none;}
+    @page{@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:10pt;color:#94a3b8;}}
+    @media print{
+      body{padding-top:13mm;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      .month-block{page-break-inside:avoid;}
+      .running-hdr{
+        display:flex;position:fixed;top:0;left:0;right:0;
+        background:#fff;border-bottom:2.5px solid #334155;
+        padding:4px 2px 5px;
+        justify-content:space-between;align-items:center;
+        font-family:'Sarabun',sans-serif;
+        z-index:9999;
+      }
+      .rh-title{font-size:11px;color:#64748b;font-weight:600;}
+      .rh-month{font-size:16px;font-weight:800;color:#1e293b;letter-spacing:.01em;}
+      .rh-date{font-size:11px;color:#94a3b8;}
+    }
   `;
   /* natural sort สำหรับ AL# */
   const natSortAl=(a,b)=>{const re=/(\d+)/g,ap=a.split(re),bp=b.split(re);for(let i=0;i<Math.max(ap.length,bp.length);i++){if(i>=ap.length)return-1;if(i>=bp.length)return 1;const ai=ap[i],bi2=bp[i];if(i%2===1){const d=parseInt(ai)-parseInt(bi2);if(d!==0)return d;}else{if(ai<bi2)return-1;if(ai>bi2)return 1;}}return 0;};
@@ -3099,21 +3375,21 @@ function trPrintAlMonthXref(){
       }
       const flatRows=mergedEntries.map(e=>{
         if(e._ph)return `<tr style="background:#fafafa;">
-            <td style="color:#94a3b8;font-size:9px;font-style:italic;">${he2(e.al)}</td>
-            <td style="color:#94a3b8;font-size:9px;font-style:italic;">${e._co?`<span style="background:#e2e8f0;color:#64748b;border-radius:3px;padding:0 4px;font-size:8px;font-weight:700;margin-right:4px;">${he2(e._co)}</span>`:''}${he2(e._billNo)}</td>
-            <td class="r" style="color:#94a3b8;font-size:9px;font-style:italic;">(${he2(e._fromMonth)})</td>
+            <td style="color:#94a3b8;font-style:italic;">${he2(e.al)}</td>
+            <td style="color:#94a3b8;font-style:italic;">${e._co?`<span class="ph-badge">${he2(e._co)}</span>`:''}${he2(e._billNo)}</td>
+            <td class="r" style="color:#94a3b8;font-style:italic;">(${he2(e._fromMonth)})</td>
             <td class="r" style="color:#cbd5e0;">—</td>
           </tr>`;
         return `<tr>
-            <td style="color:#475569;font-size:9px;">${he2(e.al)}</td>
-            <td><span style="background:${grp.light};color:${grp.color};border-radius:3px;padding:0 5px;font-size:8px;font-weight:700;margin-right:4px;">${he2(e.co)}</span>${he2(e.billNo)}</td>
+            <td style="color:#334155;font-weight:600;">${he2(e.al)}</td>
+            <td><span class="co-badge" style="background:${grp.light};color:${grp.color};">${he2(e.co)}</span>${he2(e.billNo)}</td>
             <td class="r">${e.ctr} ตู้</td>
             <td class="r">${fm(e.amount)}</td>
           </tr>`;
       }).join('');
       /* SUM row (นับเฉพาะ row จริง ไม่รวม placeholder) */
       const subTotRows=`<tr class="tot-row">
-            <td colspan="2" style="text-align:right;font-size:9.5px;">รวมทั้งหมด</td>
+            <td colspan="2" style="text-align:right;">รวมทั้งหมด</td>
             <td class="r">${mObj.tot.ctr} ตู้</td>
             <td class="r">${fm(mObj.tot.amount)}</td>
           </tr>`;
@@ -3121,23 +3397,22 @@ function trPrintAlMonthXref(){
       moBlocks+=`<div class="month-block">
         <div class="mo-hdr" style="background:${grp.light};color:${grp.color};border-color:${grp.color};">
           <span>📅 ${he2(moName)}</span>
-          <span style="font-size:8.5px;font-weight:400;">${mObj.tot.ctr} รายการ · ${fm(mObj.tot.amount)} บาท</span>
+          <span style="font-size:12px;font-weight:600;">${mObj.tot.ctr} รายการ · ${fm(mObj.tot.amount)} บาท</span>
         </div>
         <table>
           <thead><tr>
             <th style="width:15%">เลขลำดับ AL</th>
-            <th style="width:42%">บริษัท / เลขที่วางบิล</th>
-            <th class="r" style="width:18%">จำนวนตู้</th>
-            <th class="r" style="width:25%">จำนวนเงิน (บาท)</th>
+            <th style="width:44%">บริษัท / เลขที่วางบิล</th>
+            <th class="r" style="width:17%">จำนวนตู้</th>
+            <th class="r" style="width:24%">จำนวนเงิน (บาท)</th>
           </tr></thead>
-          <tbody>${flatRows}<tr style="height:4px;"><td colspan="4" style="border:none;background:#e2e8f0;"></td></tr>${subTotRows}
-        </tbody>
+          <tbody>${flatRows}<tr style="height:4px;"><td colspan="4" style="border:none;background:#e2e8f0;"></td></tr>${subTotRows}</tbody>
         </table>
       </div>`;
     });
     return `<div class="fac-hdr" style="background:${grp.color};">
         <div><span class="fac-name">${he2(grp.label)}</span><span class="fac-sub">${he2(grp.sublabel)}</span></div>
-        <span style="font-size:9.5px;font-weight:700;color:rgba(255,255,255,.85);">${grp.monthIns.reduce((a,mo)=>a+grp.months[mo].tot.ctr,0)} ตู้ · ${fm(grp.monthIns.reduce((a,mo)=>a+grp.months[mo].tot.amount,0))} บาท</span>
+        <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.9);">${grp.monthIns.reduce((a,mo)=>a+grp.months[mo].tot.ctr,0)} ตู้ · ${fm(grp.monthIns.reduce((a,mo)=>a+grp.months[mo].tot.amount,0))} บาท</span>
       </div>${moBlocks}`;
   };
   const moLabel=mLabel(printMonth);
@@ -3152,8 +3427,13 @@ function trPrintAlMonthXref(){
   const html=`<!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
     <title>บริษัทขนส่งตามเดือน — ${he2(moLabel)}</title>
     <style>${css}</style></head><body>
+    <div class="running-hdr">
+      <span class="rh-title">ขนส่งตามเดือน</span>
+      <span class="rh-month">📅 ${he2(moLabel)}</span>
+      <span class="rh-date">พิมพ์: ${nowDate}</span>
+    </div>
     <div class="doc-hdr">
-      <div class="doc-title">บริษัทขนส่งตามเดือน — ${he2(moLabel)}</div>
+      <div class="doc-title">ขนส่งตามเดือน — ${he2(moLabel)}</div>
       <div class="doc-meta">พิมพ์: ${nowDate}</div>
     </div>${body}</body></html>`;
   const win=window.open('','_blank','width=860,height=720');
@@ -3570,6 +3850,7 @@ function trPrintAlReport(){
 /* ===== TRANSPORT COMPANY VIEW ===== */
 let _trCoOpen=null; // currently expanded company key
 
+
 function renderTrCoView(){
   const wrap=document.getElementById('trCoWrap');
   const extractTrCo=bill=>{const m=(bill||'').match(/[A-Za-z]+/g);return m&&m.length?m.join('-').toUpperCase():'(ไม่ระบุ)';};
@@ -3759,6 +4040,7 @@ function trCoReportModalOpen(){
 function trCoToggleCo(co){
   if(co==='all'){TR_CO_MODAL_SEL.clear();}
   else{if(TR_CO_MODAL_SEL.has(co))TR_CO_MODAL_SEL.delete(co);else TR_CO_MODAL_SEL.add(co);}
+  // Update tab styling
   document.querySelectorAll('#trCoReportBg .trco-co-tab').forEach(btn=>{
     const isAll=btn.dataset.co==='all';
     const a=isAll?TR_CO_MODAL_SEL.size===0:TR_CO_MODAL_SEL.has(btn.dataset.co);
@@ -3931,6 +4213,7 @@ function renderTrView(){
   document.getElementById('trCoWrap').style.display=isTr?'block':'none';
   document.getElementById('trUnpaidWrap').style.display=isUnpaid?'block':'none';
   document.getElementById('trThiraWrap').style.display=isThira?'flex':'none';
+  /* Hide status filter tabs & search in special views */
   document.querySelectorAll('#trFilterBar .ftab[data-f]').forEach(b=>b.style.display=hideTable?'none':'');
   const sw=document.getElementById('trSearchInp');if(sw)sw.parentElement.style.marginLeft=hideTable?'0':'';
   const pb=document.getElementById('trPrefixBar');if(pb)pb.style.display=(isUnpaid||isThira)?'none':'';
@@ -3988,7 +4271,7 @@ function renderTrUnpaid(){
   const unpaid=[];
   TR_DATA.forEach(d=>{
     d.details.forEach(row=>{
-      if(row.trMatch)return; /* มีใน DATA_BASE_BILL แล้ว หรือ prePaid */
+      if(row.trMatch)return; /* มีใน DATA_BASE_BILL แล้ว */
       const entryDate=row.เข้าโรงงาน||'-';
       const rate=hasPU?lookupPriceUpdate(entryDate,d.prefix,row.โรงงาน,d.inv):0;
       unpaid.push({inv:d.inv,prefix:d.prefix,factory:row.โรงงาน||'-',container:row.เบอร์ตู้||'-',entryDate,calcRate:rate});
@@ -3998,6 +4281,7 @@ function renderTrUnpaid(){
     wrap.innerHTML='<div style="text-align:center;padding:40px;color:#94a3b8;"><div style="font-size:32px;margin-bottom:12px;">✅</div><div style="font-weight:700;font-size:13px;">ไม่พบตู้ค้างจ่าย</div><div style="font-size:11px;margin-top:6px;">ตู้ทุกใบมีข้อมูลใน DATA_BASE_BILL ครบแล้ว</div></div>';
     return;
   }
+  /* Group ตาม prefix */
   const byPrefix={};
   let grandTotal=0;
   unpaid.forEach(r=>{
@@ -4006,6 +4290,7 @@ function renderTrUnpaid(){
     byPrefix[r.prefix].total+=r.calcRate;
     grandTotal+=r.calcRate;
   });
+  /* Bracket summary ตาม PRICE_UPDATE date */
   let bracketSummary='';
   if(hasPU&&PRICE_UPDATE_TABLE.length){
     const brackets={};
@@ -4029,7 +4314,9 @@ function renderTrUnpaid(){
     <span style="font-size:12px;font-weight:800;color:#991b1b;">💸 ค่าขนส่งค้างจ่าย (ยังไม่ได้คีย์ใน DATA_BASE_BILL)</span>
     <span style="font-size:13px;font-weight:700;color:#dc2626;">${unpaid.length} ตู้</span>
     <span style="font-size:14px;font-weight:800;color:#b91c1c;">${fmtAmt(grandTotal)} บาท</span>
-    ${hasPU?'<span style="font-size:10px;color:#166534;background:#dcfce7;border:1px solid #bbf7d0;border-radius:6px;padding:2px 8px;">✓ ราคาจาก PRICE_UPDATE ตามวันเข้าโรงงาน</span>':'<span style="font-size:10px;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;">⚠ ไม่พบ PRICE_UPDATE — โหลดไฟล์ DATA ใบวางบิล ก่อน</span>'}
+    ${hasPU
+      ?'<span style="font-size:10px;color:#166534;background:#dcfce7;border:1px solid #bbf7d0;border-radius:6px;padding:2px 8px;">✓ ราคาจาก PRICE_UPDATE ตามวันเข้าโรงงาน</span>'
+      :'<span style="font-size:10px;color:#92400e;background:#fef3c7;border:1px solid #fde68a;border-radius:6px;padding:2px 8px;">⚠ ไม่พบ PRICE_UPDATE — โหลดไฟล์ DATA ใบวางบิล ก่อน</span>'}
   </div>`;
   html+=bracketSummary;
   Object.keys(byPrefix).sort().forEach(pfx=>{
@@ -4048,7 +4335,7 @@ function renderTrUnpaid(){
         <th style="padding:6px 10px;text-align:right;color:#64748b;border-bottom:1px solid #e2e8f0;font-weight:700;">ค่าขนส่ง (บาท)</th>
       </tr></thead><tbody>`;
     g.rows.forEach((r,ri)=>{
-      html+=`<tr style="background:${ri%2===1?'#f8fafc':'white'};"><td style="padding:6px 10px;color:#475569;">${h(r.entryDate)}</td><td style="padding:6px 10px;font-weight:600;color:#0a1628;">${h(r.inv)}</td><td style="padding:6px 10px;color:#64748b;">${h(r.factory)}</td><td style="padding:6px 10px;font-family:monospace;font-size:10px;color:#374141;">${h(r.container)}</td><td style="padding:6px 10px;text-align:right;font-weight:700;color:${r.calcRate>0?'#dc2626':'#94a3b8'};">${r.calcRate>0?fmtAmt(r.calcRate):'—'}</td></tr>`;
+      html+=`<tr style="background:${ri%2===1?'#f8fafc':'white'};"><td style="padding:6px 10px;color:#475569;">${h(r.entryDate)}</td><td style="padding:6px 10px;font-weight:600;color:#0a1628;">${h(r.inv)}</td><td style="padding:6px 10px;color:#64748b;">${h(r.factory)}</td><td style="padding:6px 10px;font-family:monospace;font-size:10px;color:#374151;">${h(r.container)}</td><td style="padding:6px 10px;text-align:right;font-weight:700;color:${r.calcRate>0?'#dc2626':'#94a3b8'};">${r.calcRate>0?fmtAmt(r.calcRate):'—'}</td></tr>`;
     });
     html+=`<tr style="background:#fef9c3;border-top:2px solid #fde68a;"><td colspan="4" style="padding:6px 10px;text-align:right;font-weight:700;font-size:11px;color:#92400e;">รวม ${h(pfx)}</td><td style="padding:6px 10px;text-align:right;font-weight:800;color:#92400e;">${fmtAmt(g.total)} บาท</td></tr>`;
     html+=`</tbody></table></div></div>`;
@@ -4073,6 +4360,7 @@ function renderTrThira(){
   const wrap=document.getElementById('trThiraWrap');
   const fmtAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
   const hasPU=PRICE_UPDATE_TABLE&&PRICE_UPDATE_TABLE.length>0;
+  /* รวบรวมข้อมูลรายคัน */
   const byTruck={};
   THIRA_TRUCKS.forEach(t=>{byTruck[t]={plate:t,paid:[],unpaid:[]};});
   TR_DATA.forEach(d=>{
@@ -4134,6 +4422,7 @@ function renderTrThira(){
     tabBar+=mkThTab(pfx,pfx,info.total,info.hasUnpaid,null);
   });
   let html=`<div style="width:100%;">
+  <!-- Summary header -->
   <div style="padding:12px 16px;background:linear-gradient(135deg,#1e3a5f,#0f2a52);color:#fff;display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
     <div style="font-size:14px;font-weight:900;"><span style="background:#1e40af;color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;margin-right:6px;letter-spacing:.5px;">TR</span>THIRA — สรุปค่าขนส่งรายคัน</div>
     <div style="display:flex;gap:20px;flex-wrap:wrap;margin-left:auto;">
@@ -4143,6 +4432,7 @@ function renderTrThira(){
   </div>
   <!-- Factory filter tabs -->
   <div class="prefix-bar" style="padding:8px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">${tabBar}</div>
+  <!-- Per-truck cards -->
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;padding:14px 16px;">`;
   THIRA_TRUCKS.forEach(plate=>{
     const g=byTruck[plate];
@@ -4152,11 +4442,14 @@ function renderTrThira(){
     const pct=totalCtr>0?Math.round(g.paid.length/totalCtr*100):0;
     const barCol=pct===100?'#16a34a':pct>0?'#f59e0b':'#f87171';
     html+=`<div style="border:1.5px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+      <!-- Truck header -->
       <div style="padding:10px 14px;background:#f0f9ff;border-bottom:1px solid #bae6fd;display:flex;justify-content:space-between;align-items:center;">
-        <span style="font-size:15px;font-weight:900;color:#0369a1;">🚛 ${h(plate)}</span>
-        <span style="font-size:11px;color:#64748b;">${totalCtr} ตู้ทั้งหมด</span>
+        <div><span style="font-size:15px;font-weight:900;color:#0369a1;">🚛 ${h(plate)}</span></div>
+        <div style="font-size:11px;color:#64748b;">${totalCtr} ตู้ทั้งหมด</div>
       </div>
+      <!-- Progress bar -->
       <div style="height:5px;background:#e2e8f0;"><div style="height:100%;width:${pct}%;background:${barCol};transition:width .4s;"></div></div>
+      <!-- Stats -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#e2e8f0;">
         <div style="background:#f0fdf4;padding:10px 14px;">
           <div style="font-size:18px;font-weight:900;color:#16a34a;">${fmtAmt(paidAmt)}</div>
@@ -4185,6 +4478,7 @@ function renderTrThira(){
       });
       html+=`</table></div>`;
     }
+    /* รายการตู้ที่จ่ายแล้ว (แบบ collapse) */
     if(g.paid.length){
       const paidRows=g.paid.map(r=>`<tr><td style="padding:2px 4px;color:#0a1628;font-weight:600;">${h(r.inv)}</td>
         <td style="padding:2px 4px;font-family:monospace;color:#475569;">${h(r.container)}</td>
@@ -4251,9 +4545,11 @@ function toggleDashboard(){
 let _showDebt=false;
 function toggleDebtDash(){
   _showDebt=!_showDebt;
+  /* hide main and transport dashboards */
   document.getElementById('mainDash').style.display=_showDebt?'none':'flex';
   document.getElementById('trDash').style.display='none';
   document.getElementById('debtDash').style.display=_showDebt?'flex':'none';
+  /* reset transport toggle too */
   if(_showDebt&&_showTransport){_showTransport=false;const tb=document.getElementById('dashToggleBtn');if(tb){tb.textContent='🚛 ค่าขนส่ง';tb.classList.remove('tr-active');}}
   const btn=document.getElementById('debtDashBtn');
   if(btn){btn.textContent=_showDebt?'📦 Dashboard หลัก':'🏦 หนี้โรงงาน';}
@@ -4280,8 +4576,49 @@ function renderDebtDash(){
     });
     tbl+=`</table></td></tr>`;
   });
-  tbl+=`<tr class="debt-total-row"><td colspan="2">💰 ยอดรวมค้างชำระทั้งหมด</td><td style="text-align:right;font-family:monospace;">${fm(grandTotal)}</td></tr>`;
+  tbl+=`<tr class="debt-total-row"><td colspan="2">💰 ยอดรวมค้างชำระ (วางบิลโรงงาน)</td><td style="text-align:right;font-family:monospace;">${fm(grandTotal)}</td></tr>`;
   tbl+=`</tbody></table>`;
+  /* ===== TWI / SHL shipping debt section (collapsible) ===== */
+  const shipMap=_buildShippingDebtMap();
+  const shipPfxs=Object.keys(shipMap).filter(p=>shipMap[p].months.length>0);
+  if(shipPfxs.length){
+    const shipGrand=shipPfxs.reduce((a,p)=>a+shipMap[p].total,0);
+    tbl+=`<table class="debt-tbl" style="margin-top:12px;"><thead><tr>`;
+    tbl+=`<th style="background:#1e40af;">🚛 ค่าขนส่งค้างชำระ</th>`;
+    tbl+=`<th style="background:#1e40af;">เดือน</th>`;
+    tbl+=`<th class="r" style="background:#1e40af;">ยอดค้างชำระ (บาท)</th></tr></thead><tbody>`;
+    shipPfxs.forEach(pfx=>{
+      const sg=shipMap[pfx];const s=pst(pfx);
+      const unpaidCnt=sg.months.filter(x=>!x.isPaid).length;
+      /* prefix header row — clickable to collapse */
+      tbl+=`<tr class="debt-pfx-row" style="background:#eff6ff;" onclick="debtToggleShip(this,'${pfx}')">`;
+      tbl+=`<td style="color:#1e40af;">🚛 <span style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd};border-radius:4px;padding:1px 7px;font-size:11px;font-weight:800;margin-right:4px;">${h(pfx)}</span>ค่าขนส่ง <span class="debt-badge" style="background:#dbeafe;color:#1e40af;border-color:#bfdbfe;">${unpaidCnt} เดือนค้าง</span></td>`;
+      tbl+=`<td style="color:#1e40af;font-size:11px;">${sg.months.length} เดือน</td>`;
+      tbl+=`<td style="text-align:right;color:#1d4ed8;font-family:monospace;">${sg.total>0?fm(sg.total):'<span style="color:#16a34a;">✅ ครบ</span>'}</td></tr>`;
+      /* month detail rows — collapsible */
+      tbl+=`<tr class="debt-pfx-detail" data-ship="${h(pfx)}" style="display:none;"><td colspan="3" style="padding:0;">`;
+      tbl+=`<table style="width:100%;border-collapse:collapse;">`;
+      sg.months.forEach(mx=>{
+        const bg=mx.isPaid?'#f0fdf4':'#fff';
+        tbl+=`<tr style="background:${bg};border-bottom:1px solid #dbeafe;">`;
+        tbl+=`<td style="padding:6px 12px 6px 28px;font-size:11px;color:#1e40af;font-weight:600;">${h(mx.label)}</td>`;
+        const paidDateTh=(()=>{if(!mx.isPaid||!mx.paidDate)return'';try{const dt=new Date(mx.paidDate);const MM=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];return dt.getDate()+' '+MM[dt.getMonth()]+' '+(dt.getFullYear()+543);}catch(e){return mx.paidDate;}})();
+        tbl+=`<td style="padding:6px 12px;font-size:10px;">${mx.isPaid?`<span style="background:#dcfce7;color:#166534;border-radius:4px;padding:2px 7px;font-weight:700;">✅ จ่ายแล้ว</span>${paidDateTh?`<br><span style="font-size:9px;color:#166534;opacity:.8;">📅 ${h(paidDateTh)}</span>`:''}`:
+          '<span style="background:#dbeafe;color:#1e40af;border-radius:4px;padding:2px 7px;font-weight:700;">⏳ ค้าง</span>'}</td>`;
+        tbl+=`<td style="text-align:right;font-family:monospace;font-size:11px;font-weight:700;color:${mx.isPaid?'#16a34a':'#1d4ed8'};padding:6px 12px;">${mx.isPaid?'<span style="text-decoration:line-through;opacity:.45;">'+fm(mx.total)+'</span>':fm(mx.total)}</td>`;
+        tbl+=`</tr>`;
+      });
+      if(sg.total>0)tbl+=`<tr style="background:#dbeafe;"><td style="padding:6px 12px 6px 28px;font-size:11px;font-weight:800;color:#1e40af;">รวม ${h(pfx)} ยังค้าง</td><td></td><td style="text-align:right;font-family:monospace;font-size:12px;font-weight:900;color:#1e40af;padding:6px 12px;">${fm(sg.total)}</td></tr>`;
+      tbl+=`</table></td></tr>`;
+    });
+    tbl+=`<tr class="debt-total-row" style="background:#1e3a8a;"><td colspan="2" style="color:#fff;">🚛 รวมค่าขนส่งค้างชำระทั้งหมด</td><td style="text-align:right;font-family:monospace;color:#93c5fd;">${fm(shipGrand)}</td></tr>`;
+    tbl+=`</tbody></table>`;
+    /* grand total รวมทั้งหมด */
+    const allTotal=grandTotal+shipGrand;
+    tbl+=`<div style="margin-top:10px;background:#7c2d12;color:#fff;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:13px;">`;
+    tbl+=`<span>🏦 ยอดรวมหนี้ทั้งหมด (โรงงาน + ค่าขนส่ง)</span>`;
+    tbl+=`<span style="font-family:monospace;font-size:15px;">${fm(allTotal)} บาท</span></div>`;
+  }
   document.getElementById('debtDashBody').innerHTML=tbl;
 }
 function debtTogglePfx(row,pfx){
@@ -4292,33 +4629,121 @@ function debtTogglePfx(row,pfx){
   const badge=row.querySelector('.debt-badge');
   if(badge)badge.textContent=open?`${row.cells[1].textContent} INV`:`▲ ${row.cells[1].textContent} INV`;
 }
+function debtToggleShip(row,pfx){
+  const detail=document.querySelector(`.debt-pfx-detail[data-ship="${CSS.escape(pfx)}"]`);
+  if(!detail)return;
+  const open=detail.style.display!=='none';
+  detail.style.display=open?'none':'table-row';
+  const badge=row.querySelector('.debt-badge');
+  if(badge)badge.textContent=open?badge.textContent.replace('▲ ',''):`▲ ${badge.textContent}`;
+}
+/* ---- Build debt data map (shared between render & print) ---- */
 function _buildDebtMap(){
   const pfxMap={};
   BILLED_ANTS.forEach((amount,nInv)=>{
     if(PAID_ANTS.has(nInv))return;
     const rec=FLAT.find(d=>normInv(d.inv)===nInv);
-    const rawPfx=rec?rec.prefix:nInv.replace(/\d.*$/,'').toUpperCase()||'(ไม่ทราบ)';
-    const pfx=rawPfx.split('-')[0]||rawPfx;
+    const rawPfx=rec?rec.prefix:getPfx(nInv)||'(ไม่ทราบ)';
+    const pfx=rawPfx;
     if(!pfxMap[pfx])pfxMap[pfx]={invs:[],total:0};
     pfxMap[pfx].invs.push({inv:rec?rec.inv:nInv,amount});
     pfxMap[pfx].total+=amount;
   });
   return pfxMap;
 }
-function printDebtReport(pfxFilter,showDetail){
+/* ===== TWI / SHL SHIPPING DEBT — localStorage state ===== */
+const TR_SHIP_PFXS=['TWI','SHL'];
+/* state: false | {paid:true, date:'2026-04-17'} */
+function getTrPfxPaid(pfx,month){
+  try{
+    const v=JSON.parse(localStorage.getItem('trPfxPaid_'+pfx+'_'+month)||'null');
+    if(!v)return{paid:false,date:null};
+    if(v===true)return{paid:true,date:null}; /* backward compat */
+    return v;
+  }catch(e){return{paid:false,date:null};}
+}
+function setTrPfxPaid(pfx,month,val){try{localStorage.setItem('trPfxPaid_'+pfx+'_'+month,JSON.stringify(val));}catch(e){}}
+/* ---- modal state ---- */
+let _shipModal={pfx:'',month:'',label:'',total:0};
+function openShipPaidModal(pfx,month,evt,label,total){
+  if(evt)evt.stopPropagation();
+  _shipModal={pfx,month,label,total};
+  const state=getTrPfxPaid(pfx,month);
+  const fmAmt=n=>n>0?n.toLocaleString('th-TH',{minimumFractionDigits:0,maximumFractionDigits:0}):'-';
+  document.getElementById('shipPaidModalInfo').innerHTML=
+    `<span style="font-weight:700;color:#1e40af;">${h(pfx)}</span> · ${h(label)} · <span style="font-weight:700;">${fmAmt(total)} บาท</span>`;
+  /* set date input to existing date or today */
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('shipPaidDateInput').value=state.paid&&state.date?state.date:today;
+  /* show/hide "cancel payment" button */
+  document.getElementById('shipPaidUnpaidWrap').style.display=state.paid?'block':'none';
+  document.getElementById('shipPaidModalBg').style.display='flex';
+}
+function closeShipPaidModal(){document.getElementById('shipPaidModalBg').style.display='none';}
+function confirmShipPaid(){
+  const date=document.getElementById('shipPaidDateInput').value;
+  if(!date){alert('กรุณาเลือกวันที่');return;}
+  setTrPfxPaid(_shipModal.pfx,_shipModal.month,{paid:true,date});
+  closeShipPaidModal();
+  _refreshShipViews();
+}
+function markShipUnpaid(){
+  setTrPfxPaid(_shipModal.pfx,_shipModal.month,false);
+  closeShipPaidModal();
+  _refreshShipViews();
+}
+function _refreshShipViews(){
+  renderTrMonthSummary();
+  if(_showDebt)renderDebtDash();
+}
+/* สร้าง map ค่าขนส่งค้างชำระสำหรับ TWI/SHL แยกตามเดือน */
+function _buildShippingDebtMap(){
+  const hasPU=PRICE_UPDATE_TABLE&&PRICE_UPDATE_TABLE.length>0;
+  const result={};
+  TR_SHIP_PFXS.forEach(pfx=>{
+    const invs=TR_DATA.filter(d=>d.prefix===pfx);
+    if(!invs.length)return;
+    const byMonth={};
+    invs.forEach(d=>{
+      const m=d.month||'-';
+      if(!byMonth[m])byMonth[m]={expected:0,paid:0};
+      byMonth[m].paid+=d.totalPaid;
+      d.details.forEach(row=>{
+        if(row.trMatch&&!row.trMatch._prePaid)byMonth[m].expected+=row.trMatch.price||0;
+        else if(!row.trMatch&&hasPU)byMonth[m].expected+=lookupPriceUpdate(row['เข้าโรงงาน'],pfx,row['โรงงาน'],d.inv);
+      });
+    });
+    const months=Object.keys(byMonth).sort(mSort).map(m=>{
+      const g=byMonth[m];
+      const total=g.expected>0?g.expected:g.paid;
+      const state=getTrPfxPaid(pfx,m);
+      return{month:m,label:mLabel(m),total,isPaid:state.paid,paidDate:state.date};
+    });
+    const outstanding=months.filter(x=>!x.isPaid).reduce((a,x)=>a+x.total,0);
+    if(months.length)result[pfx]={months,total:outstanding};
+  });
+  return result;
+}
+function printDebtReport(pfxFilter,showDetail,shipFilter){
+  /* pfxFilter: null=all, Array=selected factory prefixes
+     shipFilter: null=none, Array=selected shipping prefixes (TWI/SHL) */
   const pfxMap=_buildDebtMap();
   const allPfxs=Object.keys(pfxMap).filter(p=>pfxMap[p].total>0).sort();
   const pfxs=pfxFilter?allPfxs.filter(p=>pfxFilter.includes(p)):allPfxs;
-  if(!pfxs.length){alert('ไม่มียอดค้างชำระ');return;}
+  const shipMap=_buildShippingDebtMap();
+  const shipPfxs=shipFilter?Object.keys(shipMap).filter(p=>shipFilter.includes(p)&&shipMap[p].total>0):[];
+  if(!pfxs.length&&!shipPfxs.length){alert('ไม่มียอดค้างชำระ');return;}
   const fm=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
   const grandTotal=pfxs.reduce((a,p)=>a+(pfxMap[p]?pfxMap[p].total:0),0);
   const totalInvs=pfxs.reduce((a,p)=>a+(pfxMap[p]?pfxMap[p].invs.length:0),0);
+  const shipGrand=shipPfxs.reduce((a,p)=>a+(shipMap[p]?shipMap[p].total:0),0);
+  const allTotal=grandTotal+shipGrand;
   const now=new Date();const dateStr=now.toLocaleDateString('th-TH',{year:'numeric',month:'long',day:'numeric'});
   let body='';
   if(showDetail){
     pfxs.forEach((pfx,idx)=>{
       const g=pfxMap[pfx];if(!g)return;
-      const isLast=idx===pfxs.length-1;
+      const isLast=idx===pfxs.length-1&&!shipPfxs.length;
       body+=`<div class="pfx-page${isLast?'':' page-break'}">`;
       body+=`<div class="pfx-hdr">📦 ${pfx} <span class="pfx-sub">${g.invs.length} อินวอยซ์</span></div>`;
       body+=`<table><thead><tr><th>อินวอยซ์</th><th class="r">จำนวน (บาท)</th></tr></thead><tbody>`;
@@ -4328,6 +4753,25 @@ function printDebtReport(pfxFilter,showDetail){
       body+=`<tr class="sub-total"><td>รวม ${pfx}</td><td style="text-align:right;font-family:monospace;">${fm(g.total)}</td></tr>`;
       body+=`</tbody></table></div>`;
     });
+    /* shipping sections */
+    shipPfxs.forEach((pfx,idx)=>{
+      const sg=shipMap[pfx];if(!sg)return;
+      const isLast=idx===shipPfxs.length-1;
+      body+=`<div class="pfx-page${isLast?'':' page-break'}">`;
+      body+=`<div class="pfx-hdr ship-hdr">🚛 ${pfx} ค่าขนส่ง <span class="pfx-sub">${sg.months.filter(x=>!x.isPaid).length} เดือนค้างชำระ</span></div>`;
+      body+=`<table><thead><tr><th>เดือน</th><th style="text-align:center;">สถานะ</th><th style="text-align:center;">วันที่ชำระ</th><th class="r">ยอดค่าขนส่ง (บาท)</th></tr></thead><tbody>`;
+      sg.months.forEach(mx=>{
+        const fmDate=(d)=>{if(!d)return'-';try{const dt=new Date(d);const MM=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];return dt.getDate()+' '+MM[dt.getMonth()]+' '+(dt.getFullYear()+543);}catch(e){return d;}};
+        body+=`<tr${mx.isPaid?' class="paid-row"':''}><td style="padding:7px 12px;font-size:12px;">${mx.label}</td>`;
+        body+=`<td style="text-align:center;font-size:11px;padding:7px 12px;">${mx.isPaid?'✅ จ่ายแล้ว':'⏳ ค้างชำระ'}</td>`;
+        body+=`<td style="text-align:center;font-size:11px;padding:7px 12px;color:#166534;">${mx.isPaid?fmDate(mx.paidDate):'-'}</td>`;
+        body+=`<td style="text-align:right;font-family:monospace;font-size:12px;padding:7px 12px;${mx.isPaid?'text-decoration:line-through;opacity:.5;':''}">${fm(mx.total)}</td></tr>`;
+      });
+      body+=`<tr class="sub-total ship-sub"><td colspan="2">รวม ${pfx} ยังค้าง</td><td style="text-align:right;font-family:monospace;">${fm(sg.total)}</td></tr>`;
+      body+=`</tbody></table></div>`;
+    });
+    if(shipGrand>0)body+=`<div class="grand-bar grand-all">🏦 ยอดรวมหนี้ทั้งหมด (โรงงาน + ค่าขนส่ง) &nbsp;·&nbsp; <span style="font-family:monospace;">${fm(allTotal)}</span></div>`;
+    else body+=`<div class="grand-bar">💰 ยอดรวมค้างชำระทั้งหมด &nbsp;·&nbsp; <span style="font-family:monospace;">${fm(grandTotal)}</span></div>`;
   }else{
     pfxs.forEach(pfx=>{
       const g=pfxMap[pfx];if(!g)return;
@@ -4335,13 +4779,22 @@ function printDebtReport(pfxFilter,showDetail){
     });
   }
   const title=showDetail?'รายงานยอดค้างชำระ (รายละเอียด)':'รายงานยอดค้างชำระ (สรุปรวม)';
-  const summaryContent=showDetail?'':`<table><thead><tr><th>โรงงาน</th><th style="text-align:center;">จำนวน INV</th><th class="r">ยอดค้างชำระ (บาท)</th></tr></thead><tbody>${body}<tr class="grand"><td colspan="2">💰 ยอดรวมค้างชำระทั้งหมด</td><td style="text-align:right;font-family:monospace;">${fm(grandTotal)}</td></tr></tbody></table>`;
-  const detailContent=showDetail?`${body}<div class="grand-bar">💰 ยอดรวมค้างชำระทั้งหมด &nbsp;·&nbsp; <span style="font-family:monospace;">${fm(grandTotal)}</span></div>`:'';
+  /* build summary ship section for non-detail mode */
+  let shipSummaryHtml='';
+  if(!showDetail&&shipPfxs.length){
+    shipSummaryHtml+=`<h3 style="color:#1e40af;margin:20px 0 6px;font-size:13px;">🚛 ค่าขนส่งค้างชำระ</h3>`;
+    shipSummaryHtml+=`<table><thead><tr><th style="background:#1e40af;">Prefix</th><th style="background:#1e40af;text-align:center;">เดือนค้าง</th><th class="r" style="background:#1e40af;">ยอดค่าขนส่ง (บาท)</th></tr></thead><tbody>`;
+    shipPfxs.forEach(pfx=>{const sg=shipMap[pfx];if(!sg)return;shipSummaryHtml+=`<tr><td style="padding:9px 12px;font-size:13px;font-weight:800;color:#1e40af;">🚛 ${pfx}</td><td style="text-align:center;font-size:11px;color:#6b7280;padding:9px 12px;">${sg.months.filter(x=>!x.isPaid).length} เดือน</td><td style="text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:#1d4ed8;padding:9px 12px;">${fm(sg.total)}</td></tr>`;});
+    shipSummaryHtml+=`<tr style="background:#dbeafe;"><td colspan="2" style="padding:9px 12px;font-weight:900;color:#1e40af;">รวมค่าขนส่งค้างชำระ</td><td style="text-align:right;font-family:monospace;font-weight:900;font-size:13px;color:#1e40af;padding:9px 12px;">${fm(shipGrand)}</td></tr></tbody></table>`;
+    if(grandTotal>0)shipSummaryHtml+=`<div style="margin-top:12px;padding:10px 12px;background:#7c2d12;color:#fff;border-radius:6px;font-weight:900;font-size:14px;display:flex;justify-content:space-between;"><span>🏦 ยอดรวมทั้งหมด (โรงงาน + ค่าขนส่ง)</span><span style="font-family:monospace;">${fm(allTotal)} บาท</span></div>`;
+  }
+  const summaryContent=showDetail?'':`<table><thead><tr><th>โรงงาน</th><th style="text-align:center;">จำนวน INV</th><th class="r">ยอดค้างชำระ (บาท)</th></tr></thead><tbody>${body}${grandTotal>0?`<tr class="grand"><td colspan="2">💰 ยอดรวมค้างชำระ (วางบิลโรงงาน)</td><td style="text-align:right;font-family:monospace;">${fm(grandTotal)}</td></tr>`:''}</tbody></table>${shipSummaryHtml}`;
+  const detailContent=showDetail?body:'';
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title><style>
     body{font-family:'Sarabun',sans-serif;margin:0;padding:${showDetail?'0':'24px'};font-size:12px;color:#1f2937;}
     h2{color:#92400e;margin:0 0 4px;}
     .sub{font-size:11px;color:#6b7280;margin-bottom:16px;}
-    table{width:100%;border-collapse:collapse;}
+    table{width:100%;border-collapse:collapse;margin-bottom:4px;}
     th{background:#92400e;color:#fff;padding:9px 12px;text-align:left;font-size:11px;}
     th.r{text-align:right;}
     tr:nth-child(even) td{background:#fffbeb;}
@@ -4349,16 +4802,20 @@ function printDebtReport(pfxFilter,showDetail){
     .grand td{border-top:2px solid #f59e0b;padding:10px 12px;background:#fef3c7;font-weight:900;font-size:13px;}
     .pfx-page{padding:20px 24px;box-sizing:border-box;}
     .pfx-hdr{font-size:18px;font-weight:900;color:#92400e;margin-bottom:4px;padding-bottom:8px;border-bottom:2px solid #f59e0b;}
+    .ship-hdr{color:#1e40af;border-bottom-color:#3b82f6;}
     .pfx-sub{font-size:12px;font-weight:400;color:#b45309;margin-left:8px;}
     .doc-hdr{padding:16px 24px 8px;border-bottom:1px solid #fde68a;background:#fffbeb;}
     .sub-total td{border-top:2px solid #f59e0b;background:#fef3c7;font-weight:800;font-size:12px;padding:7px 12px;}
+    .ship-sub td{border-top-color:#3b82f6;background:#dbeafe;color:#1e40af;}
+    .paid-row td{opacity:.5;text-decoration:line-through;}
     .grand-bar{margin:16px 24px 0;padding:12px 16px;background:#fef3c7;border-top:2px solid #f59e0b;font-size:14px;font-weight:900;color:#92400e;text-align:right;}
+    .grand-all{background:#7c2d12;color:#fff;border-top-color:#7c2d12;}
     .page-break{page-break-after:always;break-after:page;}
     @media print{.pfx-page{padding:12px 16px;}@page{margin:12mm;@bottom-right{content:"หน้า " counter(page);font-family:'Sarabun',sans-serif;font-size:9pt;color:#94a3b8;}}}
   </style></head><body>
   ${showDetail
-    ?`<div class="doc-hdr"><h2 style="margin:0 0 2px;">🏦 ${title}</h2><div style="font-size:11px;color:#6b7280;">วันที่พิมพ์: ${dateStr} · ${totalInvs} อินวอยซ์ · ${pfxs.length} โรงงาน</div></div>${detailContent}`
-    :`<h2>🏦 ${title}</h2><div class="sub">วันที่พิมพ์: ${dateStr} · ${totalInvs} อินวอยซ์ · ${pfxs.length} โรงงาน${pfxFilter?` (${pfxs.join(', ')})`:''}  </div>${summaryContent}`
+    ?`<div class="doc-hdr"><h2 style="margin:0 0 2px;">🏦 ${title}</h2><div style="font-size:11px;color:#6b7280;">วันที่พิมพ์: ${dateStr} · ${totalInvs} อินวอยซ์ · ${pfxs.length} โรงงาน${shipPfxs.length?` + ค่าขนส่ง ${shipPfxs.join('/')}`:''}</div></div>${detailContent}`
+    :`<h2>🏦 ${title}</h2><div class="sub">วันที่พิมพ์: ${dateStr} · ${totalInvs} อินวอยซ์ · ${pfxs.length} โรงงาน</div>${summaryContent}`
   }
   </body></html>`;
   const w=window.open('','_blank','width=800,height=700');
@@ -4370,71 +4827,62 @@ function debtPrintSelectModal(){
   _debtPrintPfxMap=_buildDebtMap();
   const pfxs=Object.keys(_debtPrintPfxMap).sort();
   const fm=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
-  let html='';
+  let html='<div style="font-size:11px;font-weight:700;color:#92400e;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid #fde68a;">📦 ยอดวางบิลโรงงาน</div>';
   pfxs.forEach(pfx=>{
     const g=_debtPrintPfxMap[pfx];
     html+=`<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #fde68a;border-radius:8px;cursor:pointer;background:#fffbeb;">
-      <input type="checkbox" value="${h(pfx)}" checked style="width:16px;height:16px;accent-color:#92400e;">
+      <input type="checkbox" class="dp-factory" value="${h(pfx)}" checked style="width:16px;height:16px;accent-color:#92400e;">
       <span style="font-size:12px;font-weight:700;color:#92400e;flex:1;">${h(pfx)}</span>
       <span style="font-size:11px;color:#6b7280;">${g.invs.length} INV · ${fm(g.total)} บาท</span>
     </label>`;
   });
+  /* shipping section */
+  const shipMap=_buildShippingDebtMap();
+  const shipPfxs=Object.keys(shipMap).filter(p=>shipMap[p].total>0);
+  if(shipPfxs.length){
+    html+=`<div style="font-size:11px;font-weight:700;color:#1e40af;margin:10px 0 6px;padding-bottom:4px;border-bottom:1px solid #bfdbfe;">🚛 ค่าขนส่ง (TWI / SHL)</div>`;
+    shipPfxs.forEach(pfx=>{
+      const sg=shipMap[pfx];
+      html+=`<label style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid #bfdbfe;border-radius:8px;cursor:pointer;background:#eff6ff;">
+        <input type="checkbox" class="dp-ship" value="${h(pfx)}" checked style="width:16px;height:16px;accent-color:#1e40af;">
+        <span style="font-size:12px;font-weight:700;color:#1e40af;flex:1;">🚛 ${h(pfx)} ค่าขนส่ง</span>
+        <span style="font-size:11px;color:#6b7280;">${sg.months.filter(x=>!x.isPaid).length} เดือนค้าง · ${fm(sg.total)} บาท</span>
+      </label>`;
+    });
+  }
   document.getElementById('debtPrintSelList').innerHTML=html;
   const bg=document.getElementById('debtPrintBg');bg.style.display='flex';
 }
 function debtPrintConfirm(){
-  const selected=Array.from(document.querySelectorAll('#debtPrintSelList input[type=checkbox]:checked')).map(cb=>cb.value);
+  const selFactory=Array.from(document.querySelectorAll('#debtPrintSelList .dp-factory:checked')).map(cb=>cb.value);
+  const selShip=Array.from(document.querySelectorAll('#debtPrintSelList .dp-ship:checked')).map(cb=>cb.value);
   document.getElementById('debtPrintBg').style.display='none';
-  if(!selected.length){alert('กรุณาเลือกโรงงานอย่างน้อย 1 แห่ง');return;}
-  printDebtReport(selected,true);
+  if(!selFactory.length&&!selShip.length){alert('กรุณาเลือกอย่างน้อย 1 รายการ');return;}
+  printDebtReport(selFactory.length?selFactory:null,true,selShip.length?selShip:null);
 }
 
 /* =====================================================
    SETUP & LOAD HELPERS
 ===================================================== */
 function setLoad(txt,sub){document.getElementById('loadTxt').textContent=txt||'กำลังโหลด...';document.getElementById('loadSub').textContent=sub||'';}
-function showErr(msg){
-  document.getElementById('errMsg').textContent=msg;
-  document.getElementById('errBox').style.display='block';
-  document.getElementById('loadTxt').style.display='none';
-  document.getElementById('spinner').style.display='none';
-  /* ถ้า error เป็นเรื่อง token และมี App Key บันทึกไว้ — แสดงปุ่มเชื่อมต่อใหม่ */
-  const isTokenErr=msg.includes('Access Token')||msg.includes('token')||msg.includes('401');
-  const hasAppKey=!!ls('dropbox_app_key');
-  const btn=document.getElementById('reconnectBtn');
-  if(btn)btn.style.display=(isTokenErr&&hasAppKey)?'block':'none';
-}
+function showErr(msg){document.getElementById('errMsg').textContent=msg;document.getElementById('errBox').style.display='block';document.getElementById('loadTxt').style.display='none';document.getElementById('spinner').style.display='none';}
 function hideLoad(){document.getElementById('loadScreen').style.display='none';}
-function showSetup(err,justAuthed){
+function showSetup(err){
   hideLoad();document.getElementById('app').style.display='none';
   document.getElementById('setupScreen').style.display='flex';
   document.getElementById('errBox').style.display='none';
   document.getElementById('setupErr').style.display='none';
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   if(err){document.getElementById('setupErr').textContent=err;document.getElementById('setupErr').style.display='block';}
-  /* App Key */
-  const savedKey=ls('dropbox_app_key');const keyEl=document.getElementById('fAppKey');if(savedKey&&keyEl)keyEl.value=savedKey;
-  /* Token status */
-  showTokenStatus();
-  /* Legacy token */
-  const tok=ls('dropbox_token');const tokEl=document.getElementById('fToken');if(tok&&tokEl)tokEl.value=tok;
-  /* File paths */
   [['f_inv','fInv'],['f_bkg','fBkg'],['f_vsl','fVsl'],['f_stm','fStm'],['f_ogm','fOgm'],['f_oth','fOth'],['f_ogm_price','fOgmPrice'],['f_bill','fBill'],['f_paid','fPaid']].forEach(([k,id])=>{const v=ls(k);const el=document.getElementById(id);if(v&&el)el.value=v;});
-  /* If just came back from OAuth, show success notice */
-  if(justAuthed){
-    const box=document.getElementById('tokenStatusBox');
-    if(box){box.style.display='block';box.style.background='#eff6ff';box.style.color='#1d4ed8';box.style.border='1px solid #93c5fd';
-    box.textContent='🎉 เชื่อมต่อ Dropbox สำเร็จ! กรอกพาธไฟล์แล้วกด "บันทึกและโหลด" ได้เลย';}
-  }
+  updateFolderUI();
 }
 function showDashboard(data){
-  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};BILLED_ANTS=data.billedAnts||new Map();PAID_ANTS=data.paidAnts||new Map();BILL_ANTS_META=(BILLED_ANTS._meta)||{week:0,year:0};VESSEL_PLAN=data.vesselPlan||{};PRICE_UPDATE_TABLE=data.priceUpdateTable||[];TR_UNPAID=data.unpaidTr||[];
+  FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};OGM_PRICE_LATEST=data.ogmPriceLatest||{};VESSEL_PLAN=data.vesselPlan||{};BILLED_ANTS=data.billedAnts||new Map();PAID_ANTS=data.paidAnts||new Map();BILL_ANTS_META=(BILLED_ANTS._meta)||{week:0,year:0};PRICE_UPDATE_TABLE=data.priceUpdateTable||[];TR_UNPAID=data.unpaidTr||[];
   hideLoad();document.getElementById('app').style.display='flex';
-  const now=new Date();document.getElementById('lastUpd').textContent='☁️ Dropbox · '+pad(now.getHours())+':'+pad(now.getMinutes());
+  const now=new Date();document.getElementById('lastUpd').textContent='📂 Local · '+pad(now.getHours())+':'+pad(now.getMinutes());
   renderTabs();renderStatsMain();const m=Object.keys(BY_MONTH).sort()[0];if(m)selMonth(m);
   applyRoleRestrictions();
-  /* เช็คอัพเดตใน background — ไม่บล็อกการแสดงผล */
-  if(data.allPaths&&data.allPaths.length)setTimeout(()=>checkBgUpdates(data.allPaths),500);
 }
 async function updateFolderUI(){
   const box=document.getElementById('folderBox');const nm=document.getElementById('folderName');const sub=document.getElementById('folderSub');const empty=document.getElementById('folderEmpty');const hint=document.getElementById('folderHint');
@@ -4449,49 +4897,10 @@ async function pickFolder(){
 /* =====================================================
    INIT
 ===================================================== */
-/* =====================================================
-   DROPBOX OAUTH (App Key flow)
-===================================================== */
-function checkOAuthCallback(){
-  const hash=window.location.hash;
-  if(!hash)return false;
-  const params=new URLSearchParams(hash.replace(/^#/,''));
-  const token=params.get('access_token');
-  if(!token)return false;
-  ls('dropbox_token',token);
-  /* clean the hash out of URL */
-  history.replaceState(null,'',window.location.pathname+window.location.search);
-  return true;
+async function doLoad(dir){
+  try{const data=await loadData();showDashboard(data);}
+  catch(e){showErr(e.message||'โหลดไม่สำเร็จ');}
 }
-function connectDropbox(){
-  const appKey=(document.getElementById('fAppKey').value||'').trim();
-  if(!appKey){
-    document.getElementById('setupErr').textContent='กรุณาใส่ App Key ก่อนกดเชื่อมต่อ';
-    document.getElementById('setupErr').style.display='block';return;
-  }
-  ls('dropbox_app_key',appKey);
-  const redirectUri=window.location.href.split('#')[0];
-  const url='https://www.dropbox.com/oauth2/authorize'
-    +'?client_id='+encodeURIComponent(appKey)
-    +'&response_type=token'
-    +'&redirect_uri='+encodeURIComponent(redirectUri)
-    +'&force_reapprove=false'
-    +'&token_access_type=legacy';
-  window.location.href=url;
-}
-function showTokenStatus(){
-  const tok=ls('dropbox_token');
-  const box=document.getElementById('tokenStatusBox');
-  if(!box)return;
-  if(tok){
-    box.style.display='block';
-    box.style.background='#f0fdf4';box.style.color='#166534';box.style.border='1px solid #bbf7d0';
-    box.textContent='✅ เชื่อมต่อ Dropbox แล้ว — token พร้อมใช้งาน';
-  }else{
-    box.style.display='none';
-  }
-}
-
 async function initApp(){
   /* --- role gate --- */
   if(!USER_ROLE){
@@ -4503,6 +4912,7 @@ async function initApp(){
       const lb=document.getElementById('logoutBtn');if(lb)lb.style.display='inline-flex';
       document.getElementById('loginScreen').style.display='none';
     } else {
+      /* show login screen */
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('setupScreen').style.display='none';
       document.getElementById('loadScreen').style.display='none';
@@ -4510,14 +4920,33 @@ async function initApp(){
       return;
     }
   }
-  /* check if returning from Dropbox OAuth */
-  const justAuthed=checkOAuthCallback();
-  const invPath=ls('f_inv'),bkgPath=ls('f_bkg'),token=ls('dropbox_token');
-  if(!invPath||!bkgPath||!token){showSetup(null,justAuthed);return;}
-  document.getElementById('setupScreen').style.display='none';document.getElementById('loadScreen').style.display='flex';
+  const invPath=ls('f_inv'),bkgPath=ls('f_bkg');
+  if(!invPath||!bkgPath){showSetup();return;}
+  const dir=await getHandle('dir');
+  if(!dir){showSetup();return;}
+  /* ซ่อน setup, แสดง load screen */
+  document.getElementById('setupScreen').style.display='none';
+  document.getElementById('loadScreen').style.display='flex';
   document.getElementById('permBox').style.display='none';
-  setLoad('☁️ กำลังดาวน์โหลดจาก Dropbox...');
-  try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message||'โหลดไม่สำเร็จ');}
+  setLoad('📂 กำลังเตรียมข้อมูล...');
+  /* queryPermission ไม่ต้องการ user gesture — เช็ค state ก่อน */
+  const state=await dir.queryPermission({mode:'read'}).catch(()=>'prompt');
+  if(state==='granted'){
+    /* มี permission อยู่แล้ว (session เดียวกัน) — โหลดเลย */
+    await doLoad(dir);
+  }else{
+    /* ต้องขอ permission ใหม่ — แสดงปุ่มให้คลิก (user gesture required) */
+    const folderName=ls('f_folder_name')||'โฟลเดอร์ที่เลือก';
+    document.getElementById('permTitle').textContent='📁 "'+folderName+'"';
+    document.getElementById('permHint').textContent='Chrome ต้องการยืนยันทุกครั้งที่เปิดใหม่ — กดปุ่มด้านล่างเพื่อดำเนินการต่อ';
+    document.getElementById('permBox').style.display='flex';
+    document.getElementById('permBtn').textContent='🔓 ยืนยันและโหลดข้อมูล';
+    document.getElementById('permBtn').onclick=async()=>{
+      const p=await dir.requestPermission({mode:'read'});
+      if(p==='granted'){document.getElementById('permBox').style.display='none';await doLoad(dir);}
+      else{showErr('ไม่ได้รับอนุญาต — กรุณาเลือก Folder ใหม่ใน ตั้งค่า');}
+    };
+  }
 }
 
 /* =====================================================
@@ -4527,6 +4956,7 @@ async function initApp(){
   const MIN_W=140,MAX_W=420;
   const handle=document.getElementById('midResizeHandle');
   const panel=document.getElementById('midPanel');
+  /* restore saved width */
   const saved=parseInt(localStorage.getItem('mid_panel_w')||'0');
   if(saved>=MIN_W&&saved<=MAX_W)panel.style.width=saved+'px';
   let startX,startW;
@@ -4561,30 +4991,25 @@ async function initApp(){
 /* =====================================================
    EVENT LISTENERS
 ===================================================== */
-document.getElementById('connectDropboxBtn').addEventListener('click',connectDropbox);
 document.getElementById('saveBtn').addEventListener('click',async()=>{
   const inv=document.getElementById('fInv').value.trim(),bkg=document.getElementById('fBkg').value.trim();
-  /* token: prefer saved OAuth token, fallback to manual field */
-  const manualToken=(document.getElementById('fToken').value||'').trim();
-  const token=manualToken||ls('dropbox_token')||'';
-  if(!token){document.getElementById('setupErr').textContent='กรุณาเชื่อมต่อ Dropbox ด้วย App Key หรือกรอก Access Token';document.getElementById('setupErr').style.display='block';return;}
   if(!inv||!bkg){document.getElementById('setupErr').textContent='กรุณาใส่พาธไฟล์อย่างน้อย 2 ไฟล์ (ใบยกตู้ + BKG)';document.getElementById('setupErr').style.display='block';return;}
-  ls('dropbox_token',token);ls('f_inv',inv);ls('f_bkg',bkg);
+  const dir=await getHandle('dir');
+  if(!dir){document.getElementById('setupErr').textContent='กรุณาเลือกโฟลเดอร์ก่อน';document.getElementById('setupErr').style.display='block';return;}
+  ls('f_inv',inv);ls('f_bkg',bkg);
   ['fVsl','fStm','fOgm','fOth','fOgmPrice','fBill','fPaid'].forEach((id,i)=>{const k=['f_vsl','f_stm','f_ogm','f_oth','f_ogm_price','f_bill','f_paid'][i];const v=document.getElementById(id).value.trim();if(v)ls(k,v);else localStorage.removeItem(k);});
   document.getElementById('setupScreen').style.display='none';document.getElementById('loadScreen').style.display='flex';
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   document.getElementById('permBox').style.display='none';document.getElementById('errBox').style.display='none';
-  setLoad('☁️ กำลังดาวน์โหลดจาก Dropbox...');
+  setLoad('📂 กำลังอ่านไฟล์...');
   try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message||'โหลดไม่สำเร็จ');}
 });
 document.getElementById('refreshBtn').addEventListener('click',async()=>{
-  _forceReload=true;
   document.getElementById('app').style.display='none';document.getElementById('loadScreen').style.display='flex';
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   document.getElementById('permBox').style.display='none';document.getElementById('errBox').style.display='none';
-  setLoad('☁️ กำลังรีเฟรชจาก Dropbox...');
+  setLoad('📂 กำลังรีเฟรชไฟล์...');
   try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message);}
-  finally{_forceReload=false;}
 });
 document.getElementById('settingsBtn').addEventListener('click',()=>{if(confirm('เปิดหน้าตั้งค่า?'))showSetup();});
 document.getElementById('retryBtn').addEventListener('click',async()=>{document.getElementById('errBox').style.display='none';document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';setLoad('กำลังลองใหม่...');try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message);}});
