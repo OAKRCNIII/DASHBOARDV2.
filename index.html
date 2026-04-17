@@ -504,19 +504,17 @@ body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:#eef2f7;colo
   <div class="setup-card">
     <div class="setup-logo">🚢</div>
     <div class="setup-title">Logistics Dashboard</div>
-    <div class="setup-sub">📦 นำเข้า-ส่งออก · อ่านไฟล์จากเครื่อง</div>
-    <div class="folder-box" id="folderBox" onclick="pickFolder()">
-      <div class="fi-icon">📁</div>
-      <div class="fi-name" id="folderName" style="display:none;"></div>
-      <div class="fi-sub" id="folderSub" style="display:none;"></div>
-      <div class="fi-empty" id="folderEmpty">คลิกเพื่อเลือก Folder</div>
-      <div class="fi-hint" id="folderHint">เลือกโฟลเดอร์หลักที่เก็บไฟล์ Excel ทั้งหมด</div>
+    <div class="setup-sub">☁️ นำเข้า-ส่งออก · อ่านไฟล์จาก Dropbox</div>
+    <div class="fgrp" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:10px;padding:12px 14px;margin-bottom:4px;">
+      <div class="lbl" style="color:#1e40af;">🔑 Dropbox Access Token <span style="color:#dc2626;">*</span></div>
+      <input class="inp" id="fToken" type="password" placeholder="sl.xxxxxxxxxxxxxxxx..." autocomplete="off" style="font-family:monospace;font-size:11px;">
+      <div class="hint" style="color:#3b82f6;">ดู Token ได้ที่ dropbox.com/developers/apps → Long-lived token</div>
     </div>
-    <div class="divider"><hr><span>พาธไฟล์ (relative จาก Folder ที่เลือก)</span><hr></div>
+    <div class="divider"><hr><span>พาธไฟล์ใน Dropbox (absolute path เช่น /ANTS/file.xlsm)</span><hr></div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ ใบยกตู้ (.xlsm) <span style="color:#dc2626;">*</span></div>
-      <input class="inp" id="fInv" placeholder="ใบยกตู้/ใบยกตู้V4TEST.xlsm">
-      <div class="hint">พาธในโฟลเดอร์ที่เลือก เช่น FOLDER/file.xlsm</div>
+      <input class="inp" id="fInv" placeholder="/ANTS/ใบยกตู้/ใบยกตู้V4TEST.xlsm">
+      <div class="hint">Dropbox path เช่น /ANTS/FOLDER/file.xlsm</div>
     </div>
     <div class="fgrp">
       <div class="lbl">ไฟล์ BKG (.xlsx) <span style="color:#dc2626;">*</span></div>
@@ -925,25 +923,37 @@ const cachePut=async(k,buf)=>{
 };
 
 /* =====================================================
-   DROPBOX FILE READER
+   DROPBOX FILE READER (Online version)
 ===================================================== */
-/* อ่านไฟล์จาก local โฟลเดอร์ที่เลือก รองรับ subfolder */
-async function readLocalFile(relativePath){
-  const dir=await getHandle('dir');
-  if(!dir)throw new Error('ไม่พบโฟลเดอร์ กรุณาเลือกโฟลเดอร์ใหม่');
-  const parts=relativePath.replace(/\\/g,'/').replace(/^\/+/,'').split('/');
-  const fileName=parts.pop();
-  let cur=dir;
-  for(const part of parts){
-    try{cur=await cur.getDirectoryHandle(part);}
-    catch{throw new Error('ไม่พบโฟลเดอร์: "'+part+'" — ตรวจสอบพาธ');}
+let _forceReload=false;
+async function readLocalFile(dropboxPath){
+  /* ในเวอร์ชันออนไลน์ ใช้ Dropbox API แทน local folder */
+  const token=ls('dropbox_token');
+  if(!token)throw new Error('ไม่พบ Dropbox Access Token — กรุณาตั้งค่าใหม่');
+  const path=dropboxPath.startsWith('/')?dropboxPath:'/'+dropboxPath;
+  const fileName=path.split('/').pop();
+  const cacheKey='dbx:'+path;
+  /* ใช้ IndexedDB cache (ข้ามการดาวน์โหลดซ้ำในเซสชันเดิม) */
+  if(!_forceReload){
+    const cached=await cacheGet(cacheKey);
+    if(cached){setLoad('✅ จากแคช: '+fileName);return cached;}
   }
-  let fh;
-  try{fh=await cur.getFileHandle(fileName);}
-  catch{throw new Error('ไม่พบไฟล์: "'+fileName+'"');}
-  const file=await fh.getFile();
-  setLoad('📂 อ่านไฟล์: '+fileName);
-  return await file.arrayBuffer();
+  setLoad('☁️ ดาวน์โหลด: '+fileName+'...');
+  const res=await fetch('https://content.dropboxapi.com/2/files/download',{
+    method:'POST',
+    headers:{
+      'Authorization':'Bearer '+token,
+      'Dropbox-API-Arg':JSON.stringify({path})
+    }
+  });
+  if(!res.ok){
+    if(res.status===401)throw new Error('Dropbox Token ไม่ถูกต้องหรือหมดอายุ — กรุณาตั้งค่าใหม่');
+    if(res.status===409)throw new Error('ไม่พบไฟล์: "'+path+'" — ตรวจสอบ Dropbox path');
+    throw new Error('Dropbox error '+res.status+': '+fileName);
+  }
+  const buf=await res.arrayBuffer();
+  cachePut(cacheKey,buf.slice(0)).catch(()=>{});
+  return buf;
 }
 
 /* =====================================================
@@ -4875,12 +4885,12 @@ function showSetup(err){
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   if(err){document.getElementById('setupErr').textContent=err;document.getElementById('setupErr').style.display='block';}
   [['f_inv','fInv'],['f_bkg','fBkg'],['f_vsl','fVsl'],['f_stm','fStm'],['f_ogm','fOgm'],['f_oth','fOth'],['f_ogm_price','fOgmPrice'],['f_bill','fBill'],['f_paid','fPaid']].forEach(([k,id])=>{const v=ls(k);const el=document.getElementById(id);if(v&&el)el.value=v;});
-  updateFolderUI();
+  const tok=ls('dropbox_token');const tokEl=document.getElementById('fToken');if(tok&&tokEl)tokEl.value=tok;
 }
 function showDashboard(data){
   FLAT=data.flat;BY_MONTH=data.byMonth;STOCK=data.stock;VESSEL=data.vessel||[];FEES=data.fees||{};STMT=data.stmtInfo||{};TR_DATA=data.trMatched||[];BILL_INFO_TR=data.billInfoTr||{ogm:'-',all:'-'};TR_DUPES=data.dupesTr||[];PEND_CTRS=data.pendCtrs||[];DB_MAP=data.dbMap||{};OGM_PRICE_MAP=data.ogmPriceMap||{};OGM_PRICE_LATEST=data.ogmPriceLatest||{};VESSEL_PLAN=data.vesselPlan||{};BILLED_ANTS=data.billedAnts||new Map();PAID_ANTS=data.paidAnts||new Map();BILL_ANTS_META=(BILLED_ANTS._meta)||{week:0,year:0};PRICE_UPDATE_TABLE=data.priceUpdateTable||[];TR_UNPAID=data.unpaidTr||[];
   hideLoad();document.getElementById('app').style.display='flex';
-  const now=new Date();document.getElementById('lastUpd').textContent='📂 Local · '+pad(now.getHours())+':'+pad(now.getMinutes());
+  const now=new Date();document.getElementById('lastUpd').textContent='☁️ Dropbox · '+pad(now.getHours())+':'+pad(now.getMinutes());
   renderTabs();renderStatsMain();const m=Object.keys(BY_MONTH).sort()[0];if(m)selMonth(m);
   applyRoleRestrictions();
 }
@@ -4920,33 +4930,13 @@ async function initApp(){
       return;
     }
   }
-  const invPath=ls('f_inv'),bkgPath=ls('f_bkg');
-  if(!invPath||!bkgPath){showSetup();return;}
-  const dir=await getHandle('dir');
-  if(!dir){showSetup();return;}
-  /* ซ่อน setup, แสดง load screen */
+  const invPath=ls('f_inv'),bkgPath=ls('f_bkg'),token=ls('dropbox_token');
+  if(!invPath||!bkgPath||!token){showSetup();return;}
   document.getElementById('setupScreen').style.display='none';
   document.getElementById('loadScreen').style.display='flex';
   document.getElementById('permBox').style.display='none';
-  setLoad('📂 กำลังเตรียมข้อมูล...');
-  /* queryPermission ไม่ต้องการ user gesture — เช็ค state ก่อน */
-  const state=await dir.queryPermission({mode:'read'}).catch(()=>'prompt');
-  if(state==='granted'){
-    /* มี permission อยู่แล้ว (session เดียวกัน) — โหลดเลย */
-    await doLoad(dir);
-  }else{
-    /* ต้องขอ permission ใหม่ — แสดงปุ่มให้คลิก (user gesture required) */
-    const folderName=ls('f_folder_name')||'โฟลเดอร์ที่เลือก';
-    document.getElementById('permTitle').textContent='📁 "'+folderName+'"';
-    document.getElementById('permHint').textContent='Chrome ต้องการยืนยันทุกครั้งที่เปิดใหม่ — กดปุ่มด้านล่างเพื่อดำเนินการต่อ';
-    document.getElementById('permBox').style.display='flex';
-    document.getElementById('permBtn').textContent='🔓 ยืนยันและโหลดข้อมูล';
-    document.getElementById('permBtn').onclick=async()=>{
-      const p=await dir.requestPermission({mode:'read'});
-      if(p==='granted'){document.getElementById('permBox').style.display='none';await doLoad(dir);}
-      else{showErr('ไม่ได้รับอนุญาต — กรุณาเลือก Folder ใหม่ใน ตั้งค่า');}
-    };
-  }
+  setLoad('☁️ กำลังดาวน์โหลดจาก Dropbox...');
+  await doLoad();
 }
 
 /* =====================================================
@@ -4992,24 +4982,28 @@ async function initApp(){
    EVENT LISTENERS
 ===================================================== */
 document.getElementById('saveBtn').addEventListener('click',async()=>{
+  const token=document.getElementById('fToken').value.trim();
   const inv=document.getElementById('fInv').value.trim(),bkg=document.getElementById('fBkg').value.trim();
+  if(!token){document.getElementById('setupErr').textContent='กรุณาใส่ Dropbox Access Token ก่อน';document.getElementById('setupErr').style.display='block';return;}
   if(!inv||!bkg){document.getElementById('setupErr').textContent='กรุณาใส่พาธไฟล์อย่างน้อย 2 ไฟล์ (ใบยกตู้ + BKG)';document.getElementById('setupErr').style.display='block';return;}
-  const dir=await getHandle('dir');
-  if(!dir){document.getElementById('setupErr').textContent='กรุณาเลือกโฟลเดอร์ก่อน';document.getElementById('setupErr').style.display='block';return;}
+  ls('dropbox_token',token);
   ls('f_inv',inv);ls('f_bkg',bkg);
   ['fVsl','fStm','fOgm','fOth','fOgmPrice','fBill','fPaid'].forEach((id,i)=>{const k=['f_vsl','f_stm','f_ogm','f_oth','f_ogm_price','f_bill','f_paid'][i];const v=document.getElementById(id).value.trim();if(v)ls(k,v);else localStorage.removeItem(k);});
   document.getElementById('setupScreen').style.display='none';document.getElementById('loadScreen').style.display='flex';
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   document.getElementById('permBox').style.display='none';document.getElementById('errBox').style.display='none';
-  setLoad('📂 กำลังอ่านไฟล์...');
+  _forceReload=false;
+  setLoad('☁️ กำลังดาวน์โหลดจาก Dropbox...');
   try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message||'โหลดไม่สำเร็จ');}
 });
 document.getElementById('refreshBtn').addEventListener('click',async()=>{
   document.getElementById('app').style.display='none';document.getElementById('loadScreen').style.display='flex';
   document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';
   document.getElementById('permBox').style.display='none';document.getElementById('errBox').style.display='none';
-  setLoad('📂 กำลังรีเฟรชไฟล์...');
+  _forceReload=true;
+  setLoad('☁️ กำลังดาวน์โหลดจาก Dropbox (ล้างแคช)...');
   try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message);}
+  finally{_forceReload=false;}
 });
 document.getElementById('settingsBtn').addEventListener('click',()=>{if(confirm('เปิดหน้าตั้งค่า?'))showSetup();});
 document.getElementById('retryBtn').addEventListener('click',async()=>{document.getElementById('errBox').style.display='none';document.getElementById('spinner').style.display='block';document.getElementById('loadTxt').style.display='block';setLoad('กำลังลองใหม่...');try{const data=await loadData();showDashboard(data);}catch(e){showErr(e.message);}});
