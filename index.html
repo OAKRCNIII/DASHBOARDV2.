@@ -995,9 +995,11 @@ function _saveSetupPaths(appKey){
    DROPBOX FILE READER (Online version)
 ===================================================== */
 let _forceReload=false;
+/* encode unicode chars เป็น \uXXXX เพื่อให้ใส่ใน HTTP header ได้ (ISO-8859-1 safe) */
+function _dbxArg(obj){return JSON.stringify(obj).replace(/[^\x00-\x7F]/g,c=>'\\u'+c.charCodeAt(0).toString(16).padStart(4,'0'));}
 async function readLocalFile(dropboxPath){
   /* ในเวอร์ชันออนไลน์ ใช้ Dropbox API แทน local folder */
-  const _doFetch=async(tok)=>fetch('https://content.dropboxapi.com/2/files/download',{method:'POST',headers:{'Authorization':'Bearer '+tok,'Dropbox-API-Arg':JSON.stringify({path})}});
+  const _doFetch=async(tok)=>fetch('https://content.dropboxapi.com/2/files/download',{method:'POST',headers:{'Authorization':'Bearer '+tok,'Dropbox-API-Arg':_dbxArg({path})}});
   let token=ls('dropbox_token');
   if(!token)throw new Error('ไม่พบ Dropbox Token — กรุณาเชื่อมต่อ Dropbox ใหม่');
   const path=dropboxPath.startsWith('/')?dropboxPath:'/'+dropboxPath;
