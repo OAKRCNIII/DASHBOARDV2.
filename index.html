@@ -1508,76 +1508,90 @@ function parsePaidAnts(wb){
   }
   return map;
 }
+/* =====================================================
+   PARSED DATA CACHE (IndexedDB) — ข้ามขั้นตอน XLSX.read ทุกครั้ง
+===================================================== */
+function _parsedCacheKey(){
+  /* key ขึ้นกับ path ทุกไฟล์ — เปลี่ยน path = cache ใหม่ */
+  const paths=['f_inv','f_bkg','f_vsl','f_stm','f_ogm','f_oth','f_ogm_price','f_bill','f_paid'].map(k=>ls(k)||'').join('|');
+  let h=0;for(let i=0;i<paths.length;i++){h=((h<<5)-h)+paths.charCodeAt(i);h|=0;}
+  return'parsed_v2_'+Math.abs(h);
+}
+function _serializeParsed(data){
+  const ba=data.billedAnts||new Map(),pa=data.paidAnts||new Map();
+  return JSON.stringify({...data,billedAnts:{_e:[...ba.entries()],_m:ba._meta},paidAnts:{_e:[...pa.entries()],_m:pa._meta}});
+}
+function _deserializeParsed(json){
+  const d=JSON.parse(json);
+  const ba=new Map(d.billedAnts._e||[]);ba._meta=d.billedAnts._m;
+  const pa=new Map(d.paidAnts._e||[]);pa._meta=d.paidAnts._m;
+  d.billedAnts=ba;d.paidAnts=pa;
+  return d;
+}
+
 async function loadData(){
   const p=k=>ls(k)||'';
   const invPath=p('f_inv'),bkgPath=p('f_bkg');
   if(!invPath||!bkgPath)throw new Error('ไม่พบพาธไฟล์ กรุณาตั้งค่าใหม่');
-  const paths=[invPath,bkgPath];
+
+  /* ---- ตรวจ parsed cache ก่อน (ข้าม download+parse ทั้งหมด) ---- */
+  const pKey=_parsedCacheKey();
+  if(!_forceReload){
+    try{
+      const cached=await cacheGet(pKey);
+      if(cached){setLoad('✅ โหลดจากแคช...');return _deserializeParsed(new TextDecoder().decode(cached));}
+    }catch(e){}
+  }
+
+  /* ---- ดาวน์โหลดทุกไฟล์พร้อมกัน ---- */
   const vslPath=p('f_vsl'),stmPath=p('f_stm'),ogmPath=p('f_ogm'),othPath=p('f_oth');
-  if(vslPath)paths.push(vslPath);if(stmPath)paths.push(stmPath);if(ogmPath)paths.push(ogmPath);if(othPath)paths.push(othPath);
-  const bufs=await Promise.all(paths.map(readLocalFile));
+  const ogmPricePath=p('f_ogm_price'),billPath=p('f_bill'),paidPath=p('f_paid');
+  setLoad('☁️ ดาวน์โหลดไฟล์...');
+  const safe=fn=>fn?readLocalFile(fn).catch(e=>{console.warn('download skip:',fn,e.message);return null;}):Promise.resolve(null);
+  const [invBuf,bkgBuf,vslBuf,stmBuf,ogmBuf,othBuf,ogmPriceBuf,billBuf,paidBuf]=
+    await Promise.all([readLocalFile(invPath),readLocalFile(bkgPath),safe(vslPath),safe(stmPath),safe(ogmPath),safe(othPath),safe(ogmPricePath),safe(billPath),safe(paidPath)]);
+
+  /* ---- parse ---- */
   setLoad('ประมวลผลข้อมูล...');
-  const invWb=XLSX.read(bufs[0],{type:'array',cellDates:true});
+  const invWb=XLSX.read(invBuf,{type:'array',cellDates:true});
   const invSh=invWb.SheetNames.find(n=>n.includes('ALL_INV')||n.includes('INV'))||invWb.SheetNames[0];
   const dbSh=invWb.SheetNames.find(n=>n.toUpperCase().includes('DATABASE'))||invWb.SheetNames[1];
   const allInv=parseAllInv(invWb.Sheets[invSh]);
   const dbMap=parseDatabase(invWb.Sheets[dbSh]);
   const {byMonth,flat}=buildFlat(allInv,dbMap);
   const pendCtrs=parseInputSheet(invWb);
-  const bkgWb=XLSX.read(bufs[1],{type:'array'});
+  const bkgWb=XLSX.read(bkgBuf,{type:'array'});
   const stock=parseBkg(bkgWb);
-  let vessel=[],fees={},stmtInfo={latestNo:'',latestBalance:0,latestDate:''};
-  let bi=2;
-  let vesselPlan={};
-  if(vslPath&&bufs[bi]){const vw=XLSX.read(bufs[bi],{type:'array',cellDates:true});const vs=vw.Sheets['DATABASE_VESSEL']||vw.Sheets[vw.SheetNames.find(n=>n.toUpperCase().includes('DATABASE_VESSEL'))];if(vs)vessel=parseVesselDb(vs);vesselPlan=parseInputSheets(vw);bi++;}
-  if(stmPath&&bufs[bi]){const sw=XLSX.read(bufs[bi],{type:'array',cellDates:true});const ss=sw.Sheets['STATEMENT']||sw.Sheets[sw.SheetNames.find(n=>n.toUpperCase().includes('STATEMENT'))];if(ss){const p2=parseStatement(ss);fees=p2.map;stmtInfo={latestNo:p2.latestNo,latestBalance:p2.latestBalance,latestDate:p2.latestDate};}bi++;}
+  let vessel=[],fees={},stmtInfo={latestNo:'',latestBalance:0,latestDate:''},vesselPlan={};
+  if(vslBuf){try{const vw=XLSX.read(vslBuf,{type:'array',cellDates:true});const vs=vw.Sheets['DATABASE_VESSEL']||vw.Sheets[vw.SheetNames.find(n=>n.toUpperCase().includes('DATABASE_VESSEL'))];if(vs)vessel=parseVesselDb(vs);vesselPlan=parseInputSheets(vw);}catch(e){console.warn('VSL:',e.message);}}
+  if(stmBuf){try{const sw=XLSX.read(stmBuf,{type:'array',cellDates:true});const ss=sw.Sheets['STATEMENT']||sw.Sheets[sw.SheetNames.find(n=>n.toUpperCase().includes('STATEMENT'))];if(ss){const p2=parseStatement(ss);fees=p2.map;stmtInfo={latestNo:p2.latestNo,latestBalance:p2.latestBalance,latestDate:p2.latestDate};}}catch(e){console.warn('STM:',e.message);}}
   const trMap={};const billInfoTr={ogm:'-',all:'-'};
   let priceUpdateTable=[];let unpaidTr=[];
-  const mergeTransportLocal=wb2=>{
+  const mergeTr=wb2=>{
     const sh=wb2.Sheets['DATA_BASE_BILL']||wb2.Sheets['DATA_BASE_BILL_ALL']||wb2.Sheets[wb2.SheetNames.find(n=>n.toUpperCase().includes('DATA_BASE_BILL'))];
     if(!sh)return null;
     const {map:m,latestAl}=parseTransportBill(sh);Object.keys(m).forEach(k=>{if(!trMap[k])trMap[k]=[];trMap[k]=trMap[k].concat(m[k]);});
-    /* อ่าน PRICE_UPDATE sheet (ถ้ายังไม่มี) */
     if(!priceUpdateTable.length){const pu=parsePriceUpdate(wb2);if(pu.length)priceUpdateTable=pu;}
-    /* อ่าน unpaid containers */
-    const newUnpaid=parseTransportUnpaid(sh);unpaidTr=unpaidTr.concat(newUnpaid);
-    return latestAl; /* คืน AL ล่าสุดที่เจอในไฟล์ */
+    unpaidTr=unpaidTr.concat(parseTransportUnpaid(sh));
+    return latestAl;
   };
-  if(ogmPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const al=mergeTransportLocal(wb);if(al&&al!=='-')billInfoTr.ogm=al;bi++;}
-  if(othPath&&bufs[bi]){const wb=XLSX.read(bufs[bi],{type:'array',cellDates:true});const al=mergeTransportLocal(wb);if(al&&al!=='-')billInfoTr.all=al;bi++;}
+  if(ogmBuf){try{const wb=XLSX.read(ogmBuf,{type:'array',cellDates:true});const al=mergeTr(wb);if(al&&al!=='-')billInfoTr.ogm=al;}catch(e){console.warn('OGM:',e.message);}}
+  if(othBuf){try{const wb=XLSX.read(othBuf,{type:'array',cellDates:true});const al=mergeTr(wb);if(al&&al!=='-')billInfoTr.all=al;}catch(e){console.warn('OTH:',e.message);}}
   const dupesTr=detectDuplicatesTr(trMap);
   const trMatched=matchContainersTr(allInv,dbMap,trMap);
-  /* optional: OGM price file */
   let ogmPriceMap={};
-  const ogmPricePath=p('f_ogm_price');
-  if(ogmPricePath){
-    try{
-      const priceBuf=await readLocalFile(ogmPricePath);
-      const priceWb=XLSX.read(priceBuf,{type:'array'});
-      const {map:_pm,latest:_pl}=parseAllPriceSheets(priceWb);ogmPriceMap=_pm;OGM_PRICE_LATEST=_pl;
-    }catch(e){console.warn('OGM price file error:',e.message);}
-  }
-  /* optional: BILL_ANTS วางบิลแล้ว */
+  if(ogmPriceBuf){try{const pw=XLSX.read(ogmPriceBuf,{type:'array'});const {map:_pm,latest:_pl}=parseAllPriceSheets(pw);ogmPriceMap=_pm;OGM_PRICE_LATEST=_pl;}catch(e){console.warn('Price:',e.message);}}
   let billedAnts=new Map();
-  const billPath=p('f_bill');
-  if(billPath){
-    try{
-      const billBuf=await readLocalFile(billPath);
-      const billWb=XLSX.read(billBuf,{type:'array',cellDates:false});
-      billedAnts=parseBilledAnts(billWb);
-    }catch(e){console.warn('BILL_ANTS file error:',e.message);}
-  }
-  /* optional: PAID_ANTS รับเงินแล้ว */
+  if(billBuf){try{billedAnts=parseBilledAnts(XLSX.read(billBuf,{type:'array',cellDates:false}));}catch(e){console.warn('BILL:',e.message);}}
   let paidAnts=new Map();
-  const paidPath=p('f_paid');
-  if(paidPath){
-    try{
-      const paidBuf=await readLocalFile(paidPath);
-      const paidWb=XLSX.read(paidBuf,{type:'array',cellDates:false});
-      paidAnts=parsePaidAnts(paidWb);
-    }catch(e){console.warn('PAID_ANTS file error:',e.message);}
-  }
-  return{byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,ogmPriceLatest:OGM_PRICE_LATEST,vesselPlan,billedAnts,paidAnts,priceUpdateTable,unpaidTr};
+  if(paidBuf){try{paidAnts=parsePaidAnts(XLSX.read(paidBuf,{type:'array',cellDates:false}));}catch(e){console.warn('PAID:',e.message);}}
+
+  const result={byMonth,flat,stock,vessel,fees,stmtInfo,pendCtrs,dbMap,trMatched,billInfoTr,dupesTr,ogmPriceMap,ogmPriceLatest:OGM_PRICE_LATEST,vesselPlan,billedAnts,paidAnts,priceUpdateTable,unpaidTr};
+
+  /* ---- บันทึก parsed cache ---- */
+  try{const buf=new TextEncoder().encode(_serializeParsed(result)).buffer;cachePut(pKey,buf).catch(()=>{});}catch(e){}
+
+  return result;
 }
 /* =====================================================
    DASHBOARD STATE
@@ -4651,7 +4665,7 @@ function renderDebtDash(){
     const g=pfxMap[pfx];
     tbl+=`<tr class="debt-pfx-row" onclick="debtTogglePfx(this,'${pfx.replace(/'/g,"\\'")}')"><td>📦 ${h(pfx)} <span class="debt-badge">${g.invs.length} INV</span></td><td style="color:#92400e;">${g.invs.length}</td><td style="text-align:right;color:#b45309;font-family:monospace;">${fm(g.total)}</td></tr>`;
     tbl+=`<tr class="debt-pfx-detail" data-pfx="${h(pfx)}" style="display:none;"><td colspan="3" style="padding:0;"><table style="width:100%;border-collapse:collapse;">`;
-    g.invs.sort((a,b)=>a.inv.localeCompare(b.inv)).forEach(iv=>{
+    g.invs.forEach(iv=>{
       tbl+=`<tr class="debt-inv-row"><td style="padding:6px 12px 6px 28px;">${h(iv.inv)}</td><td style="text-align:right;font-family:monospace;padding:6px 12px;">${fm(iv.amount)}</td><td></td></tr>`;
     });
     tbl+=`</table></td></tr>`;
@@ -4699,7 +4713,68 @@ function renderDebtDash(){
     tbl+=`<span>🏦 ยอดรวมหนี้ทั้งหมด (โรงงาน + ค่าขนส่ง)</span>`;
     tbl+=`<span style="font-family:monospace;font-size:15px;">${fm(allTotal)} บาท</span></div>`;
   }
+  /* ===== ประวัติรับเงินล่าสุด (PAID_ANTS) ===== */
+  if(PAID_ANTS&&PAID_ANTS.size>0){
+    const _parsePaidDate=s=>{
+      if(!s||s==='-')return 0;
+      const m=String(s).match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+      if(m){let y=parseInt(m[3]);if(y>2400)y-=543;else if(y<100)y+=2000;return new Date(y,parseInt(m[2])-1,parseInt(m[1])).getTime();}
+      const ts=Date.parse(s);return isNaN(ts)?0:ts;
+    };
+    const _thDate=s=>{
+      const ms=_parsePaidDate(s);if(!ms)return s||'-';
+      const d=new Date(ms);
+      const MM=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+      return d.getDate()+' '+MM[d.getMonth()]+' '+(d.getFullYear()+543);
+    };
+    const paidList=[];
+    PAID_ANTS.forEach(({amount,datePaid},nInv)=>{
+      const rec=FLAT.find(d=>normInv(d.inv)===nInv);
+      const pfx=rec?rec.prefix:getPfx(nInv)||'?';
+      const invDisplay=rec?rec.inv:nInv;
+      paidList.push({pfx,inv:invDisplay,amount,datePaid,dateMs:_parsePaidDate(datePaid)});
+    });
+    paidList.sort((a,b)=>b.dateMs-a.dateMs||(a.pfx.localeCompare(b.pfx)));
+    const latestByPfx={};
+    paidList.forEach(e=>{if(!latestByPfx[e.pfx])latestByPfx[e.pfx]=e;});
+    const pfxsSorted=Object.keys(latestByPfx).sort((a,b)=>latestByPfx[b].dateMs-latestByPfx[a].dateMs);
+    tbl+=`<div style="margin-top:14px;">`;
+    tbl+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none';this.querySelector('.paid-arrow').textContent=this.nextElementSibling.style.display==='none'?'▶':'▼';">`;
+    tbl+=`<div style="font-size:12px;font-weight:800;color:#166534;">💰 ประวัติรับเงินล่าสุด <span style="background:#dcfce7;color:#166534;border-radius:6px;padding:1px 8px;font-size:10px;">${paidList.length} อินวอยซ์</span></div>`;
+    tbl+=`<span class="paid-arrow" style="font-size:11px;color:#166534;">▼</span></div>`;
+    tbl+=`<div>`;
+    tbl+=`<table class="debt-tbl" style="border-radius:10px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,.07);">`;
+    tbl+=`<thead><tr><th style="background:#166534;">โรงงาน</th><th style="background:#166534;">รับเงินล่าสุด</th><th style="background:#166534;">อินวอยซ์ล่าสุด</th><th class="r" style="background:#166534;">จำนวน (บาท)</th></tr></thead><tbody>`;
+    pfxsSorted.forEach(pfx=>{
+      const latest=latestByPfx[pfx];
+      const s=pst(pfx);
+      const pfxAll=paidList.filter(e=>e.pfx===pfx);
+      const pfxTotal=pfxAll.reduce((a,e)=>a+e.amount,0);
+      tbl+=`<tr class="debt-pfx-row" style="background:#f0fdf4;" onclick="debtTogglePaid(this,'${pfx.replace(/'/g,"\\'")}')">`;
+      tbl+=`<td><span style="background:${s.bg};color:${s.tx};border:1px solid ${s.bd};border-radius:4px;padding:1px 8px;font-size:11px;font-weight:800;">${h(pfx)}</span> <span class="debt-badge" style="background:#dcfce7;color:#166534;border-color:#bbf7d0;">${pfxAll.length} INV</span></td>`;
+      tbl+=`<td style="font-size:11px;font-weight:700;color:#166534;">${_thDate(latest.datePaid)}</td>`;
+      tbl+=`<td style="font-size:11px;color:#374151;">${h(latest.inv)}</td>`;
+      tbl+=`<td style="text-align:right;font-family:monospace;font-size:11px;color:#166534;">${fm(pfxTotal)}</td></tr>`;
+      tbl+=`<tr class="debt-pfx-detail" data-paid="${h(pfx)}" style="display:none;"><td colspan="4" style="padding:0;"><table style="width:100%;border-collapse:collapse;">`;
+      pfxAll.forEach(e=>{
+        tbl+=`<tr style="background:#f7fef9;border-bottom:1px solid #dcfce7;">`;
+        tbl+=`<td style="padding:5px 12px 5px 28px;font-size:11px;color:#374151;">${h(e.inv)}</td>`;
+        tbl+=`<td style="padding:5px 12px;font-size:11px;color:#166534;font-weight:600;">${_thDate(e.datePaid)}</td>`;
+        tbl+=`<td colspan="2" style="text-align:right;font-family:monospace;font-size:11px;padding:5px 12px;color:#15803d;">${fm(e.amount)}</td></tr>`;
+      });
+      tbl+=`</table></td></tr>`;
+    });
+    tbl+=`</tbody></table></div></div>`;
+  }
   document.getElementById('debtDashBody').innerHTML=tbl;
+}
+function debtTogglePaid(row,pfx){
+  const detail=document.querySelector(`.debt-pfx-detail[data-paid="${CSS.escape(pfx)}"]`);
+  if(!detail)return;
+  const open=detail.style.display!=='none';
+  detail.style.display=open?'none':'table-row';
+  const badge=row.querySelector('.debt-badge');
+  if(badge)badge.textContent=open?badge.textContent.replace('▲ ',''):`▲ ${badge.textContent}`;
 }
 function debtTogglePfx(row,pfx){
   const detail=document.querySelector(`.debt-pfx-detail[data-pfx="${CSS.escape(pfx)}"]`);
@@ -4827,7 +4902,7 @@ function printDebtReport(pfxFilter,showDetail,shipFilter){
       body+=`<div class="pfx-page${isLast?'':' page-break'}">`;
       body+=`<div class="pfx-hdr">📦 ${pfx} <span class="pfx-sub">${g.invs.length} อินวอยซ์</span></div>`;
       body+=`<table><thead><tr><th>อินวอยซ์</th><th class="r">จำนวน (บาท)</th></tr></thead><tbody>`;
-      g.invs.sort((a,b)=>a.inv.localeCompare(b.inv)).forEach(iv=>{
+      g.invs.forEach(iv=>{
         body+=`<tr><td style="padding:7px 12px;font-size:12px;">${iv.inv}</td><td style="text-align:right;font-family:monospace;font-size:12px;padding:7px 12px;">${fm(iv.amount)}</td></tr>`;
       });
       body+=`<tr class="sub-total"><td>รวม ${pfx}</td><td style="text-align:right;font-family:monospace;">${fm(g.total)}</td></tr>`;
